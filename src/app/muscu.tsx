@@ -14,6 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { Chip } from '@/components/chip';
+import { PressableScale } from '@/components/pressable-scale';
+import { Elevation, Radius, Type } from '@/constants/theme';
 import { estimateCalories } from '@/lib/calories';
 import { createSession, getProfile, replaceMuscuSets, updateSession } from '@/lib/db';
 import { formatDuration } from '@/lib/format';
@@ -191,12 +194,12 @@ export default function MuscuScreen() {
         }}>
         {/* En-tête */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Pressable onPress={discard} hitSlop={12}>
+          <PressableScale onPress={discard} haptic="selection" scaleTo={0.88} hitSlop={12}>
             <MaterialCommunityIcons name="close" size={26} color={theme.text} />
-          </Pressable>
+          </PressableScale>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <MaterialCommunityIcons name="dumbbell" size={22} color={theme.muscu} />
-            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '800' }}>Musculation</Text>
+            <Text style={{ ...Type.headline, color: theme.text }}>Musculation</Text>
           </View>
           <View style={{ width: 26 }} />
         </View>
@@ -264,33 +267,31 @@ export default function MuscuScreen() {
               </View>
             ))}
 
-            <Pressable
+            <PressableScale
               onPress={() => addSet(ex.id)}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
               <MaterialCommunityIcons name="plus-circle-outline" size={18} color={theme.muscu} />
               <Text style={{ color: theme.muscu, fontWeight: '700' }}>Ajouter une série</Text>
-            </Pressable>
+            </PressableScale>
           </Card>
         ))}
 
         {/* Ajout d'exercice */}
         <Card style={{ gap: 12 }}>
-          <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>
-            Ajouter un exercice
-          </Text>
+          <Text style={{ ...Type.subtitle, color: theme.text }}>Ajouter un exercice</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TextInput
               value={draft}
               onChangeText={setDraft}
               placeholder="Nom de l'exercice"
-              placeholderTextColor={theme.textSecondary}
+              placeholderTextColor={theme.textMuted}
               onSubmitEditing={() => addExercise(draft)}
               returnKeyType="done"
               style={{
                 flex: 1,
                 color: theme.text,
                 backgroundColor: theme.background,
-                borderRadius: 10,
+                borderRadius: Radius.sm,
                 borderWidth: 1,
                 borderColor: theme.border,
                 paddingHorizontal: 12,
@@ -298,32 +299,21 @@ export default function MuscuScreen() {
                 fontSize: 15,
               }}
             />
-            <Pressable
+            <PressableScale
               onPress={() => addExercise(draft)}
+              haptic="light"
               style={{
                 backgroundColor: theme.muscu,
-                borderRadius: 10,
+                borderRadius: Radius.sm,
                 paddingHorizontal: 16,
                 justifyContent: 'center',
               }}>
               <MaterialCommunityIcons name="plus" size={22} color="#fff" />
-            </Pressable>
+            </PressableScale>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {COMMON.map((name) => (
-              <Pressable
-                key={name}
-                onPress={() => addExercise(name)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 7,
-                  borderRadius: 999,
-                  backgroundColor: theme.background,
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                }}>
-                <Text style={{ color: theme.text, fontSize: 13, fontWeight: '600' }}>{name}</Text>
-              </Pressable>
+              <Chip key={name} label={name} color={theme.muscu} onPress={() => addExercise(name)} />
             ))}
           </View>
         </Card>
@@ -341,7 +331,8 @@ export default function MuscuScreen() {
           paddingBottom: insets.bottom + 12,
           backgroundColor: theme.backgroundElement,
           borderTopWidth: 1,
-          borderTopColor: theme.border,
+          borderTopColor: theme.hairline,
+          ...Elevation.lg,
         }}>
         <Button
           title="Terminer la séance"
@@ -368,16 +359,8 @@ function Summary({
 }) {
   return (
     <View style={{ alignItems: 'center', gap: 2 }}>
-      <Text
-        style={{
-          color: color ?? theme.text,
-          fontSize: 18,
-          fontWeight: '800',
-          fontVariant: ['tabular-nums'],
-        }}>
-        {value}
-      </Text>
-      <Text style={{ color: theme.textSecondary, fontSize: 12, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ ...Type.metric, fontSize: 20, color: color ?? theme.text }}>{value}</Text>
+      <Text style={{ ...Type.caption, color: theme.textSecondary }}>{label}</Text>
     </View>
   );
 }

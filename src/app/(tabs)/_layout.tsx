@@ -16,12 +16,12 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: {
           backgroundColor: theme.backgroundElement,
-          borderTopColor: theme.border,
+          borderTopColor: theme.hairline,
           height: 80 + insets.bottom,
           paddingTop: 8,
           paddingBottom: insets.bottom + 12,
         },
-        tabBarLabelStyle: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 12, lineHeight: 16, fontWeight: '700' },
       }}>
       <Tabs.Screen
         name="index"

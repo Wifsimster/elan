@@ -53,7 +53,7 @@ Single lazily-opened connection (`getDb()`), WAL mode, foreign keys on. Schema i
 
 ### Styling & theming
 
-Not NativeWind despite a `global.css` (that file only declares CSS font variables for web). Components style with plain inline style objects and pull colors from `useTheme()` (→ `Colors[light|dark]` in `src/constants/theme.ts`), which follows the system color scheme. Icons are `@expo/vector-icons` MaterialCommunityIcons.
+The app follows the **PULSE design system — see `DESIGN.md`** (read it before touching UI). Not NativeWind despite a `global.css` (that file only declares CSS font variables for web). Components style with plain inline style objects and pull every value from `src/constants/theme.ts`: colors via `useTheme()` (→ `Colors[light|dark]`, follows the system scheme), and `Radius` / `Elevation` / `Type` / `Motion` / `Gradients` via static imports — **never hard-code a color, font size, radius or shadow in a screen.** Interactive elements use `<PressableScale>` (spring press + haptic, `lib/haptics`); primary actions use the gradient `Button`; gradients render via the local `<Gradient>` (react-native-svg, no network). Icons are `@expo/vector-icons` MaterialCommunityIcons.
 
 ### Web caveats (`metro.config.js`)
 

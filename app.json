@@ -14,7 +14,7 @@
     "android": {
       "package": "com.local.suivisport",
       "adaptiveIcon": {
-        "backgroundColor": "#0E1116",
+        "backgroundColor": "#0A0C10",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -24,7 +24,9 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.BLUETOOTH_SCAN",
-        "android.permission.BLUETOOTH_CONNECT"
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN"
       ]
     },
     "web": {
@@ -36,7 +38,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0E1116",
+          "backgroundColor": "#0A0C10",
           "android": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76
@@ -62,6 +64,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d378b2fc-923d-443c-ad81-5877a2b922a5"
+      }
+    },
+    "owner": "wifsimster"
   }
 }

@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BarChart, type Bar } from '@/components/bar-chart';
@@ -9,7 +9,9 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { HrBadge } from '@/components/hr-badge';
+import { PressableScale } from '@/components/pressable-scale';
 import { StatTile } from '@/components/stat-tile';
+import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
 import { dailyDurations, listSessions, statsSince } from '@/lib/db';
 import {
@@ -80,11 +82,9 @@ export default function HomeScreen() {
         gap: 16,
       }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View>
-          <Text style={{ color: theme.textSecondary, fontSize: 15 }}>Bonjour 👋</Text>
-          <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>
-            Suivi Sport
-          </Text>
+        <View style={{ gap: 2 }}>
+          <Text style={{ ...Type.label, color: theme.textSecondary }}>Bonjour 👋</Text>
+          <Text style={{ ...Type.title, color: theme.text }}>Suivi Sport</Text>
         </View>
         <HrBadge />
       </View>
@@ -92,26 +92,16 @@ export default function HomeScreen() {
       {/* Démarrer une séance */}
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <View style={{ flex: 1 }}>
-          <Button
-            title="Vélo"
-            icon="bike"
-            color={theme.velo}
-            onPress={() => router.push('/velo')}
-          />
+          <Button title="Vélo" icon="bike" size="lg" color={theme.velo} onPress={() => router.push('/velo')} />
         </View>
         <View style={{ flex: 1 }}>
-          <Button
-            title="Muscu"
-            icon="dumbbell"
-            color={theme.muscu}
-            onPress={() => router.push('/muscu')}
-          />
+          <Button title="Muscu" icon="dumbbell" size="lg" color={theme.muscu} onPress={() => router.push('/muscu')} />
         </View>
       </View>
 
       {/* Résumé de la semaine */}
       <Card>
-        <Text style={{ color: theme.text, fontSize: 16, fontWeight: '700' }}>Cette semaine</Text>
+        <Text style={{ ...Type.headline, color: theme.text }}>Cette semaine</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
           <StatTile
             label="Séances"
@@ -145,20 +135,14 @@ export default function HomeScreen() {
 
       {/* Graphe 7 jours */}
       <Card>
-        <Text style={{ color: theme.text, fontSize: 16, fontWeight: '700' }}>
-          Activité (7 derniers jours)
-        </Text>
-        <BarChart
-          data={bars}
-          color={theme.accent}
-          formatValue={(v) => formatDurationShort(v)}
-        />
+        <Text style={{ ...Type.headline, color: theme.text }}>Activité (7 derniers jours)</Text>
+        <BarChart data={bars} gradient="accent" formatValue={(v) => formatDurationShort(v)} />
       </Card>
 
       {/* Séances récentes */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ color: theme.text, fontSize: 16, fontWeight: '700' }}>Récent</Text>
-        <Link href="/history" style={{ color: theme.accent, fontWeight: '600' }}>
+        <Text style={{ ...Type.headline, color: theme.text }}>Récent</Text>
+        <Link href="/history" style={{ color: theme.accent, fontWeight: '700' }}>
           Tout voir
         </Link>
       </View>
@@ -189,13 +173,13 @@ function RecentRow({ session }: { session: Session }) {
 
   return (
     <Link href={{ pathname: '/session/[id]', params: { id: session.id } }} asChild>
-      <Pressable>
+      <PressableScale>
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 }}>
           <View
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
+              width: 46,
+              height: 46,
+              borderRadius: Radius.sm,
               borderCurve: 'continuous',
               backgroundColor: color + '22',
               alignItems: 'center',
@@ -204,15 +188,13 @@ function RecentRow({ session }: { session: Session }) {
             <MaterialCommunityIcons name={meta.icon} size={24} color={color} />
           </View>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ color: theme.text, fontSize: 16, fontWeight: '700' }}>
-              {meta.label}
-            </Text>
+            <Text style={{ ...Type.subtitle, color: theme.text }}>{meta.label}</Text>
             <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
               {formatDateTime(session.startedAt)}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end', gap: 2 }}>
-            <Text style={{ color: theme.text, fontWeight: '700' }}>
+            <Text style={{ color: theme.text, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
               {formatDurationShort(session.durationSec)}
             </Text>
             {session.type === 'velo' && session.distanceM != null ? (
@@ -221,9 +203,9 @@ function RecentRow({ session }: { session: Session }) {
               </Text>
             ) : null}
           </View>
-          <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textSecondary} />
+          <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textMuted} />
         </Card>
-      </Pressable>
+      </PressableScale>
     </Link>
   );
 }

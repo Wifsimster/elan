@@ -1,10 +1,12 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Chip } from '@/components/chip';
 import { EmptyState } from '@/components/empty-state';
 import { SessionRow } from '@/components/session-row';
+import { Type } from '@/constants/theme';
 import { listSessions } from '@/lib/db';
 import type { ActivityType, Session } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -43,29 +45,18 @@ export default function HistoryScreen() {
         paddingHorizontal: 16,
         gap: 14,
       }}>
-      <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>Historique</Text>
+      <Text style={{ ...Type.title, color: theme.text }}>Historique</Text>
 
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        {FILTERS.map((f) => {
-          const active = filter === f.key;
-          return (
-            <Pressable
-              key={f.key}
-              onPress={() => setFilter(f.key)}
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 999,
-                backgroundColor: active ? theme.accent : theme.backgroundElement,
-                borderWidth: 1,
-                borderColor: active ? theme.accent : theme.border,
-              }}>
-              <Text style={{ color: active ? '#fff' : theme.text, fontWeight: '700', fontSize: 14 }}>
-                {f.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+        {FILTERS.map((f) => (
+          <Chip
+            key={f.key}
+            label={f.label}
+            selected={filter === f.key}
+            color={f.key === 'velo' ? theme.velo : f.key === 'muscu' ? theme.muscu : theme.accent}
+            onPress={() => setFilter(f.key)}
+          />
+        ))}
       </View>
 
       {filtered.length === 0 ? (

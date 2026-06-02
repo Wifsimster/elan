@@ -1,8 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Card } from '@/components/card';
+import { PressableScale } from '@/components/pressable-scale';
+import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
 import { formatDateTime, formatDistance, formatDurationShort } from '@/lib/format';
 import type { Session } from '@/lib/types';
@@ -15,13 +17,13 @@ export function SessionRow({ session }: { session: Session }) {
 
   return (
     <Link href={{ pathname: '/session/[id]', params: { id: session.id } }} asChild>
-      <Pressable>
+      <PressableScale>
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 }}>
           <View
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
+              width: 46,
+              height: 46,
+              borderRadius: Radius.sm,
               borderCurve: 'continuous',
               backgroundColor: color + '22',
               alignItems: 'center',
@@ -30,13 +32,13 @@ export function SessionRow({ session }: { session: Session }) {
             <MaterialCommunityIcons name={meta.icon} size={24} color={color} />
           </View>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ color: theme.text, fontSize: 16, fontWeight: '700' }}>{meta.label}</Text>
+            <Text style={{ ...Type.subtitle, color: theme.text }}>{meta.label}</Text>
             <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
               {formatDateTime(session.startedAt)}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end', gap: 2 }}>
-            <Text style={{ color: theme.text, fontWeight: '700' }}>
+            <Text style={{ color: theme.text, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
               {formatDurationShort(session.durationSec)}
             </Text>
             {session.type === 'velo' && session.distanceM != null ? (
@@ -47,9 +49,9 @@ export function SessionRow({ session }: { session: Session }) {
               <Text style={{ color: theme.textSecondary, fontSize: 13 }}>{session.avgHr} bpm moy.</Text>
             ) : null}
           </View>
-          <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textSecondary} />
+          <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textMuted} />
         </Card>
-      </Pressable>
+      </PressableScale>
     </Link>
   );
 }

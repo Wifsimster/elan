@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { PressableScale } from '@/components/pressable-scale';
+import { Radius } from '@/constants/theme';
 import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -26,12 +28,22 @@ export function HrBadge() {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 999,
-        backgroundColor: connected ? theme.heart + '22' : theme.backgroundElement,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: Radius.pill,
+        backgroundColor: connected ? theme.heart + '1F' : theme.backgroundElement,
         borderWidth: 1,
-        borderColor: connected ? theme.heart : theme.border,
+        borderColor: connected ? theme.heart + '66' : theme.border,
+        // Halo cardiaque quand la ceinture émet.
+        ...(connected
+          ? {
+              shadowColor: theme.heart,
+              shadowOpacity: 0.5,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 0 },
+              elevation: 6,
+            }
+          : null),
       }}>
       <MaterialCommunityIcons
         name={connected ? 'heart-pulse' : 'heart-off-outline'}
@@ -41,14 +53,14 @@ export function HrBadge() {
       <Text
         style={{
           color: connected ? theme.heart : theme.textSecondary,
-          fontWeight: '700',
+          fontWeight: '800',
           fontSize: 15,
           fontVariant: ['tabular-nums'],
         }}>
         {label}
       </Text>
       {connected && bpm != null ? (
-        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>bpm</Text>
+        <Text style={{ color: theme.textSecondary, fontSize: 12, fontWeight: '600' }}>bpm</Text>
       ) : null}
     </View>
   );
@@ -57,7 +69,7 @@ export function HrBadge() {
 
   return (
     <Link href="/settings" asChild>
-      <Pressable>{content}</Pressable>
+      <PressableScale haptic="selection">{content}</PressableScale>
     </Link>
   );
 }

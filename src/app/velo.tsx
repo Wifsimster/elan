@@ -2,12 +2,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { PressableScale } from '@/components/pressable-scale';
 import { StatTile } from '@/components/stat-tile';
+import { Elevation, Type } from '@/constants/theme';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
@@ -173,27 +175,20 @@ export default function VeloScreen() {
         }}>
         {/* En-tête */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Pressable onPress={discard} hitSlop={12} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <PressableScale onPress={discard} haptic="selection" scaleTo={0.88} hitSlop={12}>
             <MaterialCommunityIcons name="close" size={26} color={theme.text} />
-          </Pressable>
+          </PressableScale>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <MaterialCommunityIcons name="bike" size={22} color={theme.velo} />
-            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '800' }}>Vélo</Text>
+            <Text style={{ ...Type.headline, color: theme.text }}>Vélo</Text>
           </View>
           <View style={{ width: 26 }} />
         </View>
 
         {/* Chrono */}
         <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-          <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '600' }}>DURÉE</Text>
-          <Text
-            selectable
-            style={{
-              color: theme.text,
-              fontSize: 64,
-              fontWeight: '800',
-              fontVariant: ['tabular-nums'],
-            }}>
+          <Text style={{ ...Type.overline, color: theme.velo }}>Durée</Text>
+          <Text selectable style={{ ...Type.metricLg, color: theme.text }}>
             {formatDuration(watch.elapsedSec)}
           </Text>
           <GpsStatusPill status={gps.status} accuracyM={gps.accuracyM} phase={phase} />
@@ -261,9 +256,10 @@ export default function VeloScreen() {
           paddingBottom: insets.bottom + 12,
           backgroundColor: theme.backgroundElement,
           borderTopWidth: 1,
-          borderTopColor: theme.border,
+          borderTopColor: theme.hairline,
           flexDirection: 'row',
           gap: 12,
+          ...Elevation.lg,
         }}>
         {phase === 'idle' ? (
           <View style={{ flex: 1 }}>

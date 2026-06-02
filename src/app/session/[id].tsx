@@ -7,6 +7,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { RouteMap } from '@/components/route-map';
 import { StatTile } from '@/components/stat-tile';
+import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
 import { deleteSession, getMuscuSets, getSession, getTrackPoints } from '@/lib/db';
 import {
@@ -94,9 +95,9 @@ export default function SessionDetailScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View
             style={{
-              width: 52,
-              height: 52,
-              borderRadius: 14,
+              width: 54,
+              height: 54,
+              borderRadius: Radius.md,
               borderCurve: 'continuous',
               backgroundColor: color + '22',
               alignItems: 'center',
@@ -105,7 +106,7 @@ export default function SessionDetailScreen() {
             <MaterialCommunityIcons name={meta.icon} size={28} color={color} />
           </View>
           <View>
-            <Text style={{ color: theme.text, fontSize: 20, fontWeight: '800' }}>{meta.label}</Text>
+            <Text style={{ ...Type.headline, color: theme.text }}>{meta.label}</Text>
             <Text style={{ color: theme.textSecondary, fontSize: 14 }}>
               {formatDateTime(session.startedAt)}
             </Text>
@@ -179,7 +180,7 @@ export default function SessionDetailScreen() {
 
         {session.notes ? (
           <Card>
-            <Text style={{ color: theme.textSecondary, fontSize: 13, fontWeight: '700' }}>NOTES</Text>
+            <Text style={{ ...Type.overline, color: theme.textSecondary }}>Notes</Text>
             <Text selectable style={{ color: theme.text, fontSize: 15 }}>
               {session.notes}
             </Text>

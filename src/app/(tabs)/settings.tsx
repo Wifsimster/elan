@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { PressableScale } from '@/components/pressable-scale';
+import { Type } from '@/constants/theme';
 import { clearAllData, getProfile, saveProfile } from '@/lib/db';
 import type { Profile } from '@/lib/types';
 import { useHeartRate } from '@/hooks/use-heart-rate';
@@ -50,7 +52,7 @@ export default function SettingsScreen() {
         paddingHorizontal: 16,
         gap: 16,
       }}>
-      <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800' }}>Réglages</Text>
+      <Text style={{ ...Type.title, color: theme.text }}>Réglages</Text>
 
       {/* Ceinture cardiaque */}
       <Card style={{ gap: 14 }}>
@@ -95,21 +97,22 @@ export default function SettingsScreen() {
         ) : null}
 
         {hr.scanned.map((d) => (
-          <Pressable
+          <PressableScale
             key={d.id}
             onPress={() => hr.connect(d.id)}
+            haptic="light"
             style={{
               flexDirection: 'row',
               alignItems: 'center',
               gap: 10,
               paddingVertical: 10,
               borderTopWidth: 1,
-              borderTopColor: theme.border,
+              borderTopColor: theme.hairline,
             }}>
             <MaterialCommunityIcons name="heart-flash" size={20} color={theme.heart} />
             <Text style={{ color: theme.text, flex: 1, fontWeight: '600' }}>{d.name}</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textSecondary} />
-          </Pressable>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textMuted} />
+          </PressableScale>
         ))}
 
         {hr.status === 'unsupported' ? (
