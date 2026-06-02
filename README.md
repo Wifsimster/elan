@@ -1,4 +1,4 @@
-# Suivi Sport 🚴‍♂️🏋️
+# Élan 🚴‍♂️🏋️
 
 Tracker d'activité physique **personnel et 100 % local** pour Android.
 Conçu pour le **vélo** (suivi GPS) et la **musculation**, avec prise en charge des

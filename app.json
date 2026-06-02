@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Suivi Sport",
+    "name": "Élan",
     "slug": "tracker-activite",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "trackeractivite",
+    "scheme": "elan",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
       "supportsTablet": true
     },
     "android": {
-      "package": "com.local.suivisport",
+      "package": "com.local.elan",
       "adaptiveIcon": {
         "backgroundColor": "#0A0C10",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

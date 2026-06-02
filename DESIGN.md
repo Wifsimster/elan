@@ -1,6 +1,6 @@
 # PULSE — Design System
 
-**PULSE** est le langage visuel de Suivi Sport : un système **cinétique, sombre par défaut et orienté effort**, dans la lignée de Material 3 Expressive et des apps de sport modernes (WHOOP, Strava, Apple Fitness). Trois partis pris le résument :
+**PULSE** est le langage visuel d'Élan : un système **cinétique, sombre par défaut et orienté effort**, dans la lignée de Material 3 Expressive et des apps de sport modernes (WHOOP, Strava, Apple Fitness). Trois partis pris le résument :
 
 1. **L'énergie passe par la couleur et le dégradé.** Chaque activité a sa teinte vive et son dégradé ; les actions principales rayonnent (ombre teintée), pas juste « remplies ».
 2. **La profondeur passe par l'ombre, pas par la bordure.** Les surfaces flottent au-dessus d'un fond quasi noir ; les bordures dures sont réservées aux champs et séparateurs.

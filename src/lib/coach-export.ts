@@ -219,9 +219,9 @@ export async function buildCoachMarkdown(): Promise<string> {
   );
 
   const header = [
-    '# Suivi Sport — Export pour ton coach IA',
+    '# Élan — Export pour ton coach IA',
     '',
-    `Généré le ${formatDateTime(nowMs())}. Données issues de l'app Suivi Sport (toutes locales).`,
+    `Généré le ${formatDateTime(nowMs())}. Données issues de l'app Élan (toutes locales).`,
     'Charges en kg, durées en h/min, distances en km. Dates en heure locale.',
   ].join('\n');
 

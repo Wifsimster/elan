@@ -85,7 +85,7 @@ export default function HomeScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ gap: 2 }}>
           <Text style={{ ...Type.label, color: theme.textSecondary }}>Bonjour 👋</Text>
-          <Text style={{ ...Type.title, color: theme.text }}>Suivi Sport</Text>
+          <Text style={{ ...Type.title, color: theme.text }}>Élan</Text>
         </View>
         <HrBadge />
       </View>

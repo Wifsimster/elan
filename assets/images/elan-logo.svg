@@ -1,5 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
-  <g fill="#ffffff">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="elan" x1="320" y1="200" x2="760" y2="800" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6478FF"/>
+      <stop offset="1" stop-color="#7A3BFF"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#elan)">
     <g transform="translate(0,530) skewX(-9) translate(0,-530)">
       <rect x="362" y="300" width="120" height="460" rx="32"/>
       <rect x="362" y="300" width="392" height="120" rx="32"/>
