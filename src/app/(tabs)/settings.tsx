@@ -70,14 +70,14 @@ export default function SettingsScreen() {
             title="Déconnecter"
             icon="bluetooth-off"
             variant="secondary"
-            color={theme.heart}
+            color={theme.accent}
             onPress={hr.disconnect}
           />
         ) : (
           <Button
             title={hr.status === 'scanning' ? 'Recherche en cours…' : 'Rechercher une ceinture'}
             icon="bluetooth"
-            color={theme.heart}
+            color={theme.accent}
             loading={hr.status === 'scanning' || hr.status === 'connecting'}
             onPress={hr.startScan}
           />

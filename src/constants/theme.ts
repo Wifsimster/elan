@@ -28,6 +28,7 @@ export const Colors = {
     velo: '#0BA59B',
     muscu: '#7C3AED',
     heart: '#F43F5E',
+    danger: '#DC2626',
     success: '#10B981',
     warning: '#E08600',
   },
@@ -46,6 +47,7 @@ export const Colors = {
     velo: '#22D3C5',
     muscu: '#A78BFA',
     heart: '#FF5C7A',
+    danger: '#FF4D4D',
     success: '#34D399',
     warning: '#FBBF24',
   },
@@ -63,6 +65,7 @@ export const Gradients = {
   velo: ['#2DE0C0', '#0BA9B5'],
   muscu: ['#B07BFF', '#7A3BFF'],
   heart: ['#FF6B8B', '#F43F5E'],
+  danger: ['#FF5A5A', '#D61F2E'],
   fire: ['#FFB020', '#FF6B35'],
   success: ['#4ADE80', '#10B981'],
   /** Voile sombre posé en bas d'une image/héros pour asseoir le texte. */

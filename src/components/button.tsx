@@ -51,7 +51,7 @@ export function Button({
 }: Props) {
   const theme = useTheme();
   const accent = color ?? theme.accent;
-  const grad = gradient ?? (variant === 'danger' ? 'heart' : gradientFor(accent, theme));
+  const grad = gradient ?? (variant === 'danger' ? 'danger' : gradientFor(accent, theme));
 
   const fg =
     variant === 'primary' || variant === 'danger'
@@ -86,7 +86,7 @@ export function Button({
 
   // Action pleine : dégradé + ombre teintée à la couleur de l'action.
   if (variant === 'primary' || variant === 'danger') {
-    const shadowColor = variant === 'danger' ? theme.heart : accent;
+    const shadowColor = variant === 'danger' ? theme.danger : accent;
     return (
       <PressableScale
         disabled={disabled || loading}
