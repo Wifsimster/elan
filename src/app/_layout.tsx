@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { BackupProvider } from '@/hooks/use-backup';
 import { CadenceSpeedProvider } from '@/hooks/use-cadence-speed';
 import { HeartRateProvider } from '@/hooks/use-heart-rate';
 
@@ -18,19 +19,21 @@ export default function RootLayout() {
       <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
         <HeartRateProvider>
           <CadenceSpeedProvider>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="velo"
-                options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }}
-              />
-              <Stack.Screen
-                name="muscu"
-                options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }}
-              />
-              <Stack.Screen name="session/[id]" options={{ title: 'Séance' }} />
-            </Stack>
-            <StatusBar style="auto" />
+            <BackupProvider>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="velo"
+                  options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }}
+                />
+                <Stack.Screen
+                  name="muscu"
+                  options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }}
+                />
+                <Stack.Screen name="session/[id]" options={{ title: 'Séance' }} />
+              </Stack>
+              <StatusBar style="auto" />
+            </BackupProvider>
           </CadenceSpeedProvider>
         </HeartRateProvider>
       </ThemeProvider>

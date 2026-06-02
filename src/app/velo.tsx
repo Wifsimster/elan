@@ -11,6 +11,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { RouteMap } from '@/components/route-map';
 import { StatTile } from '@/components/stat-tile';
 import { Elevation, Type } from '@/constants/theme';
+import { autoBackup } from '@/lib/backup';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
@@ -168,6 +169,7 @@ export default function VeloScreen() {
     }));
     await insertTrackPoints(id, points);
 
+    autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
     router.replace({ pathname: '/session/[id]', params: { id } });
   };
 

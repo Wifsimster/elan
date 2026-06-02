@@ -17,6 +17,7 @@ import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
 import { PressableScale } from '@/components/pressable-scale';
 import { Elevation, Radius, Type } from '@/constants/theme';
+import { autoBackup } from '@/lib/backup';
 import { estimateCalories } from '@/lib/calories';
 import { createSession, getProfile, replaceMuscuSets, updateSession } from '@/lib/db';
 import { formatDuration } from '@/lib/format';
@@ -168,6 +169,7 @@ export default function MuscuScreen() {
     );
     await replaceMuscuSets(id, flat);
 
+    autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
     router.replace({ pathname: '/session/[id]', params: { id } });
   };
 

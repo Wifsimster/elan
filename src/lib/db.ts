@@ -299,3 +299,78 @@ export async function clearAllData(): Promise<void> {
   const db = await getDb();
   await db.execAsync('DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions;');
 }
+
+// ---------------------------------------------------------------------------
+// Sauvegarde / restauration (export complet de la base)
+// ---------------------------------------------------------------------------
+
+/** Clés de réglages exclues des sauvegardes (secrets, propres à l'appareil). */
+const BACKUP_EXCLUDED_KEYS = new Set(['backup_s3', 'backup_last']);
+
+export type DbSnapshot = {
+  sessions: Session[];
+  trackPoints: TrackPoint[];
+  muscuSets: MuscuSet[];
+  settings: { key: string; value: string }[];
+};
+
+/** Lit l'intégralité de la base pour une sauvegarde (hors réglages secrets). */
+export async function exportAll(): Promise<DbSnapshot> {
+  const db = await getDb();
+  const [sessions, trackPoints, muscuSets, allSettings] = await Promise.all([
+    db.getAllAsync<Session>('SELECT * FROM sessions;'),
+    db.getAllAsync<TrackPoint>('SELECT * FROM track_points;'),
+    db.getAllAsync<MuscuSet>('SELECT * FROM muscu_sets;'),
+    db.getAllAsync<{ key: string; value: string }>('SELECT key, value FROM settings;'),
+  ]);
+  const settings = allSettings.filter((s) => !BACKUP_EXCLUDED_KEYS.has(s.key));
+  return { sessions, trackPoints, muscuSets, settings };
+}
+
+/**
+ * Remplace toutes les données locales par celles d'une sauvegarde. Les ids
+ * sont conservés (la base est vidée au préalable, dans une transaction).
+ * Les réglages secrets de la sauvegarde elle-même ne sont jamais réécrits.
+ */
+export async function importAll(snap: DbSnapshot): Promise<void> {
+  const db = await getDb();
+  const n = (v: unknown): SQLite.SQLiteBindValue => (v === undefined ? null : (v as SQLite.SQLiteBindValue));
+  await db.withTransactionAsync(async () => {
+    await db.execAsync('DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions;');
+
+    for (const s of snap.sessions ?? []) {
+      await db.runAsync(
+        `INSERT INTO sessions
+           (id, type, startedAt, endedAt, durationSec, notes, avgHr, maxHr,
+            distanceM, avgSpeedKmh, maxSpeedKmh, elevationGainM, avgCadence, maxCadence, calories)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        n(s.id), n(s.type), n(s.startedAt), n(s.endedAt), n(s.durationSec), n(s.notes),
+        n(s.avgHr), n(s.maxHr), n(s.distanceM), n(s.avgSpeedKmh), n(s.maxSpeedKmh),
+        n(s.elevationGainM), n(s.avgCadence), n(s.maxCadence), n(s.calories),
+      );
+    }
+    for (const p of snap.trackPoints ?? []) {
+      await db.runAsync(
+        `INSERT INTO track_points (id, sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        n(p.id), n(p.sessionId), n(p.ts), n(p.lat), n(p.lon),
+        n(p.altitude), n(p.speedKmh), n(p.hr), n(p.cadence),
+      );
+    }
+    for (const m of snap.muscuSets ?? []) {
+      await db.runAsync(
+        `INSERT INTO muscu_sets (id, sessionId, exercise, setIndex, reps, weightKg)
+         VALUES (?, ?, ?, ?, ?, ?);`,
+        n(m.id), n(m.sessionId), n(m.exercise), n(m.setIndex), n(m.reps), n(m.weightKg),
+      );
+    }
+    for (const st of snap.settings ?? []) {
+      if (BACKUP_EXCLUDED_KEYS.has(st.key)) continue;
+      await db.runAsync(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value;',
+        st.key,
+        st.value,
+      );
+    }
+  });
+}
