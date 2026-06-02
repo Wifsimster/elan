@@ -1,6 +1,15 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -8,8 +17,10 @@ import { Card } from '@/components/card';
 import { PressableScale } from '@/components/pressable-scale';
 import { Radius, Type } from '@/constants/theme';
 import { clearAllData, getProfile, saveProfile } from '@/lib/db';
+import { formatDateTime } from '@/lib/format';
 import type { Profile } from '@/lib/types';
 import { WHEEL_SIZES } from '@/lib/wheel-sizes';
+import { useBackup } from '@/hooks/use-backup';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useStravaImport } from '@/hooks/use-strava-import';
@@ -21,6 +32,7 @@ export default function SettingsScreen() {
   const hr = useHeartRate();
   const csc = useCadenceSpeed();
   const strava = useStravaImport();
+  const backup = useBackup();
 
   const [profile, setProfile] = useState<Profile | null>(null);
 
@@ -56,6 +68,26 @@ export default function SettingsScreen() {
       [
         { text: 'Annuler', style: 'cancel' },
         { text: 'Tout effacer', style: 'destructive', onPress: () => clearAllData() },
+      ],
+    );
+  };
+
+  const confirmRestore = () => {
+    Alert.alert(
+      'Restaurer la sauvegarde ?',
+      'Les données locales actuelles seront REMPLACÉES par celles du serveur. Cette action est irréversible.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Restaurer',
+          style: 'destructive',
+          onPress: async () => {
+            const count = await backup.restore();
+            if (count != null) {
+              Alert.alert('Restauration terminée', `${count} séance(s) restaurée(s) depuis le serveur.`);
+            }
+          },
+        },
       ],
     );
   };
@@ -328,7 +360,172 @@ export default function SettingsScreen() {
           </Text>
         ) : null}
       </Card>
+
+      {/* Sauvegarde homelab (S3) */}
+      <Card style={{ gap: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <MaterialCommunityIcons name="cloud-upload-outline" size={22} color={theme.accent} />
+          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+            Sauvegarde homelab
+          </Text>
+        </View>
+        <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+          {'Backup automatique de toutes tes données vers ton stockage S3 (MinIO). Elles restent sur ton serveur — rien chez un tiers.'}
+        </Text>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600' }}>
+            Sauvegarde automatique
+          </Text>
+          <Switch
+            value={backup.config?.enabled ?? false}
+            onValueChange={(v) => backup.update({ enabled: v })}
+            trackColor={{ true: theme.accent }}
+          />
+        </View>
+
+        <BackupStatusLine />
+
+        <Field
+          label="Endpoint"
+          placeholder="https://minio.mon-homelab.tld"
+          value={backup.config?.endpoint ?? ''}
+          onChangeText={(t) => backup.update({ endpoint: t })}
+          keyboardType="url"
+        />
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flex: 2 }}>
+            <Field
+              label="Bucket"
+              placeholder="suivi-sport"
+              value={backup.config?.bucket ?? ''}
+              onChangeText={(t) => backup.update({ bucket: t })}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Field
+              label="Région"
+              placeholder="us-east-1"
+              value={backup.config?.region ?? ''}
+              onChangeText={(t) => backup.update({ region: t })}
+            />
+          </View>
+        </View>
+        <Field
+          label="Access key"
+          placeholder="Clé d'accès"
+          value={backup.config?.accessKeyId ?? ''}
+          onChangeText={(t) => backup.update({ accessKeyId: t })}
+        />
+        <Field
+          label="Secret key"
+          placeholder="Clé secrète"
+          value={backup.config?.secretAccessKey ?? ''}
+          onChangeText={(t) => backup.update({ secretAccessKey: t })}
+          secureTextEntry
+        />
+        <Field
+          label="Nom de l'objet"
+          placeholder="suivi-sport-backup.json"
+          value={backup.config?.objectKey ?? ''}
+          onChangeText={(t) => backup.update({ objectKey: t })}
+        />
+
+        {backup.error ? (
+          <Text style={{ color: theme.heart, fontSize: 13 }}>{backup.error}</Text>
+        ) : null}
+
+        <Button
+          title="Sauvegarder maintenant"
+          icon="cloud-upload"
+          color={theme.accent}
+          loading={backup.status === 'saving'}
+          disabled={!backup.ready}
+          onPress={backup.backupNow}
+        />
+        <Button
+          title="Restaurer depuis le serveur"
+          icon="cloud-download-outline"
+          variant="secondary"
+          color={theme.accent}
+          loading={backup.status === 'restoring'}
+          disabled={!backup.ready}
+          onPress={confirmRestore}
+        />
+      </Card>
     </ScrollView>
+  );
+}
+
+function BackupStatusLine() {
+  const theme = useTheme();
+  const { last, status } = useBackup();
+
+  let color: string = theme.textSecondary;
+  let label = 'Aucune sauvegarde pour l’instant';
+  if (status === 'saving') {
+    color = theme.warning;
+    label = 'Sauvegarde en cours…';
+  } else if (status === 'restoring') {
+    color = theme.warning;
+    label = 'Restauration en cours…';
+  } else if (last?.ok) {
+    color = theme.success;
+    label = `Dernière sauvegarde : ${formatDateTime(last.at)}`;
+  } else if (last && !last.ok) {
+    color = theme.heart;
+    label = `Échec le ${formatDateTime(last.at)}`;
+  }
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
+      <Text style={{ color: theme.textSecondary, fontSize: 13, flex: 1 }}>{label}</Text>
+    </View>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry,
+  keyboardType,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (t: string) => void;
+  placeholder?: string;
+  secureTextEntry?: boolean;
+  keyboardType?: 'default' | 'url';
+}) {
+  const theme = useTheme();
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ color: theme.textSecondary, fontSize: 13, fontWeight: '600' }}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={theme.textMuted}
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={{
+          color: theme.text,
+          backgroundColor: theme.backgroundSelected,
+          borderRadius: Radius.sm,
+          borderCurve: 'continuous',
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          fontSize: 15,
+          borderWidth: 1,
+          borderColor: theme.border,
+        }}
+      />
+    </View>
   );
 }
 
