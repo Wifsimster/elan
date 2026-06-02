@@ -23,6 +23,7 @@ import type { Profile } from '@/lib/types';
 import { WHEEL_SIZES } from '@/lib/wheel-sizes';
 import { useBackup } from '@/hooks/use-backup';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
+import { useDataExport } from '@/hooks/use-data-export';
 import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useStravaImport } from '@/hooks/use-strava-import';
 import { useTheme } from '@/hooks/use-theme';
@@ -34,6 +35,7 @@ export default function SettingsScreen() {
   const csc = useCadenceSpeed();
   const strava = useStravaImport();
   const backup = useBackup();
+  const dataExport = useDataExport();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [mapUrl, setMapUrl] = useState('');
@@ -349,6 +351,37 @@ export default function SettingsScreen() {
           variant="danger"
           onPress={confirmClear}
         />
+      </Card>
+
+      {/* Exporter pour Claude (coach IA) */}
+      <Card style={{ gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <MaterialCommunityIcons name="robot-outline" size={22} color={theme.accent} />
+          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+            Exporter pour Claude
+          </Text>
+        </View>
+        <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+          {"Génère un bilan de ton programme, de ta progression et de ton historique à déposer dans un projet Claude Code : une IA peut ainsi suivre ta programmation et te coacher. Tout est généré sur l'appareil, le partage se fait via la feuille système (Drive, mail, fichier…)."}
+        </Text>
+        <Button
+          title="Exporter le bilan (Markdown)"
+          icon="file-document-outline"
+          color={theme.accent}
+          loading={dataExport.exporting === 'markdown'}
+          onPress={dataExport.exportMarkdown}
+        />
+        <Button
+          title="Exporter les données brutes (JSON)"
+          icon="code-json"
+          variant="secondary"
+          color={theme.accent}
+          loading={dataExport.exporting === 'json'}
+          onPress={dataExport.exportJson}
+        />
+        {dataExport.error ? (
+          <Text style={{ color: theme.heart, fontSize: 13 }}>{dataExport.error}</Text>
+        ) : null}
       </Card>
 
       {/* Import Strava */}
