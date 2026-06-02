@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { PressableScale } from '@/components/pressable-scale';
-import { Type } from '@/constants/theme';
+import { Radius, Type } from '@/constants/theme';
 import { clearAllData, getProfile, saveProfile } from '@/lib/db';
 import type { Profile } from '@/lib/types';
+import { WHEEL_SIZES } from '@/lib/wheel-sizes';
+import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -16,6 +18,7 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const hr = useHeartRate();
+  const csc = useCadenceSpeed();
 
   const [profile, setProfile] = useState<Profile | null>(null);
 
@@ -122,6 +125,110 @@ export default function SettingsScreen() {
         ) : null}
       </Card>
 
+      {/* Capteurs vélo (cadence / vitesse) */}
+      <Card style={{ gap: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <MaterialCommunityIcons name="rotate-right" size={22} color={theme.velo} />
+          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+            Capteurs vélo
+          </Text>
+        </View>
+        <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+          {'Cadence et vitesse via le profil BLE standard (iGPSPORT CAD70 / SPD70, ou équivalent). Vous pouvez en connecter deux à la fois.'}
+        </Text>
+
+        {/* Capteurs connectés */}
+        {csc.devices.map((d) => (
+          <View
+            key={d.id}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              paddingVertical: 8,
+              borderTopWidth: 1,
+              borderTopColor: theme.hairline,
+            }}>
+            <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: theme.success }} />
+            <Text style={{ color: theme.text, flex: 1, fontWeight: '600' }}>{d.name}</Text>
+            {csc.cadenceRpm != null || csc.speedKmh != null ? (
+              <Text style={{ color: theme.velo, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
+                {csc.cadenceRpm != null ? `${csc.cadenceRpm} tr/min` : `${(csc.speedKmh ?? 0).toFixed(1)} km/h`}
+              </Text>
+            ) : null}
+            <Pressable onPress={() => csc.disconnect(d.id)} hitSlop={8}>
+              <MaterialCommunityIcons name="bluetooth-off" size={20} color={theme.textMuted} />
+            </Pressable>
+          </View>
+        ))}
+
+        <Button
+          title={csc.status === 'scanning' ? 'Recherche en cours…' : 'Rechercher un capteur'}
+          icon="bluetooth"
+          color={theme.velo}
+          loading={csc.status === 'scanning' || csc.status === 'connecting'}
+          onPress={csc.startScan}
+        />
+
+        {csc.error ? (
+          <Text style={{ color: theme.heart, fontSize: 13 }}>{csc.error}</Text>
+        ) : null}
+
+        {csc.status === 'scanning' && csc.scanned.length === 0 ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <ActivityIndicator color={theme.textSecondary} />
+            <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+              {'Réveillez le capteur (faites tourner la roue ou la manivelle) pour qu\'il soit détecté.'}
+            </Text>
+          </View>
+        ) : null}
+
+        {csc.scanned.map((d) => (
+          <PressableScale
+            key={d.id}
+            onPress={() => csc.connect(d.id)}
+            haptic="light"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              paddingVertical: 10,
+              borderTopWidth: 1,
+              borderTopColor: theme.hairline,
+            }}>
+            <MaterialCommunityIcons name="bike-fast" size={20} color={theme.velo} />
+            <Text style={{ color: theme.text, flex: 1, fontWeight: '600' }}>{d.name}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textMuted} />
+          </PressableScale>
+        ))}
+
+        {/* Taille de pneu → circonférence (mm) pour le calcul de vitesse/distance */}
+        {csc.status !== 'unsupported' ? (
+          <View style={{ borderTopWidth: 1, borderTopColor: theme.hairline, paddingTop: 12, gap: 12 }}>
+            <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600' }}>Taille de pneu</Text>
+            <WheelSizePicker valueMm={csc.wheelCircumferenceMm} onSelect={csc.setWheelCircumferenceMm} />
+            <SettingStepper
+              label="Circonférence"
+              value={csc.wheelCircumferenceMm}
+              unit="mm"
+              step={1}
+              min={1000}
+              max={2400}
+              onChange={csc.setWheelCircumferenceMm}
+            />
+            <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+              {'Choisissez votre pneu, ou ajustez la circonférence au mm près si vous l\'avez mesurée.'}
+            </Text>
+          </View>
+        ) : null}
+
+        {csc.status === 'unsupported' ? (
+          <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+            {"Le Bluetooth n'est disponible que sur l'application Android/iOS (development build)."}
+          </Text>
+        ) : null}
+      </Card>
+
       {/* Profil */}
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -200,6 +307,47 @@ function HrStatusLine() {
           {bpm != null ? `${bpm} bpm` : '··'}
         </Text>
       ) : null}
+    </View>
+  );
+}
+
+/** Sélecteur de taille de pneu : des pastilles qui renseignent la circonférence (mm). */
+function WheelSizePicker({
+  valueMm,
+  onSelect,
+}: {
+  valueMm: number;
+  onSelect: (mm: number) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {WHEEL_SIZES.map((w) => {
+        const active = w.mm === valueMm;
+        return (
+          <PressableScale
+            key={w.label}
+            haptic="selection"
+            onPress={() => onSelect(w.mm)}
+            style={{
+              paddingVertical: 8,
+              paddingHorizontal: 12,
+              borderRadius: Radius.pill,
+              borderWidth: 1.5,
+              borderColor: active ? theme.velo : theme.border,
+              backgroundColor: active ? theme.velo + '22' : 'transparent',
+            }}>
+            <Text
+              style={{
+                color: active ? theme.velo : theme.textSecondary,
+                fontWeight: '700',
+                fontSize: 13,
+              }}>
+              {w.label}
+            </Text>
+          </PressableScale>
+        );
+      })}
     </View>
   );
 }

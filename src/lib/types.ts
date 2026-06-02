@@ -21,6 +21,9 @@ export type Session = {
   avgSpeedKmh: number | null;
   maxSpeedKmh: number | null;
   elevationGainM: number | null;
+  // Cadence (vélo, si capteur de cadence connecté), en tours/min
+  avgCadence: number | null;
+  maxCadence: number | null;
   calories: number | null;
 };
 
@@ -34,6 +37,8 @@ export type TrackPoint = {
   altitude: number | null;
   speedKmh: number | null;
   hr: number | null;
+  /** Cadence en tours/min au point le plus proche (si capteur connecté). */
+  cadence: number | null;
 };
 
 /** Une série de musculation (un exercice peut avoir plusieurs séries). */

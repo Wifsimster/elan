@@ -81,6 +81,16 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     `);
     await db.execAsync('PRAGMA user_version = 1;');
   }
+
+  if (version < 2) {
+    // Capteurs de cadence/vitesse vélo (profil BLE CSC).
+    await db.execAsync(`
+      ALTER TABLE sessions ADD COLUMN avgCadence REAL;
+      ALTER TABLE sessions ADD COLUMN maxCadence REAL;
+      ALTER TABLE track_points ADD COLUMN cadence REAL;
+    `);
+    await db.execAsync('PRAGMA user_version = 2;');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -148,6 +158,8 @@ export type SessionUpdate = Partial<
     | 'avgSpeedKmh'
     | 'maxSpeedKmh'
     | 'elevationGainM'
+    | 'avgCadence'
+    | 'maxCadence'
     | 'calories'
   >
 >;
@@ -192,7 +204,7 @@ export async function insertTrackPoints(
   await db.withTransactionAsync(async () => {
     for (const p of points) {
       await db.runAsync(
-        'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr) VALUES (?, ?, ?, ?, ?, ?, ?);',
+        'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
         sessionId,
         p.ts,
         p.lat,
@@ -200,6 +212,7 @@ export async function insertTrackPoints(
         p.altitude,
         p.speedKmh,
         p.hr,
+        p.cadence,
       );
     }
   });

@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ActivityIndicator, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Gradient } from '@/components/gradient';
 import { PressableScale } from '@/components/pressable-scale';
@@ -85,6 +85,11 @@ export function Button({
   };
 
   // Action pleine : dégradé + ombre teintée à la couleur de l'action.
+  //
+  // L'ombre vit sur la vue extérieure (fond opaque + coins arrondis) : sur
+  // Android, une vue élevée à fond transparent projette une ombre rectangulaire
+  // noire et décalée. Le dégradé est isolé dans une vue intérieure
+  // `overflow:'hidden'` qui le découpe aux coins arrondis.
   if (variant === 'primary' || variant === 'danger') {
     const shadowColor = variant === 'danger' ? theme.danger : accent;
     return (
@@ -92,12 +97,29 @@ export function Button({
         disabled={disabled || loading}
         haptic="light"
         onPress={onPress}
-        style={[base, { ...Elevation.md, shadowColor, shadowOpacity: 0.45 }, style]}>
-        <Gradient
-          colors={Gradients[grad]}
-          style={{ ...base, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-        />
-        {inner}
+        style={[
+          {
+            borderRadius: Radius.lg,
+            borderCurve: 'continuous',
+            backgroundColor: accent,
+            opacity: disabled ? 0.4 : 1,
+            ...Elevation.md,
+            shadowColor,
+            shadowOpacity: 0.45,
+          },
+          style,
+        ]}>
+        <View
+          style={{
+            borderRadius: Radius.lg,
+            borderCurve: 'continuous',
+            overflow: 'hidden',
+            paddingVertical: padV,
+            paddingHorizontal: 20,
+          }}>
+          <Gradient colors={Gradients[grad]} style={StyleSheet.absoluteFill} />
+          {inner}
+        </View>
       </PressableScale>
     );
   }
