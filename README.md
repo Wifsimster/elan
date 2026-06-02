@@ -1,56 +1,115 @@
-# Welcome to your Expo app 👋
+# Suivi Sport 🚴‍♂️🏋️
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Tracker d'activité physique **personnel et 100 % local** pour Android.
+Conçu pour le **vélo** (suivi GPS) et la **musculation**, avec prise en charge des
+capteurs externes : **GPS** et **ceinture cardiaque Bluetooth**.
 
-## Get started
+> 🔒 **Vos données ne quittent jamais votre téléphone.** Tout est stocké dans une base
+> SQLite locale. Aucune connexion à un serveur, aucun compte, aucun cloud.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## Fonctionnalités
 
-2. Start the app
+- **Séance Vélo en direct** — chronomètre, distance, vitesse instantanée et max,
+  dénivelé positif, tracé GPS, fréquence cardiaque et calories estimées.
+- **Séance Muscu en direct** — exercices, séries (répétitions × charge), volume total
+  soulevé, durée et fréquence cardiaque.
+- **Ceinture cardiaque Bluetooth** — connexion au profil GATT standard *Heart Rate*
+  (service `0x180D`), reconnexion automatique à la dernière ceinture.
+- **Tableau de bord** — résumé de la semaine et graphe d'activité sur 7 jours.
+- **Historique** — toutes les séances, filtrables par type, avec page de détail
+  (tracé du parcours, répartition des exercices).
+- **Profil** — poids et FC max, utilisés pour estimer calories et zones cardio.
 
-   ```bash
-   npx expo start
-   ```
+## Pile technique
 
-In the output, you'll find options to open the app in a
+| Domaine | Choix |
+| --- | --- |
+| Framework | [Expo](https://expo.dev) SDK 56 · React Native 0.85 · React 19 |
+| Navigation | Expo Router (typed routes) |
+| Stockage | `expo-sqlite` (base locale, migrations versionnées) |
+| GPS | `expo-location` (premier plan) |
+| Cardio BLE | `react-native-ble-plx` |
+| Tracé | `react-native-svg` (rendu vectoriel, sans fond cartographique) |
+| Icônes | `@expo/vector-icons` (MaterialCommunityIcons) |
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## ⚠️ Development build requis
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+L'accès Bluetooth (`react-native-ble-plx`) **n'est pas disponible dans Expo Go**.
+Il faut générer un *development build* :
 
 ```bash
-npm run reset-project
+# Sur une machine avec Android Studio / SDK Android
+npx expo run:android
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Ou via EAS Build (cloud) :
 
-### Other setup steps
+```bash
+npm install -g eas-cli
+eas build --profile development --platform android
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Le GPS et le stockage fonctionnent aussi en *development build*.
 
-## Learn more
+## Démarrage
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm install
+npx expo run:android   # development build sur appareil/émulateur connecté
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Puis, dans l'app : **Réglages → Rechercher une ceinture** pour appairer votre
+capteur cardiaque, et renseignez votre poids pour l'estimation des calories.
 
-## Join the community
+## Structure du projet
 
-Join our community of developers creating universal apps.
+```
+src/
+  app/                       # Routes (Expo Router)
+    _layout.tsx              # Stack racine + HeartRateProvider + thème
+    (tabs)/                  # Onglets : Accueil, Historique, Réglages
+      index.tsx              #   Tableau de bord
+      history.tsx            #   Historique des séances
+      settings.tsx           #   Profil, ceinture, données
+    velo.tsx                 # Séance vélo en direct (plein écran)
+    muscu.tsx                # Séance muscu en direct (plein écran)
+    session/[id].tsx         # Détail d'une séance
+  components/                # UI réutilisable (Card, Button, StatTile, RouteMap…)
+  hooks/
+    use-heart-rate.tsx       # Contexte BLE partagé (ceinture cardiaque)
+    use-gps-tracker.ts       # Suivi GPS (distance, vitesse, dénivelé)
+    use-stopwatch.ts         # Chronomètre actif avec pause
+    use-theme.ts             # Thème clair/sombre
+  lib/
+    db.ts                    # Accès SQLite + migrations + requêtes
+    ble.ts                   # BleManager + parsing trame Heart Rate
+    geo.ts                   # Distance haversine
+    calories.ts              # Estimation MET + zones cardio
+    format.ts                # Formatage (durée, distance, dates…)
+    types.ts                 # Types du domaine
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Modèle de données (SQLite)
+
+- `sessions` — une séance (type vélo/muscu, durée, cardio, et pour le vélo :
+  distance, vitesse, dénivelé, calories).
+- `track_points` — points GPS d'un tracé vélo (lat/lon, altitude, vitesse, FC).
+- `muscu_sets` — séries de musculation (exercice, n° de série, reps, charge).
+- `settings` — réglages clé/valeur (profil, dernière ceinture appairée).
+
+## Notes
+
+- Le suivi GPS est en **premier plan** : gardez l'app ouverte pendant la sortie
+  (l'écran reste allumé via `expo-keep-awake`).
+- L'estimation des calories repose sur la méthode des MET : c'est un ordre de
+  grandeur, pas une mesure médicale.
+
+## Scripts
+
+```bash
+npm run android      # lance le development build
+npx tsc --noEmit     # vérification de types
+npx expo lint        # linter
+```
