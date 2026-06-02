@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { PressableScale } from '@/components/pressable-scale';
+import { RouteMap } from '@/components/route-map';
 import { StatTile } from '@/components/stat-tile';
 import { Elevation, Type } from '@/constants/theme';
 import { estimateCalories } from '@/lib/calories';
@@ -293,6 +294,11 @@ export default function VeloScreen() {
             />
           </View>
         </Card>
+
+        {/* Tracé GPS en temps réel (lecture passive : aucun geste pendant l'effort). */}
+        {phase !== 'idle' && gps.livePath.length >= 2 ? (
+          <RouteMap points={gps.livePath} live color={theme.velo} height={220} />
+        ) : null}
       </ScrollView>
 
       {/* Contrôles */}

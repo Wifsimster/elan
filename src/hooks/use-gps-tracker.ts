@@ -33,12 +33,19 @@ const INITIAL: GpsState = {
   accuracyM: null,
 };
 
+/** Distance minimale entre deux points conservés dans le tracé affiché en live. */
+const LIVE_DECIMATE_M = 8;
+
 export function useGpsTracker() {
   const [status, setStatus] = useState<GpsStatus>('idle');
   const [state, setState] = useState<GpsState>(INITIAL);
+  // Tracé allégé pour l'affichage temps réel (réactif : déclenche le rendu de la carte).
+  const [livePath, setLivePath] = useState<LivePoint[]>([]);
 
   const subRef = useRef<Location.LocationSubscription | null>(null);
   const pointsRef = useRef<LivePoint[]>([]);
+  const livePathRef = useRef<LivePoint[]>([]);
+  const lastLiveRef = useRef<LivePoint | null>(null);
   const lastRef = useRef<LivePoint | null>(null);
   const lastAltRef = useRef<number | null>(null);
   const pausedRef = useRef(false);
@@ -92,6 +99,18 @@ export function useGpsTracker() {
     pointsRef.current.push(point);
     lastRef.current = point;
 
+    // Alimente le tracé live décimé : on fige un point d'ancrage dès qu'il s'est
+    // assez éloigné du précédent (le départ reste donc immuable). La position
+    // courante est ajoutée en tête provisoire pour que le tracé colle à la réalité.
+    const lastLive = lastLiveRef.current;
+    if (lastLive == null || haversineMeters(lastLive, point) >= LIVE_DECIMATE_M) {
+      livePathRef.current = [...livePathRef.current, point];
+      lastLiveRef.current = point;
+      setLivePath(livePathRef.current);
+    } else {
+      setLivePath([...livePathRef.current, point]);
+    }
+
     accRef.current = {
       distanceM,
       speedKmh: instSpeed,
@@ -111,11 +130,14 @@ export function useGpsTracker() {
       return false;
     }
     pointsRef.current = [];
+    livePathRef.current = [];
+    lastLiveRef.current = null;
     lastRef.current = null;
     lastAltRef.current = null;
     pausedRef.current = false;
     accRef.current = INITIAL;
     setState(INITIAL);
+    setLivePath([]);
 
     subRef.current = await Location.watchPositionAsync(
       {
@@ -144,5 +166,5 @@ export function useGpsTracker() {
     };
   }, []);
 
-  return { status, ...state, start, stop, setPaused };
+  return { status, ...state, livePath, start, stop, setPaused };
 }

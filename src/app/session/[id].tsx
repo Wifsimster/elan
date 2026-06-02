@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
+import Animated, { useAnimatedRef } from 'react-native-reanimated';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
@@ -31,6 +32,8 @@ export default function SessionDetailScreen() {
   const [points, setPoints] = useState<TrackPoint[]>([]);
   const [sets, setSets] = useState<MuscuSet[]>([]);
   const [loading, setLoading] = useState(true);
+  // Ref de la ScrollView : permet au pan de la carte de bloquer le défilement.
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
   useEffect(() => {
     (async () => {
@@ -87,7 +90,8 @@ export default function SessionDetailScreen() {
           ),
         }}
       />
-      <ScrollView
+      <Animated.ScrollView
+        ref={scrollRef}
         style={{ backgroundColor: theme.background }}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
@@ -115,7 +119,7 @@ export default function SessionDetailScreen() {
 
         {/* Tracé GPS (vélo) */}
         {session.type === 'velo' && points.length >= 2 ? (
-          <RouteMap points={points} color={color} />
+          <RouteMap points={points} color={color} interactive scrollRef={scrollRef} />
         ) : null}
 
         {/* Statistiques */}
@@ -206,7 +210,7 @@ export default function SessionDetailScreen() {
         ) : null}
 
         <Button title="Supprimer la séance" icon="trash-can-outline" variant="danger" onPress={confirmDelete} />
-      </ScrollView>
+      </Animated.ScrollView>
     </>
   );
 }
