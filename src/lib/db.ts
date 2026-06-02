@@ -352,6 +352,94 @@ export async function getMuscuSets(sessionId: number): Promise<MuscuSet[]> {
   );
 }
 
+/**
+ * Dernière charge enregistrée par exercice : la série la plus lourde de la
+ * séance muscu terminée la plus récente contenant cet exercice. Sert d'amorce
+ * de progression au chargement d'un programme. La correspondance se fait sur le
+ * libellé exact — les templates réutilisent les mêmes noms.
+ */
+export async function lastWeightByExercise(
+  names: string[],
+): Promise<Record<string, number>> {
+  const db = await getDb();
+  const out: Record<string, number> = {};
+  for (const name of names) {
+    const row = await db.getFirstAsync<{ weightKg: number }>(
+      `SELECT ms.weightKg
+         FROM muscu_sets ms
+         JOIN sessions s ON s.id = ms.sessionId
+        WHERE s.type = 'muscu' AND s.endedAt IS NOT NULL AND ms.exercise = ?
+        ORDER BY s.startedAt DESC, ms.weightKg DESC
+        LIMIT 1;`,
+      name,
+    );
+    if (row) out[name] = row.weightKg;
+  }
+  return out;
+}
+
+/** Ligne d'index : un exercice connu et son dernier état. */
+export type ExerciseSummary = {
+  exercise: string;
+  sessions: number;
+  lastWeightKg: number;
+  lastAt: number;
+};
+
+/** Liste des exercices muscu déjà enregistrés, les plus récents d'abord. */
+export async function listMuscuExercises(): Promise<ExerciseSummary[]> {
+  const db = await getDb();
+  return db.getAllAsync<ExerciseSummary>(
+    `SELECT ms.exercise AS exercise,
+            COUNT(DISTINCT ms.sessionId) AS sessions,
+            MAX(s.startedAt) AS lastAt,
+            (SELECT m2.weightKg
+               FROM muscu_sets m2
+               JOIN sessions s2 ON s2.id = m2.sessionId
+              WHERE m2.exercise = ms.exercise AND s2.endedAt IS NOT NULL
+              ORDER BY s2.startedAt DESC, m2.weightKg DESC
+              LIMIT 1) AS lastWeightKg
+       FROM muscu_sets ms
+       JOIN sessions s ON s.id = ms.sessionId
+      WHERE s.endedAt IS NOT NULL
+      GROUP BY ms.exercise
+      ORDER BY lastAt DESC;`,
+  );
+}
+
+/** Un point de progression : l'état d'un exercice sur une séance donnée. */
+export type ExercisePoint = {
+  sessionId: number;
+  startedAt: number;
+  maxWeightKg: number;
+  topReps: number;
+  volume: number;
+  sets: number;
+};
+
+/**
+ * Historique d'un exercice, une ligne par séance terminée, du plus ancien au
+ * plus récent. `topReps` correspond aux reps de la série la plus lourde
+ * (SQLite renvoie la valeur de la ligne portant le MAX pour les colonnes nues).
+ */
+export async function exerciseHistory(name: string): Promise<ExercisePoint[]> {
+  const db = await getDb();
+  return db.getAllAsync<ExercisePoint>(
+    `SELECT s.id AS sessionId,
+            s.startedAt AS startedAt,
+            MAX(ms.weightKg) AS maxWeightKg,
+            ms.reps AS topReps,
+            SUM(ms.reps * ms.weightKg) AS volume,
+            COUNT(*) AS sets
+       FROM muscu_sets ms
+       JOIN sessions s ON s.id = ms.sessionId
+      WHERE s.endedAt IS NOT NULL AND ms.exercise = ?
+      GROUP BY s.id
+      ORDER BY s.startedAt ASC;`,
+    name,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Statistiques
 // ---------------------------------------------------------------------------

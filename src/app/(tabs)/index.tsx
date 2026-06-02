@@ -14,6 +14,7 @@ import { StatTile } from '@/components/stat-tile';
 import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
 import { dailyDurations, listSessions, statsSince } from '@/lib/db';
+import { planForDay, templateById } from '@/lib/program';
 import {
   formatDistance,
   formatDurationShort,
@@ -89,6 +90,9 @@ export default function HomeScreen() {
         <HrBadge />
       </View>
 
+      {/* Séance du jour (programme perso) */}
+      <TodayCard />
+
       {/* Démarrer une séance */}
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <View style={{ flex: 1 }}>
@@ -163,6 +167,84 @@ export default function HomeScreen() {
         </View>
       )}
     </ScrollView>
+  );
+}
+
+const WEEKDAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+
+function TodayCard() {
+  const theme = useTheme();
+  const router = useRouter();
+  const jsDay = new Date().getDay();
+  const plan = planForDay(jsDay);
+  const dayName = WEEKDAYS[jsDay];
+
+  if (plan.kind === 'repos') {
+    return (
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View
+          style={{
+            width: 46,
+            height: 46,
+            borderRadius: Radius.sm,
+            borderCurve: 'continuous',
+            backgroundColor: theme.textMuted + '22',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <MaterialCommunityIcons name="sleep" size={24} color={theme.textSecondary} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={{ ...Type.label, color: theme.textSecondary }}>Aujourd’hui · {dayName}</Text>
+          <Text style={{ ...Type.subtitle, color: theme.text }}>Repos</Text>
+          <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+            Récupération — pas de séance prévue.
+          </Text>
+        </View>
+      </Card>
+    );
+  }
+
+  const isVelo = plan.kind === 'velo';
+  const color = isVelo ? theme.velo : theme.muscu;
+  const icon = isVelo ? 'bike' : 'dumbbell';
+  const tmpl = plan.kind === 'muscu' ? templateById(plan.templateId) : undefined;
+  const subtitle = isVelo
+    ? 'Récup active / cardio'
+    : tmpl?.exercises.map((e) => e.name).join(' · ');
+
+  const start = () =>
+    isVelo
+      ? router.push('/velo')
+      : router.push({ pathname: '/muscu', params: { template: (plan as { templateId: string }).templateId } });
+
+  return (
+    <Card style={{ gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View
+          style={{
+            width: 46,
+            height: 46,
+            borderRadius: Radius.sm,
+            borderCurve: 'continuous',
+            backgroundColor: color + '22',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <MaterialCommunityIcons name={icon} size={24} color={color} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={{ ...Type.label, color: theme.textSecondary }}>Aujourd’hui · {dayName}</Text>
+          <Text style={{ ...Type.subtitle, color: theme.text }}>{plan.label}</Text>
+          {subtitle ? (
+            <Text style={{ color: theme.textSecondary, fontSize: 13 }} numberOfLines={2}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+      <Button title="Démarrer" icon="play" color={color} onPress={start} />
+    </Card>
   );
 }
 

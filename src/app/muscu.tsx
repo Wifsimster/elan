@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -19,15 +19,34 @@ import { PressableScale } from '@/components/pressable-scale';
 import { Elevation, Radius, Type } from '@/constants/theme';
 import { autoBackup } from '@/lib/backup';
 import { estimateCalories } from '@/lib/calories';
-import { createSession, getProfile, replaceMuscuSets, updateSession } from '@/lib/db';
+import {
+  createSession,
+  getProfile,
+  lastWeightByExercise,
+  replaceMuscuSets,
+  updateSession,
+} from '@/lib/db';
 import { formatDuration } from '@/lib/format';
+import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
 import { nowMs } from '@/lib/time';
 import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useStopwatch } from '@/hooks/use-stopwatch';
 import { useTheme } from '@/hooks/use-theme';
 
 type SetRow = { reps: number; weightKg: number };
-type Exercise = { id: string; name: string; sets: SetRow[] };
+type Exercise = {
+  id: string;
+  name: string;
+  sets: SetRow[];
+  /** Cible issue d'un programme, ex. « 3 × 8-12 / bras » (absente en saisie libre). */
+  target?: string;
+  /** Unité des reps : « sec » pour le gainage chronométré, « reps » sinon. */
+  repUnit?: string;
+  /** Dernière charge enregistrée pour cet exercice (amorce de progression). */
+  lastWeight?: number;
+  /** Explication « comment faire », dépliable depuis la carte. */
+  howTo?: string;
+};
 type HrSample = { ts: number; hr: number };
 
 const COMMON = [
@@ -44,6 +63,8 @@ const COMMON = [
 let uid = 0;
 const nextId = () => `e${uid++}`;
 
+const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
+
 export default function MuscuScreen() {
   useKeepAwake();
   const theme = useTheme();
@@ -52,19 +73,48 @@ export default function MuscuScreen() {
 
   const watch = useStopwatch();
   const { bpm } = useHeartRate();
+  const { template } = useLocalSearchParams<{ template?: string }>();
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
+  const [openHelp, setOpenHelp] = useState<string | null>(null);
 
   const startedAtRef = useRef<number>(0);
   const hrSamplesRef = useRef<HrSample[]>([]);
   const weightRef = useRef<number>(70);
 
+  const loadTemplate = async (t: WorkoutTemplate) => {
+    const last = await lastWeightByExercise(t.exercises.map((e) => e.name));
+    setExercises((prev) => [
+      ...prev,
+      ...t.exercises.map((ex) => {
+        const lw = last[ex.name];
+        return {
+          id: nextId(),
+          name: ex.name,
+          target: targetHint(ex),
+          repUnit: ex.timed ? 'sec' : 'reps',
+          howTo: ex.howTo,
+          // Le gainage n'a pas de charge : on n'affiche pas de « dernière fois ».
+          lastWeight: ex.timed ? undefined : lw,
+          sets: Array.from({ length: ex.sets }, () => ({
+            reps: defaultReps(ex),
+            weightKg: ex.timed ? ex.startWeightKg : (lw ?? ex.startWeightKg),
+          })),
+        };
+      }),
+    ]);
+  };
+
   useEffect(() => {
     startedAtRef.current = nowMs();
     watch.start();
     getProfile().then((p) => (weightRef.current = p.weightKg));
+    const preset = templateById(template);
+    // loadTemplate ne pose son état qu'après une lecture DB async (hors rendu).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (preset) loadTemplate(preset); // pré-chargement depuis la « Séance du jour »
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -224,17 +274,79 @@ export default function MuscuScreen() {
           />
         </Card>
 
+        {/* Charger un programme */}
+        <Card style={{ gap: 10 }}>
+          <Text style={{ ...Type.subtitle, color: theme.text }}>Charger un programme</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {TEMPLATES.map((t) => (
+              <PressableScale
+                key={t.id}
+                onPress={() => loadTemplate(t)}
+                haptic="light"
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  gap: 2,
+                  paddingVertical: 12,
+                  borderRadius: Radius.sm,
+                  borderWidth: 1,
+                  borderColor: theme.muscu,
+                  backgroundColor: theme.backgroundElement,
+                }}>
+                <Text style={{ color: theme.muscu, fontWeight: '800', fontSize: 15 }}>{t.name}</Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 11 }}>{t.day}</Text>
+              </PressableScale>
+            ))}
+          </View>
+        </Card>
+
         {/* Exercices */}
         {exercises.map((ex) => (
           <Card key={ex.id} style={{ gap: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800', flex: 1 }}>
-                {ex.name}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+                  {ex.name}
+                </Text>
+                {ex.target || ex.lastWeight != null ? (
+                  <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
+                    {ex.target ? `cible ${ex.target}` : ''}
+                    {ex.target && ex.lastWeight != null ? '  ·  ' : ''}
+                    {ex.lastWeight != null ? `dernière fois : ${fmtKg(ex.lastWeight)} kg` : ''}
+                  </Text>
+                ) : null}
+              </View>
+              {ex.howTo ? (
+                <PressableScale
+                  onPress={() => setOpenHelp((cur) => (cur === ex.id ? null : ex.id))}
+                  haptic="selection"
+                  hitSlop={8}>
+                  <MaterialCommunityIcons
+                    name={openHelp === ex.id ? 'help-circle' : 'help-circle-outline'}
+                    size={22}
+                    color={theme.muscu}
+                  />
+                </PressableScale>
+              ) : null}
               <Pressable onPress={() => removeExercise(ex.id)} hitSlop={10}>
                 <MaterialCommunityIcons name="trash-can-outline" size={20} color={theme.textSecondary} />
               </Pressable>
             </View>
+
+            {ex.howTo && openHelp === ex.id ? (
+              <View
+                style={{
+                  backgroundColor: theme.background,
+                  borderRadius: Radius.sm,
+                  borderLeftWidth: 3,
+                  borderLeftColor: theme.muscu,
+                  padding: 12,
+                }}>
+                <Text style={{ color: theme.textSecondary, fontSize: 13, lineHeight: 19 }}>
+                  {ex.howTo}
+                </Text>
+              </View>
+            ) : null}
 
             {ex.sets.map((s, i) => (
               <View
@@ -251,7 +363,7 @@ export default function MuscuScreen() {
                 </Text>
                 <Stepper
                   value={s.reps}
-                  suffix="reps"
+                  suffix={ex.repUnit ?? 'reps'}
                   step={1}
                   min={1}
                   onChange={(v) => updateSet(ex.id, i, { reps: v })}

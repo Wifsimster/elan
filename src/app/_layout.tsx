@@ -31,6 +31,8 @@ export default function RootLayout() {
                   options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }}
                 />
                 <Stack.Screen name="session/[id]" options={{ title: 'Séance' }} />
+                <Stack.Screen name="progression" options={{ title: 'Progression' }} />
+                <Stack.Screen name="exercise/[name]" options={{ title: 'Progression' }} />
               </Stack>
               <StatusBar style="auto" />
             </BackupProvider>
