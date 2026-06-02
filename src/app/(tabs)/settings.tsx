@@ -18,6 +18,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { Radius, Type } from '@/constants/theme';
 import { clearAllData, getProfile, saveProfile } from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
+import { getMapStyleUrl, setMapStyleUrl } from '@/lib/map';
 import type { Profile } from '@/lib/types';
 import { WHEEL_SIZES } from '@/lib/wheel-sizes';
 import { useBackup } from '@/hooks/use-backup';
@@ -35,10 +36,17 @@ export default function SettingsScreen() {
   const backup = useBackup();
 
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [mapUrl, setMapUrl] = useState('');
 
   useEffect(() => {
     getProfile().then(setProfile);
+    getMapStyleUrl().then(setMapUrl);
   }, []);
+
+  const updateMapUrl = (url: string) => {
+    setMapUrl(url);
+    setMapStyleUrl(url);
+  };
 
   const patchProfile = (patch: Partial<Profile>) => {
     setProfile((prev) => {
@@ -273,6 +281,24 @@ export default function SettingsScreen() {
             {"Le Bluetooth n'est disponible que sur l'application Android/iOS (development build)."}
           </Text>
         ) : null}
+      </Card>
+
+      {/* Carte (fond MapLibre auto-hébergé) */}
+      <Card style={{ gap: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <MaterialCommunityIcons name="map-outline" size={22} color={theme.velo} />
+          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>Carte</Text>
+        </View>
+        <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+          {'URL du style MapLibre servi par ton homelab. Renseignée, les sorties vélo affichent un vrai fond de carte (rues) ; sinon, un tracé sur fond uni. Les tuiles ne sont demandées qu’à ton serveur.'}
+        </Text>
+        <Field
+          label="URL du style"
+          placeholder="https://tiles.battistella.ovh/styles/basic/style.json"
+          value={mapUrl}
+          onChangeText={updateMapUrl}
+          keyboardType="url"
+        />
       </Card>
 
       {/* Profil */}

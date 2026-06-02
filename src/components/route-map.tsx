@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -10,7 +10,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, Polyline } from 'react-native-svg';
 
+import { MapLibreRoute } from '@/components/maplibre-route';
 import { Radius } from '@/constants/theme';
+import { getMapStyleUrl } from '@/lib/map';
 import { createProjection, type GeoPoint } from '@/lib/route-projection';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -40,7 +42,35 @@ type Props = {
  * - `live` — recadrage automatique + marqueur de position courante pulsant ;
  * - `interactive` — pinch-zoom, pan et double-tap pour réinitialiser.
  */
-export function RouteMap({ points, height = 200, color, interactive, live, scrollRef }: Props) {
+/**
+ * Carte du parcours. Si un style MapLibre auto-hébergé est configuré, affiche
+ * un vrai fond de carte (tuiles du homelab) avec le tracé par-dessus ; sinon,
+ * retombe sur le tracé SVG sur fond uni (`SvgRoute`).
+ */
+export function RouteMap(props: Props) {
+  const theme = useTheme();
+  const [styleUrl, setStyleUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    getMapStyleUrl().then((u) => setStyleUrl(u || null));
+  }, []);
+
+  if (styleUrl && props.points.length >= 2) {
+    return (
+      <MapLibreRoute
+        points={props.points}
+        styleUrl={styleUrl}
+        height={props.height ?? 200}
+        color={props.color ?? theme.velo}
+        live={props.live}
+        interactive={props.interactive}
+      />
+    );
+  }
+  return <SvgRoute {...props} />;
+}
+
+function SvgRoute({ points, height = 200, color, interactive, live, scrollRef }: Props) {
   const theme = useTheme();
   const stroke = color ?? theme.velo;
 
