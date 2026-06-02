@@ -91,6 +91,18 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     `);
     await db.execAsync('PRAGMA user_version = 2;');
   }
+
+  if (version < 3) {
+    // Import Strava : provenance + clé de déduplication (index unique partiel
+    // pour rendre une ré-importation idempotente, sans gêner les séances natives
+    // dont externalId reste NULL).
+    await db.execAsync(`
+      ALTER TABLE sessions ADD COLUMN source TEXT;
+      ALTER TABLE sessions ADD COLUMN externalId TEXT;
+      CREATE UNIQUE INDEX idx_sessions_external ON sessions (externalId) WHERE externalId IS NOT NULL;
+    `);
+    await db.execAsync('PRAGMA user_version = 3;');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -216,6 +228,88 @@ export async function insertTrackPoints(
       );
     }
   });
+}
+
+// ---------------------------------------------------------------------------
+// Import de séances externes (Strava) — déduplication par externalId
+// ---------------------------------------------------------------------------
+
+/** Une séance prête à insérer depuis une source externe (fichier Strava). */
+export type ImportedSessionRow = {
+  type: ActivityType;
+  startedAt: number;
+  endedAt: number;
+  durationSec: number;
+  notes: string | null;
+  avgHr: number | null;
+  maxHr: number | null;
+  distanceM: number | null;
+  avgSpeedKmh: number | null;
+  maxSpeedKmh: number | null;
+  elevationGainM: number | null;
+  avgCadence: number | null;
+  maxCadence: number | null;
+  calories: number | null;
+  source: string;
+  externalId: string;
+};
+
+/**
+ * Insère une séance importée et ses points GPS de façon atomique. Renvoie
+ * `'duplicate'` (sans rien écrire) si une séance avec le même `externalId`
+ * existe déjà — l'index unique partiel rend la ré-importation idempotente.
+ */
+export async function insertImportedSession(
+  session: ImportedSessionRow,
+  points: Omit<TrackPoint, 'id' | 'sessionId'>[],
+): Promise<'imported' | 'duplicate'> {
+  const db = await getDb();
+  let result: 'imported' | 'duplicate' = 'imported';
+  await db.withTransactionAsync(async () => {
+    const res = await db.runAsync(
+      `INSERT INTO sessions
+         (type, startedAt, endedAt, durationSec, notes, avgHr, maxHr, distanceM,
+          avgSpeedKmh, maxSpeedKmh, elevationGainM, avgCadence, maxCadence, calories,
+          source, externalId)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(externalId) WHERE externalId IS NOT NULL DO NOTHING;`,
+      session.type,
+      session.startedAt,
+      session.endedAt,
+      session.durationSec,
+      session.notes,
+      session.avgHr,
+      session.maxHr,
+      session.distanceM,
+      session.avgSpeedKmh,
+      session.maxSpeedKmh,
+      session.elevationGainM,
+      session.avgCadence,
+      session.maxCadence,
+      session.calories,
+      session.source,
+      session.externalId,
+    );
+    if (res.changes === 0) {
+      result = 'duplicate';
+      return;
+    }
+    const sessionId = res.lastInsertRowId;
+    for (const p of points) {
+      await db.runAsync(
+        'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+        sessionId,
+        p.ts,
+        p.lat,
+        p.lon,
+        p.altitude,
+        p.speedKmh,
+        p.hr,
+        p.cadence,
+      );
+    }
+  });
+  return result;
 }
 
 export async function getTrackPoints(sessionId: number): Promise<TrackPoint[]> {

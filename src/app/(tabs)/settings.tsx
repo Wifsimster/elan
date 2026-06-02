@@ -12,6 +12,7 @@ import type { Profile } from '@/lib/types';
 import { WHEEL_SIZES } from '@/lib/wheel-sizes';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useHeartRate } from '@/hooks/use-heart-rate';
+import { useStravaImport } from '@/hooks/use-strava-import';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function SettingsScreen() {
@@ -19,6 +20,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const hr = useHeartRate();
   const csc = useCadenceSpeed();
+  const strava = useStravaImport();
 
   const [profile, setProfile] = useState<Profile | null>(null);
 
@@ -33,6 +35,18 @@ export default function SettingsScreen() {
       saveProfile(next);
       return next;
     });
+  };
+
+  const runStravaImport = async () => {
+    const res = await strava.pickAndImport();
+    if (!res) return;
+    Alert.alert(
+      'Import Strava',
+      `${res.imported} séance(s) importée(s)\n` +
+        `${res.duplicates} doublon(s) ignoré(s)\n` +
+        `${res.skipped} activité(s) ignorée(s)` +
+        (res.errors ? `\n${res.errors} fichier(s) en erreur` : ''),
+    );
   };
 
   const confirmClear = () => {
@@ -277,6 +291,42 @@ export default function SettingsScreen() {
           variant="danger"
           onPress={confirmClear}
         />
+      </Card>
+
+      {/* Import Strava */}
+      <Card style={{ gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <MaterialCommunityIcons name="cloud-download-outline" size={22} color={theme.velo} />
+          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>Import Strava</Text>
+        </View>
+        <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+          {"Exportez une activité depuis Strava (page de l'activité → « Exporter GPX », ou « Télécharger vos données » dans les réglages du compte), puis importez le fichier .gpx ou .tcx ici. Tout est traité sur l'appareil."}
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+          <MaterialCommunityIcons name="information-outline" size={18} color={theme.textMuted} />
+          <Text style={{ color: theme.textMuted, fontSize: 12, flex: 1 }}>
+            {"Pas de synchronisation automatique avec votre compte Strava : cela demanderait un serveur, incompatible avec le fonctionnement 100 % hors-ligne de l'app. La ré-importation d'un même fichier ne crée pas de doublon."}
+          </Text>
+        </View>
+
+        <Button
+          title="Importer un fichier (GPX/TCX)"
+          icon="file-import-outline"
+          color={theme.velo}
+          loading={strava.importing}
+          onPress={runStravaImport}
+        />
+
+        {strava.error ? (
+          <Text style={{ color: theme.heart, fontSize: 13 }}>{strava.error}</Text>
+        ) : null}
+
+        {strava.result ? (
+          <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+            {`Dernier import : ${strava.result.imported} importée(s), ${strava.result.duplicates} doublon(s), ${strava.result.skipped} ignorée(s)` +
+              (strava.result.errors ? `, ${strava.result.errors} erreur(s)` : '')}
+          </Text>
+        ) : null}
       </Card>
     </ScrollView>
   );

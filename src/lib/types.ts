@@ -25,6 +25,10 @@ export type Session = {
   avgCadence: number | null;
   maxCadence: number | null;
   calories: number | null;
+  /** Provenance : null = enregistré dans l'app, 'strava' = importé d'un fichier. */
+  source: string | null;
+  /** Clé de déduplication des séances importées (null pour les séances natives). */
+  externalId: string | null;
 };
 
 /** Un point GPS d'un tracé vélo. */
