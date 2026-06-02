@@ -25,13 +25,15 @@ export type BackupSnapshot = {
 export type BackupLast = { at: number; ok: boolean; error?: string };
 
 const DEFAULT_CONFIG: BackupConfig = {
-  enabled: false,
-  endpoint: '',
+  // Pré-rempli pour le homelab SeaweedFS (s3.battistella.ovh). Les clés d'accès
+  // restent vides : à saisir une fois sur l'appareil (jamais commitées — dépôt public).
+  enabled: true,
+  endpoint: 'https://s3.battistella.ovh',
   region: 'us-east-1',
-  bucket: '',
+  bucket: 'elan',
   accessKeyId: '',
   secretAccessKey: '',
-  objectKey: 'suivi-sport-backup.json',
+  objectKey: 'elan-backup.json',
 };
 
 export async function getBackupConfig(): Promise<BackupConfig> {
