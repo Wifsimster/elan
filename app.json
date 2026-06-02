@@ -59,7 +59,8 @@
           "neverForLocation": true,
           "bluetoothAlwaysPermission": "Cette application se connecte en Bluetooth à votre ceinture cardiaque pour enregistrer votre fréquence cardiaque pendant l'effort."
         }
-      ]
+      ],
+      "@maplibre/maplibre-react-native"
     ],
     "experiments": {
       "typedRoutes": true,
