@@ -149,6 +149,24 @@ export default function SessionDetailScreen() {
                   icon="elevation-rise"
                   compact
                 />
+                {session.avgCadence != null ? (
+                  <StatTile
+                    label="Cadence moy."
+                    value={`${Math.round(session.avgCadence)} tr/min`}
+                    icon="rotate-right"
+                    color={color}
+                    compact
+                  />
+                ) : null}
+                {session.maxCadence != null ? (
+                  <StatTile
+                    label="Cadence max"
+                    value={`${Math.round(session.maxCadence)} tr/min`}
+                    icon="rotate-right"
+                    color={color}
+                    compact
+                  />
+                ) : null}
               </>
             ) : null}
             <StatTile

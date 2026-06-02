@@ -19,6 +19,7 @@ import {
 } from '@/lib/db';
 import { formatDistance, formatDuration } from '@/lib/format';
 import { nowMs } from '@/lib/time';
+import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useGpsTracker } from '@/hooks/use-gps-tracker';
 import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useStopwatch } from '@/hooks/use-stopwatch';
@@ -27,6 +28,7 @@ import { useTheme } from '@/hooks/use-theme';
 type Phase = 'idle' | 'active' | 'paused' | 'saving';
 
 type HrSample = { ts: number; hr: number };
+type CadenceSample = { ts: number; cadence: number };
 
 export default function VeloScreen() {
   useKeepAwake();
@@ -37,11 +39,16 @@ export default function VeloScreen() {
   const gps = useGpsTracker();
   const watch = useStopwatch();
   const { bpm } = useHeartRate();
+  const { cadenceRpm, speedKmh: sensorSpeedKmh, devices: cscDevices } = useCadenceSpeed();
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [weightKg, setWeightKg] = useState(70);
   const startedAtRef = useRef<number>(0);
   const hrSamplesRef = useRef<HrSample[]>([]);
+  const cadenceSamplesRef = useRef<CadenceSample[]>([]);
+
+  const hasCadenceSensor = cscDevices.length > 0 || cadenceRpm != null;
+  const hasSpeedSensor = sensorSpeedKmh != null;
 
   useEffect(() => {
     getProfile().then((p) => setWeightKg(p.weightKg));
@@ -54,6 +61,13 @@ export default function VeloScreen() {
     }
   }, [bpm, phase]);
 
+  // Échantillonnage de la cadence pendant l'effort.
+  useEffect(() => {
+    if (phase === 'active' && cadenceRpm != null) {
+      cadenceSamplesRef.current.push({ ts: nowMs(), cadence: cadenceRpm });
+    }
+  }, [cadenceRpm, phase]);
+
   const begin = async () => {
     const ok = await gps.start();
     if (!ok) {
@@ -65,6 +79,7 @@ export default function VeloScreen() {
     }
     startedAtRef.current = nowMs();
     hrSamplesRef.current = [];
+    cadenceSamplesRef.current = [];
     watch.start();
     setPhase('active');
   };
@@ -89,6 +104,17 @@ export default function VeloScreen() {
     return { avgHr: Math.round(sum / samples.length), maxHr: max };
   };
 
+  // Moyenne « en mouvement » : on exclut les phases de roue libre (cadence 0).
+  const computeCadence = () => {
+    const all = cadenceSamplesRef.current;
+    if (all.length === 0) return { avgCadence: null, maxCadence: null };
+    const moving = all.filter((s) => s.cadence > 0);
+    const max = all.reduce((a, s) => Math.max(a, s.cadence), 0);
+    if (moving.length === 0) return { avgCadence: null, maxCadence: max || null };
+    const sum = moving.reduce((a, s) => a + s.cadence, 0);
+    return { avgCadence: Math.round(sum / moving.length), maxCadence: max };
+  };
+
   const finish = () => {
     Alert.alert('Terminer la sortie ?', 'La séance sera enregistrée.', [
       { text: 'Continuer', style: 'cancel' },
@@ -102,6 +128,7 @@ export default function VeloScreen() {
     watch.pause();
     const durationSec = watch.elapsedSec;
     const { avgHr, maxHr } = computeHr();
+    const { avgCadence, maxCadence } = computeCadence();
     const avgSpeedKmh =
       durationSec > 0 ? result.distanceM / 1000 / (durationSec / 3600) : 0;
     const calories = estimateCalories({
@@ -121,11 +148,14 @@ export default function VeloScreen() {
       elevationGainM: result.elevationGainM,
       avgHr,
       maxHr,
+      avgCadence,
+      maxCadence,
       calories,
     });
 
-    // Attache la FC la plus proche à chaque point GPS.
+    // Attache la FC et la cadence les plus proches à chaque point GPS.
     const samples = hrSamplesRef.current;
+    const cadenceSamples = cadenceSamplesRef.current;
     const points = result.points.map((p) => ({
       ts: p.ts,
       lat: p.lat,
@@ -133,6 +163,7 @@ export default function VeloScreen() {
       altitude: p.altitude,
       speedKmh: p.speedKmh,
       hr: nearestHr(samples, p.ts),
+      cadence: nearestSample(cadenceSamples, p.ts, (s) => s.cadence),
     }));
     await insertTrackPoints(id, points);
 
@@ -217,6 +248,26 @@ export default function VeloScreen() {
               icon="speedometer-medium"
               compact
             />
+            {hasSpeedSensor ? (
+              <StatTile
+                label="Vitesse roue"
+                value={(sensorSpeedKmh ?? 0).toFixed(1)}
+                unit="km/h"
+                icon="bike-fast"
+                color={theme.velo}
+                compact
+              />
+            ) : null}
+            {hasCadenceSensor ? (
+              <StatTile
+                label="Cadence"
+                value={cadenceRpm != null ? String(cadenceRpm) : '—'}
+                unit="tr/min"
+                icon="rotate-right"
+                color={theme.velo}
+                compact
+              />
+            ) : null}
             <StatTile
               label="Dénivelé +"
               value={String(Math.round(gps.elevationGainM))}
@@ -299,6 +350,15 @@ export default function VeloScreen() {
 }
 
 function nearestHr(samples: HrSample[], ts: number): number | null {
+  return nearestSample(samples, ts, (s) => s.hr);
+}
+
+/** Valeur de l'échantillon temporellement le plus proche (tolérance 10 s). */
+function nearestSample<T extends { ts: number }>(
+  samples: T[],
+  ts: number,
+  pick: (s: T) => number,
+): number | null {
   if (samples.length === 0) return null;
   let best = samples[0];
   let bestDiff = Math.abs(samples[0].ts - ts);
@@ -309,7 +369,7 @@ function nearestHr(samples: HrSample[], ts: number): number | null {
       best = s;
     }
   }
-  return bestDiff <= 10000 ? best.hr : null;
+  return bestDiff <= 10000 ? pick(best) : null;
 }
 
 function GpsStatusPill({
