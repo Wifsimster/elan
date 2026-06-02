@@ -33,7 +33,7 @@ import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useStopwatch } from '@/hooks/use-stopwatch';
 import { useTheme } from '@/hooks/use-theme';
 
-type SetRow = { reps: number; weightKg: number };
+type SetRow = { reps: number; weightKg: number; done?: boolean };
 type Exercise = {
   id: string;
   name: string;
@@ -163,7 +163,18 @@ export default function MuscuScreen() {
       ),
     );
 
+  // Cocher / décocher une série une fois exécutée (suivi en cours de séance).
+  const toggleSet = (id: string, idx: number) =>
+    setExercises((prev) =>
+      prev.map((e) =>
+        e.id === id
+          ? { ...e, sets: e.sets.map((s, i) => (i === idx ? { ...s, done: !s.done } : s)) }
+          : e,
+      ),
+    );
+
   const totalSets = exercises.reduce((a, e) => a + e.sets.length, 0);
+  const doneSets = exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
   const totalVolume = exercises.reduce(
     (a, e) => a + e.sets.reduce((b, s) => b + s.reps * s.weightKg, 0),
     0,
@@ -259,7 +270,11 @@ export default function MuscuScreen() {
         {/* Résumé */}
         <Card style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
           <Summary label="Durée" value={formatDuration(watch.elapsedSec)} theme={theme} />
-          <Summary label="Séries" value={String(totalSets)} theme={theme} />
+          <Summary
+            label="Séries"
+            value={totalSets > 0 ? `${doneSets}/${totalSets}` : '0'}
+            theme={theme}
+          />
           <Summary
             label="Cardio"
             value={bpm != null ? `${bpm}` : '—'}
@@ -352,29 +367,52 @@ export default function MuscuScreen() {
               <View
                 key={i}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text
+                <PressableScale
+                  onPress={() => toggleSet(ex.id, i)}
+                  haptic="success"
+                  scaleTo={0.85}
+                  hitSlop={6}
                   style={{
-                    width: 22,
-                    color: theme.textSecondary,
-                    fontWeight: '700',
-                    fontVariant: ['tabular-nums'],
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: s.done ? 0 : 1.5,
+                    borderColor: theme.border,
+                    backgroundColor: s.done ? theme.muscu : 'transparent',
                   }}>
-                  {i + 1}
-                </Text>
-                <Stepper
-                  value={s.reps}
-                  suffix={ex.repUnit ?? 'reps'}
-                  step={1}
-                  min={1}
-                  onChange={(v) => updateSet(ex.id, i, { reps: v })}
-                />
-                <Stepper
-                  value={s.weightKg}
-                  suffix="kg"
-                  step={2.5}
-                  min={0}
-                  onChange={(v) => updateSet(ex.id, i, { weightKg: v })}
-                />
+                  {s.done ? (
+                    <MaterialCommunityIcons name="check" size={16} color="#fff" />
+                  ) : (
+                    <Text
+                      style={{
+                        color: theme.textSecondary,
+                        fontWeight: '700',
+                        fontSize: 12,
+                        fontVariant: ['tabular-nums'],
+                      }}>
+                      {i + 1}
+                    </Text>
+                  )}
+                </PressableScale>
+                <View
+                  style={{ flex: 1, flexDirection: 'row', gap: 10, opacity: s.done ? 0.45 : 1 }}>
+                  <Stepper
+                    value={s.reps}
+                    suffix={ex.repUnit ?? 'reps'}
+                    step={1}
+                    min={1}
+                    onChange={(v) => updateSet(ex.id, i, { reps: v })}
+                  />
+                  <Stepper
+                    value={s.weightKg}
+                    suffix="kg"
+                    step={2.5}
+                    min={0}
+                    onChange={(v) => updateSet(ex.id, i, { weightKg: v })}
+                  />
+                </View>
                 <Pressable onPress={() => removeSet(ex.id, i)} hitSlop={8}>
                   <MaterialCommunityIcons name="close-circle-outline" size={20} color={theme.textSecondary} />
                 </Pressable>
