@@ -10,7 +10,7 @@ import { Card } from '@/components/card';
 import { PressableScale } from '@/components/pressable-scale';
 import { RouteMap } from '@/components/route-map';
 import { StatTile } from '@/components/stat-tile';
-import { Elevation, Type } from '@/constants/theme';
+import { Elevation, Radius, Type } from '@/constants/theme';
 import { autoBackup } from '@/lib/backup';
 import { estimateCalories } from '@/lib/calories';
 import {
@@ -297,9 +297,15 @@ export default function VeloScreen() {
           </View>
         </Card>
 
-        {/* Tracé GPS en temps réel (lecture passive : aucun geste pendant l'effort). */}
-        {phase !== 'idle' && gps.livePath.length >= 2 ? (
-          <RouteMap points={gps.livePath} live color={theme.velo} height={220} />
+        {/* Tracé GPS en temps réel (lecture passive : aucun geste pendant l'effort).
+            Tant qu'il n'y a pas assez de points, on montre un cadre d'attente
+            plutôt que rien — sinon la carte semble absente à l'arrêt/en intérieur. */}
+        {phase !== 'idle' ? (
+          gps.livePath.length >= 2 ? (
+            <RouteMap points={gps.livePath} live color={theme.velo} height={220} />
+          ) : (
+            <MapPlaceholder status={gps.status} />
+          )
         ) : null}
       </ScrollView>
 
@@ -378,6 +384,40 @@ function nearestSample<T extends { ts: number }>(
     }
   }
   return bestDiff <= 10000 ? pick(best) : null;
+}
+
+/** Cadre d'attente affiché tant que le tracé live n'a pas assez de points. */
+function MapPlaceholder({ status }: { status: ReturnType<typeof useGpsTracker>['status'] }) {
+  const theme = useTheme();
+  const label =
+    status === 'tracking'
+      ? 'En attente de déplacement — le tracé apparaîtra dès les premiers mètres.'
+      : status === 'requesting'
+        ? 'Recherche du signal GPS…'
+        : status === 'denied'
+          ? 'Localisation refusée — activez le GPS pour tracer la sortie.'
+          : 'Tracé GPS indisponible.';
+  return (
+    <View
+      style={{
+        height: 220,
+        borderRadius: Radius.md,
+        borderCurve: 'continuous',
+        overflow: 'hidden',
+        backgroundColor: theme.backgroundElement,
+        borderWidth: 1,
+        borderColor: theme.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        paddingHorizontal: 28,
+      }}>
+      <MaterialCommunityIcons name="map-marker-path" size={36} color={theme.textMuted} />
+      <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 19 }}>
+        {label}
+      </Text>
+    </View>
+  );
 }
 
 function GpsStatusPill({
