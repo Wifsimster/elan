@@ -127,6 +127,11 @@ export async function setSetting(key: string, value: string): Promise<void> {
   );
 }
 
+export async function deleteSetting(key: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM settings WHERE key = ?;', key);
+}
+
 const DEFAULT_PROFILE: Profile = { weightKg: 70, maxHr: 190 };
 
 export async function getProfile(): Promise<Profile> {
