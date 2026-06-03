@@ -190,12 +190,67 @@ export async function getSession(id: number): Promise<Session | null> {
   return db.getFirstAsync<Session>('SELECT * FROM sessions WHERE id = ?;', id);
 }
 
-export async function listSessions(limit = 100): Promise<Session[]> {
+/** Options de filtrage de l'historique. Compatibilité ascendante : passer un
+ * nombre garde l'ancien comportement (limite seule, pas d'offset, pas de filtre). */
+export type ListSessionsOptions = {
+  limit?: number;
+  /** Décale la fenêtre (pour la pagination). */
+  offset?: number;
+  /** Restreint à un type d'activité. */
+  type?: ActivityType;
+  /** Recherche libre, insensible à la casse, sur :
+   *  - le code du type (« velo » / « muscu »),
+   *  - les notes de séance,
+   *  - les noms d'exercices muscu rattachés. */
+  search?: string;
+  /** Borne basse de `startedAt` (ms epoch, inclus). */
+  fromMs?: number;
+  /** Borne haute de `startedAt` (ms epoch, exclus). */
+  toMs?: number;
+};
+
+export async function listSessions(
+  optsOrLimit: number | ListSessionsOptions = 100,
+): Promise<Session[]> {
+  const opts: ListSessionsOptions =
+    typeof optsOrLimit === 'number' ? { limit: optsOrLimit } : optsOrLimit;
+  const { limit = 100, offset = 0, type, search, fromMs, toMs } = opts;
+
+  const where: string[] = ['endedAt IS NOT NULL'];
+  const params: (string | number)[] = [];
+
+  if (type) {
+    where.push('type = ?');
+    params.push(type);
+  }
+  if (fromMs != null) {
+    where.push('startedAt >= ?');
+    params.push(fromMs);
+  }
+  if (toMs != null) {
+    where.push('startedAt < ?');
+    params.push(toMs);
+  }
+  const trimmed = search?.trim();
+  if (trimmed) {
+    // SQLite : LIKE est insensible à la casse pour l'ASCII par défaut. On
+    // matche sur le code de type (« velo »/« muscu »), les notes ou un
+    // exercice muscu rattaché.
+    const like = `%${trimmed}%`;
+    where.push(
+      `(type LIKE ? OR IFNULL(notes, '') LIKE ? OR id IN (
+         SELECT sessionId FROM muscu_sets WHERE exercise LIKE ?
+       ))`,
+    );
+    params.push(like, like, like);
+  }
+
+  const sql = `SELECT * FROM sessions WHERE ${where.join(' AND ')}
+               ORDER BY startedAt DESC LIMIT ? OFFSET ?;`;
+  params.push(limit, offset);
+
   const db = await getDb();
-  return db.getAllAsync<Session>(
-    'SELECT * FROM sessions WHERE endedAt IS NOT NULL ORDER BY startedAt DESC LIMIT ?;',
-    limit,
-  );
+  return db.getAllAsync<Session>(sql, ...params);
 }
 
 export async function deleteSession(id: number): Promise<void> {
