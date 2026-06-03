@@ -2,35 +2,36 @@
 import { ZONE_LABELS, estimateCalories, heartRateZone } from '@/lib/calories';
 
 describe('estimateCalories', () => {
-  it('musculation : MET=5, 70 kg, 1 h → 350 kcal', () => {
+  it('musculation : MUSCU_MET=4,5, 70 kg, 1 h → 315 kcal', () => {
     const kcal = estimateCalories({
       type: 'muscu',
       weightKg: 70,
       durationSec: 3600,
     });
-    expect(kcal).toBeCloseTo(350, 5);
+    expect(kcal).toBeCloseTo(4.5 * 70, 5);
   });
 
-  it('vélo à vitesse par défaut (18 km/h → MET=6), 70 kg, 1 h → 420 kcal', () => {
+  it('vélo à vitesse par défaut (18 km/h, interpolé entre 16/19), 70 kg, 1 h', () => {
+    // Interpolation linéaire : 4,0 + (18-16)/(19-16) * (6,8-4,0) = 5,866…
     const kcal = estimateCalories({
       type: 'velo',
       weightKg: 70,
       durationSec: 3600,
     });
-    expect(kcal).toBeCloseTo(420, 5);
+    expect(kcal).toBeCloseTo(5.8667 * 70, 1);
   });
 
-  it('vélo lent (< 16 km/h) utilise MET=4', () => {
+  it('vélo très lent (10 km/h ou moins) plafonné au MET de base (3,5)', () => {
     const kcal = estimateCalories({
       type: 'velo',
       weightKg: 70,
       durationSec: 3600,
       avgSpeedKmh: 10,
     });
-    expect(kcal).toBeCloseTo(4 * 70, 5);
+    expect(kcal).toBeCloseTo(3.5 * 70, 5);
   });
 
-  it('vélo > 30 km/h utilise MET=15,8', () => {
+  it('vélo très rapide (≥ 33 km/h) plafonné au MET max (15,8)', () => {
     const kcal = estimateCalories({
       type: 'velo',
       weightKg: 70,
@@ -75,23 +76,86 @@ describe('estimateCalories', () => {
     expect(a).toBe(b);
   });
 
-  it('limites des paliers MET vélo', () => {
-    // 16 km/h pile : pas < 16 → MET=6
+  it('points exacts de la table MET vélo', () => {
+    // 16 km/h pile → 4,0 MET (point d'ancrage)
     const a = estimateCalories({
       type: 'velo',
       weightKg: 70,
       durationSec: 3600,
       avgSpeedKmh: 16,
     });
-    expect(a).toBeCloseTo(6 * 70, 5);
-    // 22 km/h pile : pas < 22 → MET=10
+    expect(a).toBeCloseTo(4.0 * 70, 5);
+    // 22,5 km/h pile → 8,0 MET (point d'ancrage)
     const b = estimateCalories({
+      type: 'velo',
+      weightKg: 70,
+      durationSec: 3600,
+      avgSpeedKmh: 22.5,
+    });
+    expect(b).toBeCloseTo(8.0 * 70, 5);
+  });
+
+  it('bonus dénivelé positif sur le vélo (~0,77 kcal/m pour 70 kg)', () => {
+    const sans = estimateCalories({
+      type: 'velo',
+      weightKg: 70,
+      durationSec: 3600,
+      avgSpeedKmh: 22.5,
+    });
+    const avec = estimateCalories({
+      type: 'velo',
+      weightKg: 70,
+      durationSec: 3600,
+      avgSpeedKmh: 22.5,
+      elevationGainM: 200,
+    });
+    // 70 * 0,011 * 200 = 154 kcal de bonus
+    expect(avec - sans).toBeCloseTo(154, 5);
+  });
+
+  it('le dénivelé est ignoré pour la musculation', () => {
+    const sans = estimateCalories({ type: 'muscu', weightKg: 70, durationSec: 3600 });
+    const avec = estimateCalories({
+      type: 'muscu',
+      weightKg: 70,
+      durationSec: 3600,
+      elevationGainM: 500,
+    });
+    expect(avec).toBe(sans);
+  });
+
+  it('FC moyenne fournie → mélange MET / cardio (60 % cardio)', () => {
+    const sansHr = estimateCalories({
       type: 'velo',
       weightKg: 70,
       durationSec: 3600,
       avgSpeedKmh: 22,
     });
-    expect(b).toBeCloseTo(10 * 70, 5);
+    const avecHr = estimateCalories({
+      type: 'velo',
+      weightKg: 70,
+      durationSec: 3600,
+      avgSpeedKmh: 22,
+      avgHr: 145,
+      maxHr: 190,
+    });
+    // Valeurs différentes (cardio à 76 % FCmax tire vers le bas).
+    expect(avecHr).not.toBeCloseTo(sansHr, 0);
+  });
+
+  it('exemple bilan : 1 h à 22 km/h, 200 m D+, FC 145, 70 kg, FCmax 190 → ~500 kcal', () => {
+    const kcal = estimateCalories({
+      type: 'velo',
+      weightKg: 70,
+      durationSec: 3600,
+      avgSpeedKmh: 22,
+      elevationGainM: 200,
+      avgHr: 145,
+      maxHr: 190,
+    });
+    // Cible ~504 kcal d'après l'exemple documenté.
+    expect(kcal).toBeGreaterThan(480);
+    expect(kcal).toBeLessThan(530);
   });
 });
 
