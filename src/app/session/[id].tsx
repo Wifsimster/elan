@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedRef } from 'react-native-reanimated';
 
@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { LineChart } from '@/components/line-chart';
 import { RouteMap } from '@/components/route-map';
+import { ShareCard } from '@/components/share-card';
 import { StatTile } from '@/components/stat-tile';
 import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
@@ -32,6 +33,7 @@ import {
   formatSpeed,
 } from '@/lib/format';
 import type { MuscuSet, Session, TrackPoint } from '@/lib/types';
+import { useSessionShare } from '@/hooks/use-session-share';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function SessionDetailScreen() {
@@ -46,8 +48,15 @@ export default function SessionDetailScreen() {
   const [records, setRecords] = useState<SessionRecord[]>([]);
   const [maxHr, setMaxHr] = useState(0);
   const [loading, setLoading] = useState(true);
+  const share = useSessionShare();
+  // Ref de la carte partageable (capturée en PNG lors du partage).
+  const shareCardRef = useRef<View>(null);
   // Ref de la ScrollView : permet au pan de la carte de bloquer le défilement.
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
+
+  useEffect(() => {
+    if (share.error) Alert.alert('Partage', share.error);
+  }, [share.error]);
 
   useEffect(() => {
     (async () => {
@@ -109,9 +118,21 @@ export default function SessionDetailScreen() {
         options={{
           title: meta.label,
           headerRight: () => (
-            <Pressable onPress={confirmDelete} hitSlop={10}>
-              <MaterialCommunityIcons name="trash-can-outline" size={22} color={theme.heart} />
-            </Pressable>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+              <Pressable
+                onPress={() => share.share(shareCardRef)}
+                hitSlop={10}
+                disabled={share.sharing}>
+                <MaterialCommunityIcons
+                  name="share-variant"
+                  size={21}
+                  color={share.sharing ? theme.textMuted : theme.text}
+                />
+              </Pressable>
+              <Pressable onPress={confirmDelete} hitSlop={10}>
+                <MaterialCommunityIcons name="trash-can-outline" size={22} color={theme.heart} />
+              </Pressable>
+            </View>
           ),
         }}
       />
@@ -268,8 +289,28 @@ export default function SessionDetailScreen() {
           </Card>
         ) : null}
 
+        <Button
+          title="Partager la séance"
+          icon="share-variant"
+          variant="secondary"
+          color={color}
+          loading={share.sharing}
+          onPress={() => share.share(shareCardRef)}
+        />
         <Button title="Supprimer la séance" icon="trash-can-outline" variant="danger" onPress={confirmDelete} />
       </Animated.ScrollView>
+
+      {/* Carte partageable, rendue hors écran puis capturée en PNG au partage. */}
+      <View style={{ position: 'absolute', left: -9999, top: 0 }} pointerEvents="none">
+        <ShareCard
+          ref={shareCardRef}
+          session={session}
+          points={points}
+          sets={sets}
+          records={records}
+          effort={effort}
+        />
+      </View>
     </>
   );
 }
