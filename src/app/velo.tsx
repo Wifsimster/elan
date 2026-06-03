@@ -40,12 +40,18 @@ export default function VeloScreen() {
 
   const gps = useGpsTracker();
   const watch = useStopwatch();
-  const { bpm } = useHeartRate();
-  const { cadenceRpm, speedKmh: sensorSpeedKmh, devices: cscDevices } = useCadenceSpeed();
+  const { bpm, subscribe: subscribeHr } = useHeartRate();
+  const {
+    cadenceRpm,
+    speedKmh: sensorSpeedKmh,
+    devices: cscDevices,
+    subscribe: subscribeCsc,
+  } = useCadenceSpeed();
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [weightKg, setWeightKg] = useState(70);
   const [profileMaxHr, setProfileMaxHr] = useState(190);
+  const phaseRef = useRef<Phase>('idle');
   const startedAtRef = useRef<number>(0);
   const hrSamplesRef = useRef<HrSample[]>([]);
   const cadenceSamplesRef = useRef<CadenceSample[]>([]);
@@ -60,19 +66,27 @@ export default function VeloScreen() {
     });
   }, []);
 
-  // Échantillonnage de la fréquence cardiaque pendant l'effort.
   useEffect(() => {
-    if (phase === 'active' && bpm != null) {
-      hrSamplesRef.current.push({ ts: nowMs(), hr: bpm });
-    }
-  }, [bpm, phase]);
+    phaseRef.current = phase;
+  }, [phase]);
 
-  // Échantillonnage de la cadence pendant l'effort.
+  // Échantillonnage des capteurs BLE pendant l'effort. On s'abonne aux trames
+  // brutes plutôt qu'à `bpm`/`cadenceRpm` : React déduplique les setStates
+  // identiques, ce qui ferait perdre les trames d'un palier (FC stable,
+  // cadence stable) et appauvrirait la moyenne ainsi que l'attachement
+  // FC↔point GPS.
   useEffect(() => {
-    if (phase === 'active' && cadenceRpm != null) {
-      cadenceSamplesRef.current.push({ ts: nowMs(), cadence: cadenceRpm });
-    }
-  }, [cadenceRpm, phase]);
+    return subscribeHr(({ ts, hr }) => {
+      if (phaseRef.current === 'active') hrSamplesRef.current.push({ ts, hr });
+    });
+  }, [subscribeHr]);
+
+  useEffect(() => {
+    return subscribeCsc(({ ts, cadenceRpm: rpm }) => {
+      if (rpm == null) return;
+      if (phaseRef.current === 'active') cadenceSamplesRef.current.push({ ts, cadence: rpm });
+    });
+  }, [subscribeCsc]);
 
   const begin = async () => {
     const ok = await gps.start();
@@ -374,20 +388,37 @@ function nearestHr(samples: HrSample[], ts: number): number | null {
   return nearestSample(samples, ts, (s) => s.hr);
 }
 
-/** Valeur de l'échantillon temporellement le plus proche (tolérance 10 s). */
+/**
+ * Valeur de l'échantillon temporellement le plus proche (tolérance 10 s).
+ * Les échantillons sont accumulés dans l'ordre chronologique (push lors de la
+ * réception BLE) : recherche dichotomique en O(log N) au lieu d'un scan
+ * complet pour chaque point GPS — sur une longue sortie cela évite plusieurs
+ * secondes de calcul au moment de l'enregistrement.
+ */
 function nearestSample<T extends { ts: number }>(
   samples: T[],
   ts: number,
   pick: (s: T) => number,
 ): number | null {
   if (samples.length === 0) return null;
-  let best = samples[0];
-  let bestDiff = Math.abs(samples[0].ts - ts);
-  for (const s of samples) {
-    const diff = Math.abs(s.ts - ts);
+  // Borne basse via recherche dichotomique : premier index dont ts >= cible.
+  let lo = 0;
+  let hi = samples.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (samples[mid].ts < ts) lo = mid + 1;
+    else hi = mid;
+  }
+  const candidates: T[] = [];
+  if (lo < samples.length) candidates.push(samples[lo]);
+  if (lo > 0) candidates.push(samples[lo - 1]);
+  let best = candidates[0];
+  let bestDiff = Math.abs(best.ts - ts);
+  for (let i = 1; i < candidates.length; i++) {
+    const diff = Math.abs(candidates[i].ts - ts);
     if (diff < bestDiff) {
       bestDiff = diff;
-      best = s;
+      best = candidates[i];
     }
   }
   return bestDiff <= 10000 ? pick(best) : null;

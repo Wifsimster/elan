@@ -72,7 +72,7 @@ export default function MuscuScreen() {
   const router = useRouter();
 
   const watch = useStopwatch();
-  const { bpm } = useHeartRate();
+  const { bpm, subscribe: subscribeHr } = useHeartRate();
   const { template } = useLocalSearchParams<{ template?: string }>();
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -122,9 +122,13 @@ export default function MuscuScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Échantillonnage FC : on s'abonne aux trames BLE brutes pour ne pas perdre
+  // les paliers (React déduplique les setStates identiques côté `bpm`).
   useEffect(() => {
-    if (bpm != null) hrSamplesRef.current.push({ ts: nowMs(), hr: bpm });
-  }, [bpm]);
+    return subscribeHr(({ ts, hr }) => {
+      hrSamplesRef.current.push({ ts, hr });
+    });
+  }, [subscribeHr]);
 
   const addExercise = (name: string) => {
     const trimmed = name.trim();

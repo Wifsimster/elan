@@ -36,6 +36,12 @@ export type CscStatus =
 
 export type CscDevice = { id: string; name: string };
 
+export type CscSample = {
+  ts: number;
+  cadenceRpm: number | null;
+  speedKmh: number | null;
+};
+
 type CadenceSpeedContextValue = {
   status: CscStatus;
   /** Cadence instantanée en tours/min (null si aucun capteur de cadence). */
@@ -55,6 +61,12 @@ type CadenceSpeedContextValue = {
   connect: (deviceId: string) => Promise<void>;
   /** Déconnecte un capteur, ou tous si `deviceId` est omis. */
   disconnect: (deviceId?: string) => Promise<void>;
+  /**
+   * S'abonne aux mesures brutes (même valeur identique : nécessaire pour ne
+   * pas perdre d'échantillons sur un palier de cadence/vitesse, que React
+   * dédupliquerait via setState).
+   */
+  subscribe: (listener: (sample: CscSample) => void) => () => void;
 };
 
 const CadenceSpeedContext = createContext<CadenceSpeedContextValue | null>(null);
@@ -86,6 +98,26 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
   const circMmRef = useRef(DEFAULT_WHEEL_MM);
   const crankMoveTsRef = useRef(0);
   const wheelMoveTsRef = useRef(0);
+  const listenersRef = useRef<Set<(s: CscSample) => void>>(new Set());
+  const lastCadenceRef = useRef<number | null>(null);
+  const lastSpeedRef = useRef<number | null>(null);
+
+  const subscribe = useCallback((listener: (sample: CscSample) => void) => {
+    listenersRef.current.add(listener);
+    return () => {
+      listenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const notify = useCallback(() => {
+    if (listenersRef.current.size === 0) return;
+    const sample: CscSample = {
+      ts: nowMs(),
+      cadenceRpm: lastCadenceRef.current,
+      speedKmh: lastSpeedRef.current,
+    };
+    for (const cb of listenersRef.current) cb(sample);
+  }, []);
 
   const syncDevices = useCallback(() => {
     setDevices(
@@ -98,54 +130,70 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Traite une mesure CSC d'un capteur donné et met à jour cadence/vitesse.
-  const handleSample = useCallback((id: string, value: string | null) => {
-    const raw = parseCsc(value);
-    if (!raw) return;
-    const prev = lastSampleRef.current.get(id);
-    lastSampleRef.current.set(id, raw);
-    if (!prev) return; // il faut deux mesures pour un delta
+  const handleSample = useCallback(
+    (id: string, value: string | null) => {
+      const raw = parseCsc(value);
+      if (!raw) return;
+      const prev = lastSampleRef.current.get(id);
+      lastSampleRef.current.set(id, raw);
+      if (!prev) return; // il faut deux mesures pour un delta
 
-    // Cadence (pédalier).
-    if (
-      raw.crankRevs != null &&
-      prev.crankRevs != null &&
-      raw.crankTime != null &&
-      prev.crankTime != null
-    ) {
-      const dRev = delta(raw.crankRevs, prev.crankRevs, 0x10000);
-      const dT = delta(raw.crankTime, prev.crankTime, 0x10000);
-      if (dRev === 0) {
-        setCadenceRpm(0);
-      } else if (dT > 0) {
-        const rpm = Math.round((dRev / (dT / TIME_UNIT)) * 60);
-        if (rpm <= 250) {
-          setCadenceRpm(rpm);
-          crankMoveTsRef.current = nowMs();
+      let updated = false;
+
+      // Cadence (pédalier).
+      if (
+        raw.crankRevs != null &&
+        prev.crankRevs != null &&
+        raw.crankTime != null &&
+        prev.crankTime != null
+      ) {
+        const dRev = delta(raw.crankRevs, prev.crankRevs, 0x10000);
+        const dT = delta(raw.crankTime, prev.crankTime, 0x10000);
+        if (dRev === 0) {
+          setCadenceRpm(0);
+          lastCadenceRef.current = 0;
+          updated = true;
+        } else if (dT > 0) {
+          const rpm = Math.round((dRev / (dT / TIME_UNIT)) * 60);
+          if (rpm <= 250) {
+            setCadenceRpm(rpm);
+            lastCadenceRef.current = rpm;
+            crankMoveTsRef.current = nowMs();
+            updated = true;
+          }
         }
       }
-    }
 
-    // Vitesse (roue).
-    if (
-      raw.wheelRevs != null &&
-      prev.wheelRevs != null &&
-      raw.wheelTime != null &&
-      prev.wheelTime != null
-    ) {
-      const dRev = delta(raw.wheelRevs, prev.wheelRevs, 0x100000000);
-      const dT = delta(raw.wheelTime, prev.wheelTime, 0x10000);
-      if (dRev === 0) {
-        setSpeedKmh(0);
-      } else if (dT > 0) {
-        const mps = (dRev * (circMmRef.current / 1000)) / (dT / TIME_UNIT);
-        const kmh = mps * 3.6;
-        if (kmh <= 120) {
-          setSpeedKmh(kmh);
-          wheelMoveTsRef.current = nowMs();
+      // Vitesse (roue).
+      if (
+        raw.wheelRevs != null &&
+        prev.wheelRevs != null &&
+        raw.wheelTime != null &&
+        prev.wheelTime != null
+      ) {
+        const dRev = delta(raw.wheelRevs, prev.wheelRevs, 0x100000000);
+        const dT = delta(raw.wheelTime, prev.wheelTime, 0x10000);
+        if (dRev === 0) {
+          setSpeedKmh(0);
+          lastSpeedRef.current = 0;
+          updated = true;
+        } else if (dT > 0) {
+          const mps = (dRev * (circMmRef.current / 1000)) / (dT / TIME_UNIT);
+          const kmh = mps * 3.6;
+          if (kmh <= 120) {
+            setSpeedKmh(kmh);
+            lastSpeedRef.current = kmh;
+            wheelMoveTsRef.current = nowMs();
+            updated = true;
+          }
         }
       }
-    }
-  }, []);
+
+      // Notifie les abonnés à chaque trame exploitable (même valeur égale).
+      if (updated) notify();
+    },
+    [notify],
+  );
 
   // Retombe à zéro quand un capteur cesse d'émettre (arrêt prolongé).
   useEffect(() => {
@@ -228,6 +276,8 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
       if (connRef.current.size === 0) {
         setCadenceRpm(null);
         setSpeedKmh(null);
+        lastCadenceRef.current = null;
+        lastSpeedRef.current = null;
       }
       syncDevices();
       await persistDevices();
@@ -267,6 +317,8 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
           if (connRef.current.size === 0) {
             setCadenceRpm(null);
             setSpeedKmh(null);
+            lastCadenceRef.current = null;
+            lastSpeedRef.current = null;
           }
           syncDevices();
         });
@@ -333,6 +385,7 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
       stopScan,
       connect,
       disconnect,
+      subscribe,
     }),
     [
       status,
@@ -347,6 +400,7 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
       stopScan,
       connect,
       disconnect,
+      subscribe,
     ],
   );
 
