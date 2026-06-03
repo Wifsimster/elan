@@ -476,6 +476,71 @@ export async function dailyDurations(days: number): Promise<{ day: string; durat
   );
 }
 
+// ---------------------------------------------------------------------------
+// Records personnels (façon « PR » Strava)
+// ---------------------------------------------------------------------------
+
+/** Métrique sur laquelle une séance peut établir un record. */
+export type RecordKind = 'distance' | 'elevation' | 'duration' | 'speed';
+/** Portée d'un record : sur l'année de la séance, ou sur toute l'historique. */
+export type SessionRecord = { kind: RecordKind; scope: 'year' | 'all' };
+
+// Colonnes correspondantes — liste blanche fermée (jamais d'entrée utilisateur).
+const RECORD_COLUMNS: Record<RecordKind, string> = {
+  distance: 'distanceM',
+  elevation: 'elevationGainM',
+  duration: 'durationSec',
+  speed: 'avgSpeedKmh',
+};
+
+/**
+ * Détermine, pour une séance donnée, les records qu'elle détient parmi les
+ * séances du même type. Pour chaque métrique : record « all » si aucune autre
+ * séance ne fait mieux, sinon record « year » si aucune ne fait mieux sur la
+ * même année civile. La musculation n'a pas de distance/dénivelé → durée seule.
+ */
+export async function sessionRecords(s: Session): Promise<SessionRecord[]> {
+  const db = await getDb();
+  const kinds: RecordKind[] =
+    s.type === 'velo' ? ['distance', 'elevation', 'duration', 'speed'] : ['duration'];
+
+  const year = new Date(s.startedAt).getFullYear();
+  const yearStart = new Date(year, 0, 1).getTime();
+  const yearEnd = new Date(year + 1, 0, 1).getTime();
+
+  const out: SessionRecord[] = [];
+  for (const kind of kinds) {
+    const col = RECORD_COLUMNS[kind];
+    const value = s[col as keyof Session] as number | null;
+    if (value == null || value <= 0) continue;
+
+    const greaterAll = await db.getFirstAsync<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM sessions
+       WHERE type = ? AND endedAt IS NOT NULL AND id <> ? AND ${col} > ?;`,
+      s.type,
+      s.id,
+      value,
+    );
+    if ((greaterAll?.n ?? 0) === 0) {
+      out.push({ kind, scope: 'all' });
+      continue;
+    }
+
+    const greaterYear = await db.getFirstAsync<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM sessions
+       WHERE type = ? AND endedAt IS NOT NULL AND id <> ?
+         AND startedAt >= ? AND startedAt < ? AND ${col} > ?;`,
+      s.type,
+      s.id,
+      yearStart,
+      yearEnd,
+      value,
+    );
+    if ((greaterYear?.n ?? 0) === 0) out.push({ kind, scope: 'year' });
+  }
+  return out;
+}
+
 /** Efface toutes les données (séances, points, séries) — garde les réglages. */
 export async function clearAllData(): Promise<void> {
   const db = await getDb();
