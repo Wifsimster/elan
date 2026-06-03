@@ -1,0 +1,28 @@
+{
+  "packageFiles": ["package.json"],
+  "bumpFiles": [
+    "package.json",
+    "package-lock.json",
+    { "filename": "app.json", "updater": "scripts/app-json-updater.cjs" }
+  ],
+  "scripts": {
+    "postbump": "node scripts/sync-android-version.cjs"
+  },
+  "types": [
+    { "type": "feat", "section": "✨ Fonctionnalités" },
+    { "type": "fix", "section": "🐛 Corrections" },
+    { "type": "perf", "section": "⚡ Performances" },
+    { "type": "revert", "section": "⏪ Annulations" },
+    { "type": "refactor", "section": "♻️ Refactoring" },
+    { "type": "docs", "hidden": true },
+    { "type": "style", "hidden": true },
+    { "type": "test", "hidden": true },
+    { "type": "build", "hidden": true },
+    { "type": "ci", "hidden": true },
+    { "type": "chore", "hidden": true }
+  ],
+  "commitUrlFormat": "https://github.com/Wifsimster/tracker-activite/commit/{{hash}}",
+  "compareUrlFormat": "https://github.com/Wifsimster/tracker-activite/compare/{{previousTag}}...{{currentTag}}",
+  "issueUrlFormat": "https://github.com/Wifsimster/tracker-activite/issues/{{id}}",
+  "releaseCommitMessageFormat": "chore(release): {{currentTag}}"
+}

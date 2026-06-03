@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "com.local.elan",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0A0C10",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
