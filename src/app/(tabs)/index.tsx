@@ -14,7 +14,13 @@ import { StatTile } from '@/components/stat-tile';
 import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
 import { dailyDurations, listSessions, statsSince } from '@/lib/db';
-import { planForDay, templateById } from '@/lib/program';
+import {
+  DEFAULT_WEEK_PLAN,
+  getEffectiveWeekPlan,
+  planForDay,
+  templateById,
+  type PlannedSession,
+} from '@/lib/program';
 import {
   formatDistance,
   formatDurationShort,
@@ -176,7 +182,21 @@ function TodayCard() {
   const theme = useTheme();
   const router = useRouter();
   const jsDay = new Date().getDay();
-  const plan = planForDay(jsDay);
+  const [weekPlan, setWeekPlan] = useState<PlannedSession[]>(DEFAULT_WEEK_PLAN);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      getEffectiveWeekPlan().then((p) => {
+        if (!cancelled) setWeekPlan(p);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
+
+  const plan = planForDay(jsDay, weekPlan);
   const dayName = WEEKDAYS[jsDay];
 
   if (plan.kind === 'repos') {
