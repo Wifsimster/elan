@@ -22,6 +22,7 @@ import {
   type Device,
 } from '@/lib/ble';
 import { getSetting, setSetting } from '@/lib/db';
+import { nowMs } from '@/lib/time';
 
 export type HrStatus =
   | 'unsupported'
@@ -33,6 +34,8 @@ export type HrStatus =
 
 export type ScannedDevice = { id: string; name: string };
 
+export type HrSample = { ts: number; hr: number };
+
 type HeartRateContextValue = {
   status: HrStatus;
   bpm: number | null;
@@ -43,6 +46,14 @@ type HeartRateContextValue = {
   stopScan: () => void;
   connect: (deviceId: string) => Promise<void>;
   disconnect: () => Promise<void>;
+  /**
+   * S'abonne aux mesures brutes : appelé à chaque trame BLE reçue, **y compris
+   * lorsque la valeur est identique à la précédente** (cas typique du palier
+   * cardiaque). Un `useEffect([bpm])` côté écran raterait ces trames car
+   * React déduplique les setStates identiques — ce qui appauvrissait les
+   * statistiques (moyenne biaisée, points GPS sans FC attachée).
+   */
+  subscribe: (listener: (sample: HrSample) => void) => () => void;
 };
 
 const HeartRateContext = createContext<HeartRateContextValue | null>(null);
@@ -59,6 +70,14 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
 
   const monitorRef = useRef<Subscription | null>(null);
   const connectedRef = useRef<Device | null>(null);
+  const listenersRef = useRef<Set<(s: HrSample) => void>>(new Set());
+
+  const subscribe = useCallback((listener: (sample: HrSample) => void) => {
+    listenersRef.current.add(listener);
+    return () => {
+      listenersRef.current.delete(listener);
+    };
+  }, []);
 
   const stopScan = useCallback(() => {
     if (!SUPPORTED) return;
@@ -138,7 +157,12 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
           (err, characteristic) => {
             if (err) return;
             const value = parseHeartRate(characteristic?.value ?? null);
-            if (value != null) setBpm(value);
+            if (value == null) return;
+            setBpm(value);
+            // Notifie chaque trame brute (même valeur identique) pour éviter
+            // les trous d'échantillonnage pendant un palier cardiaque.
+            const sample: HrSample = { ts: nowMs(), hr: value };
+            for (const cb of listenersRef.current) cb(sample);
           },
         );
 
@@ -176,8 +200,19 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
   }, [connect]);
 
   const value = useMemo<HeartRateContextValue>(
-    () => ({ status, bpm, device, scanned, error, startScan, stopScan, connect, disconnect }),
-    [status, bpm, device, scanned, error, startScan, stopScan, connect, disconnect],
+    () => ({
+      status,
+      bpm,
+      device,
+      scanned,
+      error,
+      startScan,
+      stopScan,
+      connect,
+      disconnect,
+      subscribe,
+    }),
+    [status, bpm, device, scanned, error, startScan, stopScan, connect, disconnect, subscribe],
   );
 
   return <HeartRateContext value={value}>{children}</HeartRateContext>;
