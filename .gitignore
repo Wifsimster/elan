@@ -46,3 +46,6 @@ example
 .devbuild.log
 .metro.log
 .relbuild.log
+
+# Claude Code worktrees (subagents en isolation)
+.claude/worktrees/

@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.local.elan",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.local.elan",
@@ -39,7 +43,13 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#0A0C10",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76,
           "android": {
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 76
+          },
+          "ios": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76
           }

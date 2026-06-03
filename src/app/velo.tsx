@@ -45,6 +45,7 @@ export default function VeloScreen() {
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [weightKg, setWeightKg] = useState(70);
+  const [profileMaxHr, setProfileMaxHr] = useState(190);
   const startedAtRef = useRef<number>(0);
   const hrSamplesRef = useRef<HrSample[]>([]);
   const cadenceSamplesRef = useRef<CadenceSample[]>([]);
@@ -53,7 +54,10 @@ export default function VeloScreen() {
   const hasSpeedSensor = sensorSpeedKmh != null;
 
   useEffect(() => {
-    getProfile().then((p) => setWeightKg(p.weightKg));
+    getProfile().then((p) => {
+      setWeightKg(p.weightKg);
+      setProfileMaxHr(p.maxHr);
+    });
   }, []);
 
   // Échantillonnage de la fréquence cardiaque pendant l'effort.
@@ -138,6 +142,9 @@ export default function VeloScreen() {
       weightKg,
       durationSec,
       avgSpeedKmh,
+      elevationGainM: result.elevationGainM,
+      avgHr,
+      maxHr: profileMaxHr,
     });
 
     const id = await createSession('velo', startedAtRef.current);

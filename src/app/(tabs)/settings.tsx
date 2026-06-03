@@ -14,11 +14,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { Chip } from '@/components/chip';
 import { PressableScale } from '@/components/pressable-scale';
 import { Radius, Type } from '@/constants/theme';
 import { clearAllData, getProfile, saveProfile } from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
 import { getMapStyleUrl, setMapStyleUrl } from '@/lib/map';
+import {
+  DEFAULT_WEEK_PLAN,
+  getEffectiveWeekPlan,
+  resetCustomWeekPlan,
+  saveCustomWeekPlan,
+  type PlannedSession,
+} from '@/lib/program';
 import type { Profile } from '@/lib/types';
 import { WHEEL_SIZES } from '@/lib/wheel-sizes';
 import { useBackup } from '@/hooks/use-backup';
@@ -333,6 +341,9 @@ export default function SettingsScreen() {
         />
       </Card>
 
+      {/* Planning hebdomadaire personnalisable */}
+      <WeekPlanCard />
+
       {/* Données */}
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -513,6 +524,133 @@ export default function SettingsScreen() {
         />
       </Card>
     </ScrollView>
+  );
+}
+
+// Libellés courts pour chaque jour de la semaine, lundi en tête (index 0 = lundi).
+const WEEK_DAY_LABELS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+/** Option proposée pour un jour : repos, vélo, ou muscu avec un template précis. */
+type WeekPlanOption =
+  | { kind: 'repos'; label: string }
+  | { kind: 'velo'; label: string }
+  | { kind: 'muscu'; label: string; templateId: 'fullbody-a' | 'fullbody-b' };
+
+const WEEK_PLAN_OPTIONS: WeekPlanOption[] = [
+  { kind: 'repos', label: 'Repos' },
+  { kind: 'velo', label: 'Vélo' },
+  { kind: 'muscu', label: 'Muscu A', templateId: 'fullbody-a' },
+  { kind: 'muscu', label: 'Muscu B', templateId: 'fullbody-b' },
+];
+
+/** Convertit une option d'UI en `PlannedSession` à persister. */
+function optionToPlanned(opt: WeekPlanOption): PlannedSession {
+  if (opt.kind === 'repos') return { kind: 'repos' };
+  if (opt.kind === 'velo') return { kind: 'velo', label: 'Vélo' };
+  return {
+    kind: 'muscu',
+    label: opt.templateId === 'fullbody-a' ? 'Full-body A' : 'Full-body B',
+    templateId: opt.templateId,
+  };
+}
+
+/** Détermine si une option correspond à la séance planifiée pour ce jour. */
+function isOptionActive(opt: WeekPlanOption, entry: PlannedSession): boolean {
+  if (opt.kind !== entry.kind) return false;
+  if (opt.kind === 'muscu' && entry.kind === 'muscu') {
+    return opt.templateId === entry.templateId;
+  }
+  return true;
+}
+
+function WeekPlanCard() {
+  const theme = useTheme();
+  const [plan, setPlan] = useState<PlannedSession[]>(DEFAULT_WEEK_PLAN);
+
+  useEffect(() => {
+    getEffectiveWeekPlan().then(setPlan);
+  }, []);
+
+  const updateDay = (dayIndex: number, opt: WeekPlanOption) => {
+    setPlan((prev) => {
+      const next = prev.slice();
+      next[dayIndex] = optionToPlanned(opt);
+      saveCustomWeekPlan(next);
+      return next;
+    });
+  };
+
+  const reset = () => {
+    Alert.alert(
+      'Réinitialiser le planning ?',
+      'Le planning par défaut sera restauré (Vélo lundi, Full-body A mardi, Full-body B vendredi, repos les autres jours).',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Réinitialiser',
+          style: 'destructive',
+          onPress: async () => {
+            await resetCustomWeekPlan();
+            setPlan(DEFAULT_WEEK_PLAN);
+          },
+        },
+      ],
+    );
+  };
+
+  return (
+    <Card style={{ gap: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <MaterialCommunityIcons name="calendar-week" size={22} color={theme.accent} />
+        <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+          Planning hebdomadaire
+        </Text>
+      </View>
+      <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+        {"Choisissez la séance prévue pour chaque jour. L'accueil propose la séance du jour selon ce planning."}
+      </Text>
+
+      {WEEK_DAY_LABELS.map((dayLabel, i) => (
+        <View
+          key={dayLabel}
+          style={{
+            gap: 8,
+            paddingTop: i === 0 ? 0 : 10,
+            borderTopWidth: i === 0 ? 0 : 1,
+            borderTopColor: theme.hairline,
+          }}>
+          <Text style={{ ...Type.label, color: theme.textSecondary }}>{dayLabel}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {WEEK_PLAN_OPTIONS.map((opt) => {
+              const active = isOptionActive(opt, plan[i]);
+              const color =
+                opt.kind === 'velo'
+                  ? theme.velo
+                  : opt.kind === 'muscu'
+                    ? theme.muscu
+                    : theme.textSecondary;
+              return (
+                <Chip
+                  key={opt.label}
+                  label={opt.label}
+                  selected={active}
+                  color={color}
+                  onPress={() => updateDay(i, opt)}
+                />
+              );
+            })}
+          </View>
+        </View>
+      ))}
+
+      <Button
+        title="Réinitialiser le planning"
+        icon="restore"
+        variant="secondary"
+        color={theme.accent}
+        onPress={reset}
+      />
+    </Card>
   );
 }
 

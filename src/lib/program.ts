@@ -5,6 +5,8 @@
 // (c'est le moteur de la progression). Charges de départ volontairement modestes
 // pour la montée en charge douce des premières semaines.
 
+import { deleteSetting, getSetting, setSetting } from '@/lib/db';
+
 export type TemplateExercise = {
   name: string;
   sets: number;
@@ -110,7 +112,8 @@ export type PlannedSession =
   | { kind: 'muscu'; label: string; templateId: WorkoutTemplate['id'] }
   | { kind: 'repos' };
 
-export const WEEK_PLAN: PlannedSession[] = [
+/** Planning par défaut, utilisé tant que l'utilisateur n'en a pas défini un. */
+export const DEFAULT_WEEK_PLAN: PlannedSession[] = [
   { kind: 'velo', label: 'Vélo 1h' },
   { kind: 'muscu', label: 'Full-body A', templateId: 'fullbody-a' },
   { kind: 'repos' },
@@ -120,9 +123,58 @@ export const WEEK_PLAN: PlannedSession[] = [
   { kind: 'repos' },
 ];
 
+/** Conservé pour compat ascendante (export brut et anciens appels). */
+export const WEEK_PLAN: PlannedSession[] = DEFAULT_WEEK_PLAN;
+
+const WEEK_PLAN_KEY = 'week_plan';
+
+/** Valide une valeur lue depuis les réglages : 7 entrées, chacune bien formée. */
+function isValidWeekPlan(value: unknown): value is PlannedSession[] {
+  if (!Array.isArray(value) || value.length !== 7) return false;
+  return value.every((entry) => {
+    if (!entry || typeof entry !== 'object') return false;
+    const e = entry as { kind?: unknown; label?: unknown; templateId?: unknown };
+    if (e.kind === 'repos') return true;
+    if (e.kind === 'velo') return typeof e.label === 'string';
+    if (e.kind === 'muscu') {
+      return (
+        typeof e.label === 'string' &&
+        (e.templateId === 'fullbody-a' || e.templateId === 'fullbody-b')
+      );
+    }
+    return false;
+  });
+}
+
+/** Plan effectif : plan personnalisé si défini, sinon `DEFAULT_WEEK_PLAN`. */
+export async function getEffectiveWeekPlan(): Promise<PlannedSession[]> {
+  const raw = await getSetting(WEEK_PLAN_KEY);
+  if (!raw) return DEFAULT_WEEK_PLAN;
+  try {
+    const parsed = JSON.parse(raw);
+    if (isValidWeekPlan(parsed)) return parsed;
+  } catch {
+    // ignore : valeur corrompue, on retombe sur le défaut
+  }
+  return DEFAULT_WEEK_PLAN;
+}
+
+/** Persiste un plan personnalisé (7 entrées attendues). */
+export async function saveCustomWeekPlan(plan: PlannedSession[]): Promise<void> {
+  await setSetting(WEEK_PLAN_KEY, JSON.stringify(plan));
+}
+
+/** Efface le plan personnalisé : on retombe sur `DEFAULT_WEEK_PLAN`. */
+export async function resetCustomWeekPlan(): Promise<void> {
+  await deleteSetting(WEEK_PLAN_KEY);
+}
+
 /** Séance prévue pour un jour `Date.getDay()` (0 = dimanche). */
-export function planForDay(jsDay: number): PlannedSession {
-  return WEEK_PLAN[(jsDay + 6) % 7]; // bascule vers lundi = 0
+export function planForDay(
+  jsDay: number,
+  plan: PlannedSession[] = DEFAULT_WEEK_PLAN,
+): PlannedSession {
+  return plan[(jsDay + 6) % 7]; // bascule vers lundi = 0
 }
 
 /** Retrouve un template par son id (pour le pré-chargement depuis l'accueil). */

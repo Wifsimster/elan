@@ -83,6 +83,7 @@ export default function MuscuScreen() {
   const startedAtRef = useRef<number>(0);
   const hrSamplesRef = useRef<HrSample[]>([]);
   const weightRef = useRef<number>(70);
+  const maxHrRef = useRef<number>(190);
 
   const loadTemplate = async (t: WorkoutTemplate) => {
     const last = await lastWeightByExercise(t.exercises.map((e) => e.name));
@@ -110,7 +111,10 @@ export default function MuscuScreen() {
   useEffect(() => {
     startedAtRef.current = nowMs();
     watch.start();
-    getProfile().then((p) => (weightRef.current = p.weightKg));
+    getProfile().then((p) => {
+      weightRef.current = p.weightKg;
+      maxHrRef.current = p.maxHr;
+    });
     const preset = templateById(template);
     // loadTemplate ne pose son état qu'après une lecture DB async (hors rendu).
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -208,6 +212,8 @@ export default function MuscuScreen() {
       type: 'muscu',
       weightKg: weightRef.current,
       durationSec,
+      avgHr,
+      maxHr: maxHrRef.current,
     });
 
     const id = await createSession('muscu', startedAtRef.current);
