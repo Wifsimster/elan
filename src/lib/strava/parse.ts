@@ -31,7 +31,7 @@ export type ParsedActivity = {
 };
 
 export type ParseResult = {
-  format: 'gpx' | 'tcx';
+  format: 'gpx' | 'tcx' | 'fit';
   activities: ParsedActivity[];
 };
 
