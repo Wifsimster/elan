@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   Switch,
@@ -28,7 +29,7 @@ import {
   type PlannedSession,
 } from '@/lib/program';
 import type { Profile } from '@/lib/types';
-import { WHEEL_SIZES } from '@/lib/wheel-sizes';
+import { matchWheelSize, WHEEL_SIZES } from '@/lib/wheel-sizes';
 import { useBackup } from '@/hooks/use-backup';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useDataExport } from '@/hooks/use-data-export';
@@ -364,16 +365,16 @@ export default function SettingsScreen() {
         />
       </Card>
 
-      {/* Exporter pour Claude (coach IA) */}
+      {/* Exporter mes données (bilan IA / brut) */}
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <MaterialCommunityIcons name="robot-outline" size={22} color={theme.accent} />
+          <MaterialCommunityIcons name="export-variant" size={22} color={theme.accent} />
           <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
-            Exporter pour Claude
+            Exporter mes données
           </Text>
         </View>
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-          {"Génère un bilan de ton programme, de ta progression et de ton historique à déposer dans un projet Claude Code : une IA peut ainsi suivre ta programmation et te coacher. Tout est généré sur l'appareil, le partage se fait via la feuille système (Drive, mail, fichier…)."}
+          {"Génère un bilan lisible de ton programme, de ta progression et de ton historique, ou un export brut complet. À déposer dans l'outil de ton choix : coach IA, tableur, sauvegarde personnelle… Tout est généré sur l'appareil, le partage se fait via la feuille système (Drive, mail, fichier…)."}
         </Text>
         <Button
           title="Exporter le bilan (Markdown)"
@@ -402,7 +403,7 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>Import Strava</Text>
         </View>
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-          {"Exportez une activité depuis Strava (page de l'activité → « Exporter GPX », ou « Télécharger vos données » dans les réglages du compte), puis importez le fichier .gpx ou .tcx ici. Tout est traité sur l'appareil."}
+          {"Exportez depuis Strava (page de l'activité → « Exporter GPX », ou « Télécharger vos données » dans les réglages du compte), puis importez le fichier ici. Formats acceptés : GPX, TCX et FIT, y compris compressés (.gz) — comme dans l'export en masse. Tout est traité sur l'appareil."}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
           <MaterialCommunityIcons name="information-outline" size={18} color={theme.textMuted} />
@@ -412,7 +413,7 @@ export default function SettingsScreen() {
         </View>
 
         <Button
-          title="Importer un fichier (GPX/TCX)"
+          title="Importer un fichier (GPX/TCX/FIT)"
           icon="file-import-outline"
           color={theme.velo}
           loading={strava.importing}
@@ -755,7 +756,7 @@ function HrStatusLine() {
   );
 }
 
-/** Sélecteur de taille de pneu : des pastilles qui renseignent la circonférence (mm). */
+/** Sélecteur de taille de pneu : une liste déroulante qui renseigne la circonférence (mm). */
 function WheelSizePicker({
   valueMm,
   onSelect,
@@ -764,35 +765,97 @@ function WheelSizePicker({
   onSelect: (mm: number) => void;
 }) {
   const theme = useTheme();
+  const [open, setOpen] = useState(false);
+  const current = matchWheelSize(valueMm);
+
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-      {WHEEL_SIZES.map((w) => {
-        const active = w.mm === valueMm;
-        return (
-          <PressableScale
-            key={w.label}
-            haptic="selection"
-            onPress={() => onSelect(w.mm)}
+    <>
+      <PressableScale
+        haptic="selection"
+        onPress={() => setOpen(true)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: 12,
+          paddingHorizontal: 14,
+          borderRadius: Radius.md,
+          borderWidth: 1.5,
+          borderColor: theme.border,
+          backgroundColor: theme.backgroundElement,
+        }}>
+        <Text style={{ color: theme.text, fontWeight: '700', fontSize: 14 }}>
+          {current ? current.label : 'Personnalisé'}
+        </Text>
+        <MaterialCommunityIcons name="chevron-down" size={22} color={theme.textSecondary} />
+      </PressableScale>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable
+          onPress={() => setOpen(false)}
+          style={{
+            flex: 1,
+            backgroundColor: '#00000088',
+            justifyContent: 'center',
+            padding: 24,
+          }}>
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
             style={{
-              paddingVertical: 8,
-              paddingHorizontal: 12,
-              borderRadius: Radius.pill,
-              borderWidth: 1.5,
-              borderColor: active ? theme.velo : theme.border,
-              backgroundColor: active ? theme.velo + '22' : 'transparent',
+              backgroundColor: theme.backgroundElement,
+              borderRadius: Radius.lg,
+              borderWidth: 1,
+              borderColor: theme.border,
+              overflow: 'hidden',
             }}>
             <Text
               style={{
-                color: active ? theme.velo : theme.textSecondary,
+                color: theme.textSecondary,
+                fontSize: 12,
                 fontWeight: '700',
-                fontSize: 13,
+                paddingHorizontal: 16,
+                paddingTop: 14,
+                paddingBottom: 6,
+                textTransform: 'uppercase',
               }}>
-              {w.label}
+              Taille de pneu
             </Text>
-          </PressableScale>
-        );
-      })}
-    </View>
+            <ScrollView style={{ maxHeight: 360 }}>
+              {WHEEL_SIZES.map((w) => {
+                const active = w.mm === valueMm;
+                return (
+                  <PressableScale
+                    key={w.label}
+                    haptic="selection"
+                    onPress={() => {
+                      onSelect(w.mm);
+                      setOpen(false);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingVertical: 14,
+                      paddingHorizontal: 16,
+                      backgroundColor: active ? theme.velo + '22' : 'transparent',
+                    }}>
+                    <Text
+                      style={{
+                        color: active ? theme.velo : theme.text,
+                        fontWeight: active ? '800' : '600',
+                        fontSize: 15,
+                      }}>
+                      {w.label}
+                    </Text>
+                    <Text style={{ color: theme.textSecondary, fontSize: 13 }}>{w.mm} mm</Text>
+                  </PressableScale>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
