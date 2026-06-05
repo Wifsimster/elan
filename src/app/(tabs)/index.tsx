@@ -25,6 +25,7 @@ import {
   formatDistance,
   formatDurationShort,
   formatDateTime,
+  formatRelativeDays,
 } from '@/lib/format';
 import type { PeriodStats, Session } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -97,7 +98,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Séance du jour (programme perso) */}
-      <TodayCard />
+      <TodayCard lastSessionAt={recent[0]?.startedAt ?? null} />
 
       {/* Démarrer une séance */}
       <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -178,7 +179,7 @@ export default function HomeScreen() {
 
 const WEEKDAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 
-function TodayCard() {
+function TodayCard({ lastSessionAt }: { lastSessionAt: number | null }) {
   const theme = useTheme();
   const router = useRouter();
   const jsDay = new Date().getDay();
@@ -198,6 +199,7 @@ function TodayCard() {
 
   const plan = planForDay(jsDay, weekPlan);
   const dayName = WEEKDAYS[jsDay];
+  const lastLabel = lastSessionAt != null ? `Dernière séance ${formatRelativeDays(lastSessionAt)}` : null;
 
   if (plan.kind === 'repos') {
     return (
@@ -220,6 +222,9 @@ function TodayCard() {
           <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
             Récupération — pas de séance prévue.
           </Text>
+          {lastLabel ? (
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }}>{lastLabel}</Text>
+          ) : null}
         </View>
       </Card>
     );
@@ -260,6 +265,9 @@ function TodayCard() {
             <Text style={{ color: theme.textSecondary, fontSize: 13 }} numberOfLines={2}>
               {subtitle}
             </Text>
+          ) : null}
+          {lastLabel ? (
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }}>{lastLabel}</Text>
           ) : null}
         </View>
       </View>

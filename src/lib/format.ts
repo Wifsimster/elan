@@ -62,3 +62,15 @@ export function formatDateShort(ms: number): string {
   const d = new Date(ms);
   return `${d.getDate()} ${MOIS[d.getMonth()]}`;
 }
+
+/** « aujourd'hui », « hier », « il y a 4 jours » — relatif au début de journée. */
+export function formatRelativeDays(ms: number): string {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((today.getTime() - d.getTime()) / 86_400_000);
+  if (diffDays <= 0) return "aujourd'hui";
+  if (diffDays === 1) return 'hier';
+  return `il y a ${diffDays} jours`;
+}
