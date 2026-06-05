@@ -104,7 +104,7 @@ export const ShareCard = forwardRef<View, Props>(function ShareCard(
             <Text style={{ ...Type.overline, color: theme.textMuted }}>ÉLAN</Text>
             <Text style={{ ...Type.headline, color: theme.text }}>{meta.label}</Text>
             <Text style={{ ...Type.caption, color: theme.textSecondary }}>
-              {formatDateTime(session.startedAt)}
+              {formatDateTime(session.startedAt, true)}
             </Text>
           </View>
           <View

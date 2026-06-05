@@ -52,14 +52,15 @@ const MOIS = [
   'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
 ];
 
-/** "lun. 2 juin, 18:30". */
-export function formatDateTime(ms: number): string {
+/** "lun. 2 juin, 18:30" ; avec `withYear` : "lun. 2 juin 2025, 18:30". */
+export function formatDateTime(ms: number, withYear = false): string {
   const d = new Date(ms);
   const heure = `${d.getHours().toString().padStart(2, '0')}:${d
     .getMinutes()
     .toString()
     .padStart(2, '0')}`;
-  return `${JOURS[d.getDay()]} ${d.getDate()} ${MOIS[d.getMonth()]}, ${heure}`;
+  const annee = withYear ? ` ${d.getFullYear()}` : '';
+  return `${JOURS[d.getDay()]} ${d.getDate()} ${MOIS[d.getMonth()]}${annee}, ${heure}`;
 }
 
 export function formatDateShort(ms: number): string {
