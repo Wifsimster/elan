@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -10,15 +9,17 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Gradient } from '@/components/gradient';
+import { ExerciseIllustration } from '@/components/exercise-illustration';
 import { Motion, Radius, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Données d'illustration d'un exercice affichées dans la fiche. */
 export type ExerciseInfo = {
   name: string;
-  /** Glyphe MaterialCommunityIcons illustrant le mouvement. */
+  /** Glyphe MaterialCommunityIcons illustrant le mouvement (repli sans photo). */
   icon?: string;
+  /** Clé d'illustration photo (paire départ → fin), résolue localement. */
+  imageKey?: string;
   /** Groupes musculaires sollicités, en pastilles. */
   muscles?: string[];
   /** Explication « comment faire ». */
@@ -108,22 +109,11 @@ export function ExerciseInfoSheet({ exercise, onClose }: Props) {
                 </View>
               </GestureDetector>
 
-              {/* Héros illustré */}
-              <Gradient
-                colors="muscu"
-                style={{
-                  height: 132,
-                  margin: 16,
-                  borderRadius: Radius.lg,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                <MaterialCommunityIcons
-                  name={(exercise.icon ?? 'dumbbell') as keyof typeof MaterialCommunityIcons.glyphMap}
-                  size={72}
-                  color="#FFFFFF"
-                />
-              </Gradient>
+              {/* Héros illustré : photos départ → fin du mouvement, ou icône en
+                  repli si l'exercice n'a pas d'illustration bundlée. */}
+              <View style={{ margin: 16 }}>
+                <ExerciseIllustration imageKey={exercise.imageKey} icon={exercise.icon} />
+              </View>
 
               <ScrollView
                 style={{ maxHeight: 420 }}
