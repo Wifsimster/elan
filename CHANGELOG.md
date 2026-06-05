@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.2.0](https://github.com/Wifsimster/tracker-activite/compare/v1.1.0...v1.2.0) (2026-06-05)
+
+
+### ✨ Fonctionnalités
+
+* **accueil:** mention « Dernière séance » sur la carte du jour ([#11](https://github.com/Wifsimster/tracker-activite/issues/11)) ([1040e04](https://github.com/Wifsimster/tracker-activite/commit/1040e046a481727230b41880dc17798f01b0f53f))
+* minuteur de repos, 1RM estimé et comparaison hebdomadaire ([#16](https://github.com/Wifsimster/tracker-activite/issues/16)) ([e3d39fe](https://github.com/Wifsimster/tracker-activite/commit/e3d39fe75e2b3e22e32802b877ad89f8326c3efa))
+* **muscu:** bouton pause/reprise pendant la séance ([#13](https://github.com/Wifsimster/tracker-activite/issues/13)) ([0d36db5](https://github.com/Wifsimster/tracker-activite/commit/0d36db52f89502093ee4fb8e7aba947d13786408))
+* **muscu:** fiche d'exercice illustrée en bottom sheet ([#14](https://github.com/Wifsimster/tracker-activite/issues/14)) ([c984738](https://github.com/Wifsimster/tracker-activite/commit/c984738e384c7a53fce111dbaffad95be3baec34))
+* **muscu:** illustrer les exercices par des photos départ → fin ([#17](https://github.com/Wifsimster/tracker-activite/issues/17)) ([802423f](https://github.com/Wifsimster/tracker-activite/commit/802423f3206ff34cb0f2a0ab011a7d167a85f513))
+* **muscu:** mettre en pause et reprendre une séance en cours ([b3dcfbc](https://github.com/Wifsimster/tracker-activite/commit/b3dcfbcacabe5db0e1090f2337f7adfc7a004f25))
+* **notifications:** rappels le jour même de la séance, midi par défaut ([6be5ae3](https://github.com/Wifsimster/tracker-activite/commit/6be5ae3b07f618780cbbe1d34a94a866dea035a5))
+* **partage:** partager une séance en image (Discord & co.) ([#8](https://github.com/Wifsimster/tracker-activite/issues/8)) ([4d37e45](https://github.com/Wifsimster/tracker-activite/commit/4d37e4500cb692857e72046353ef9376fc122342))
+* **reglages:** rappels du soir locaux (opt-in) la veille d'une séance ([#12](https://github.com/Wifsimster/tracker-activite/issues/12)) ([61e1ea1](https://github.com/Wifsimster/tracker-activite/commit/61e1ea1bb3192ea83232acb4ec7fe9870961e236))
+
+
+### 🐛 Corrections
+
+* **backup:** refuser la restauration d'une sauvegarde de format plus récent ([ac408d3](https://github.com/Wifsimster/tracker-activite/commit/ac408d3295530ca94051af2994580387b6982064))
+* **format:** éviter « 1 h 60 » dans formatDurationShort ([059496a](https://github.com/Wifsimster/tracker-activite/commit/059496a4fbce7f844baf8b89466553daab326cc2))
+* **muscu:** retirer l'animation d'entrée de la fiche d'exercice ([877bef2](https://github.com/Wifsimster/tracker-activite/commit/877bef20b182e65439c08b12069398e7d0813ac9))
+* **velo:** intercepter le retour matériel et couper le GPS au démontage ([cc2b9c6](https://github.com/Wifsimster/tracker-activite/commit/cc2b9c66c7927022d568868afd6ed3087d9092d5))
+
 ## 1.1.0 (2026-06-03)
 
 
