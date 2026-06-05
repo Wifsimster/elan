@@ -462,23 +462,29 @@ export default function MuscuScreen() {
             <Text style={{ ...Type.caption, color: theme.textSecondary, marginTop: -4 }}>
               Choisis un programme pour pré-remplir la séance, ou ajoute tes exercices plus bas.
             </Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {TEMPLATES.map((t) => (
                 <PressableScale
                   key={t.id}
                   onPress={() => loadTemplate(t)}
                   haptic="light"
                   style={{
-                    flex: 1,
+                    flexGrow: 1,
+                    flexBasis: '47%',
                     alignItems: 'center',
                     gap: 2,
                     paddingVertical: 12,
+                    paddingHorizontal: 8,
                     borderRadius: Radius.sm,
                     borderWidth: 1,
                     borderColor: theme.muscu,
                     backgroundColor: theme.backgroundElement,
                   }}>
-                  <Text style={{ color: theme.muscu, fontWeight: '800', fontSize: 15 }}>{t.name}</Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{ color: theme.muscu, fontWeight: '800', fontSize: 15 }}>
+                    {t.name}
+                  </Text>
                   <Text style={{ color: theme.textSecondary, fontSize: 11 }}>{t.day}</Text>
                 </PressableScale>
               ))}
