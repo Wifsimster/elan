@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.local.elan",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#0A0C10",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -31,7 +31,8 @@
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN"
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -72,7 +73,8 @@
         }
       ],
       "@maplibre/maplibre-react-native",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
