@@ -34,7 +34,7 @@ export type TemplateExercise = {
 };
 
 export type WorkoutTemplate = {
-  id: 'fullbody-a' | 'fullbody-b';
+  id: 'fullbody-a' | 'fullbody-b' | 'dos-lombaire' | 'cervicales';
   name: string;
   day: string;
   exercises: TemplateExercise[];
@@ -142,6 +142,92 @@ export const TEMPLATES: WorkoutTemplate[] = [
         muscles: ['Obliques', 'Transverse', 'Moyen fessier'],
         howTo:
           'Allongé sur le côté, en appui sur un avant-bras (coude sous l’épaule), corps aligné de la tête aux pieds. Décolle les hanches et tiens la position sans laisser le bassin tomber. Puis change de côté.',
+      },
+    ],
+  },
+  {
+    id: 'dos-lombaire',
+    name: 'Dos / lombaire',
+    day: 'Renfort doux',
+    exercises: [
+      {
+        name: 'Bird-dog',
+        sets: 3, repsMin: 8, repsMax: 10, startWeightKg: 0, perSideLabel: 'côté',
+        icon: 'dog',
+        muscles: ['Gainage', 'Transverse', 'Lombaires', 'Fessiers'],
+        howTo:
+          'À quatre pattes (quadrupédie), mains sous les épaules et genoux sous les hanches, dos plat. Tends en même temps le bras droit devant et la jambe gauche derrière, alignés avec le tronc, sans cambrer ni tourner le bassin. Reviens et alterne avec l’autre côté. Gainage anti-rotation, très sûr pour la colonne.',
+      },
+      {
+        name: 'Dead bug',
+        sets: 3, repsMin: 8, repsMax: 10, startWeightKg: 0, perSideLabel: 'côté',
+        icon: 'bug',
+        muscles: ['Transverse', 'Abdominaux', 'Gainage'],
+        howTo:
+          'Allongé sur le dos, bras tendus vers le plafond et genoux fléchis au-dessus des hanches (90°). Garde le bas du dos plaqué au sol et descends lentement le bras droit derrière la tête et la jambe gauche vers le sol, sans creuser les lombaires. Reviens et alterne. Renforce le transverse sans charger les disques.',
+      },
+      {
+        name: 'Pont fessier',
+        sets: 3, repsMin: 12, repsMax: 15, startWeightKg: 0,
+        icon: 'bridge',
+        muscles: ['Fessiers', 'Lombaires', 'Ischio-jambiers'],
+        howTo:
+          'Allongé sur le dos, genoux fléchis, pieds à plat largeur de bassin, bras le long du corps. Décolle le bassin en serrant les fessiers jusqu’à aligner épaules-hanches-genoux, sans cambrer. Tiens une seconde en haut puis redescends en contrôlant. Renforce fessiers et lombaires, soulage le bas du dos.',
+      },
+      {
+        name: 'McGill curl-up',
+        sets: 3, repsMin: 6, repsMax: 8, startWeightKg: 0,
+        icon: 'human',
+        muscles: ['Abdominaux', 'Transverse', 'Gainage'],
+        howTo:
+          'Allongé sur le dos, une jambe pliée pied au sol et l’autre tendue. Place tes mains sous le bas du dos pour garder sa courbure naturelle. Décolle juste la tête et les épaules de quelques centimètres sans plier la colonne, menton rentré, puis redescends doucement. Gainage abdo qui protège les disques.',
+      },
+      {
+        name: 'Superman (extension lombaire)',
+        sets: 2, repsMin: 8, repsMax: 10, startWeightKg: 0,
+        icon: 'arrow-up-bold',
+        muscles: ['Lombaires', 'Fessiers', 'Dos'],
+        howTo:
+          'Allongé sur le ventre, bras tendus devant. Décolle légèrement bras, poitrine et jambes du sol en gardant le regard vers le bas et la nuque longue, sur une amplitude réduite. Tiens brièvement puis relâche. À n’introduire que si tu n’as aucune douleur.',
+      },
+    ],
+  },
+  {
+    id: 'cervicales',
+    name: 'Cervicales / nuque',
+    day: 'Posture assise',
+    exercises: [
+      {
+        name: 'Rétractions cervicales (chin tucks)',
+        sets: 3, repsMin: 10, repsMax: 10, startWeightKg: 0,
+        icon: 'head-outline',
+        muscles: ['Fléchisseurs profonds du cou', 'Cervicales'],
+        howTo:
+          'Assis ou debout, regard à l’horizontale. Recule le menton en glissant la tête vers l’arrière (comme pour faire un double menton), sans baisser ni lever le regard. Tiens 2-3 s puis relâche. Corrige la tête en avant — à faire plusieurs fois par jour.',
+      },
+      {
+        name: 'Étirement trapèze supérieur',
+        sets: 2, repsMin: 30, repsMax: 30, startWeightKg: 0, timed: true, perSideLabel: 'côté',
+        icon: 'human-handsdown',
+        muscles: ['Trapèze supérieur', 'Cervicales'],
+        howTo:
+          'Assis, une main sous la fesse pour abaisser l’épaule. Incline doucement la tête vers le côté opposé (oreille vers l’épaule), en t’aidant légèrement de l’autre main. Étirement doux côté douloureux, sans à-coup. Change de côté.',
+      },
+      {
+        name: 'Étirement scalènes / SCM',
+        sets: 2, repsMin: 20, repsMax: 30, startWeightKg: 0, timed: true, perSideLabel: 'côté',
+        icon: 'human-handsdown',
+        muscles: ['Scalènes', 'Sterno-cléido-mastoïdien'],
+        howTo:
+          'Assis, épaule basse. Incline la tête sur le côté puis tourne légèrement le menton vers le haut et l’arrière jusqu’à sentir l’étirement sur l’avant-côté du cou. Reste doux et respire. Change de côté.',
+      },
+      {
+        name: 'Rétractions scapulaires',
+        sets: 3, repsMin: 12, repsMax: 15, startWeightKg: 0,
+        icon: 'arrow-collapse-horizontal',
+        muscles: ['Rhomboïdes', 'Trapèzes moyens', 'Deltoïdes postérieurs'],
+        howTo:
+          'Debout ou assis, bras le long du corps (ou tenant un élastique devant toi). Serre les omoplates l’une vers l’autre vers le bas, sans hausser les épaules ni cambrer. Tiens 2 s puis relâche. Ouvre les épaules, contre la position assise fermée.',
       },
     ],
   },
