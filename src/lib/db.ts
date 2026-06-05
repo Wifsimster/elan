@@ -527,7 +527,8 @@ export async function exerciseHistory(name: string): Promise<ExercisePoint[]> {
 // Statistiques
 // ---------------------------------------------------------------------------
 
-export async function statsSince(sinceMs: number): Promise<PeriodStats> {
+/** Agrégats sur une fenêtre `[fromMs, toMs)` (ms epoch). */
+export async function statsBetween(fromMs: number, toMs: number): Promise<PeriodStats> {
   const db = await getDb();
   const row = await db.getFirstAsync<PeriodStats>(
     `SELECT
@@ -536,12 +537,18 @@ export async function statsSince(sinceMs: number): Promise<PeriodStats> {
        COALESCE(SUM(distanceM), 0) AS totalDistanceM,
        COALESCE(SUM(calories), 0) AS totalCalories
      FROM sessions
-     WHERE endedAt IS NOT NULL AND startedAt >= ?;`,
-    sinceMs,
+     WHERE endedAt IS NOT NULL AND startedAt >= ? AND startedAt < ?;`,
+    fromMs,
+    toMs,
   );
   return (
     row ?? { sessionCount: 0, totalDurationSec: 0, totalDistanceM: 0, totalCalories: 0 }
   );
+}
+
+/** Agrégats depuis `sinceMs` jusqu'à maintenant. */
+export async function statsSince(sinceMs: number): Promise<PeriodStats> {
+  return statsBetween(sinceMs, Number.MAX_SAFE_INTEGER);
 }
 
 /** Durée totale d'effort par jour sur les N derniers jours (pour le graphe). */

@@ -13,6 +13,7 @@ import { Radius, Type } from '@/constants/theme';
 import { exerciseHistory, type ExercisePoint } from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
 import { exerciseByName } from '@/lib/program';
+import { epley1RM } from '@/lib/strength';
 import { useTheme } from '@/hooks/use-theme';
 
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
@@ -36,6 +37,15 @@ export default function ExerciseScreen() {
   const first = points && points.length ? points[0].maxWeightKg : 0;
   const last = points && points.length ? points[points.length - 1].maxWeightKg : 0;
   const delta = last - first;
+
+  // Force estimée (1RM Epley) à partir de la série la plus lourde de chaque séance.
+  // Vaut 0 pour les exercices sans charge (gainage chronométré).
+  const best1rm = points && points.length
+    ? Math.max(...points.map((p) => epley1RM(p.maxWeightKg, p.topReps)))
+    : 0;
+  const last1rm = points && points.length
+    ? epley1RM(points[points.length - 1].maxWeightKg, points[points.length - 1].topReps)
+    : 0;
 
   // Courbe de la charge maximale, 10 dernières séances.
   const bars: Bar[] = (points ?? []).slice(-10).map((p) => {
@@ -105,6 +115,24 @@ export default function ExerciseScreen() {
             />
           </Card>
 
+          {/* Force estimée (1RM) — masquée pour les exercices sans charge */}
+          {best1rm > 0 ? (
+            <Card style={{ gap: 10 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+                <Metric label="1RM actuel" value={`${Math.round(last1rm)} kg`} theme={theme} />
+                <Metric
+                  label="1RM record"
+                  value={`${Math.round(best1rm)} kg`}
+                  theme={theme}
+                  color={theme.muscu}
+                />
+              </View>
+              <Text style={{ ...Type.caption, color: theme.textMuted, textAlign: 'center' }}>
+                Estimation Epley d’après la série la plus lourde de chaque séance.
+              </Text>
+            </Card>
+          ) : null}
+
           {/* Courbe des charges */}
           <Card>
             <Text style={{ ...Type.headline, color: theme.text }}>Charge max par séance</Text>
@@ -130,6 +158,17 @@ export default function ExerciseScreen() {
                       </Text>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                      {epley1RM(p.maxWeightKg, p.topReps) > 0 ? (
+                        <Text
+                          style={{
+                            color: theme.muscu,
+                            fontSize: 13,
+                            fontWeight: '700',
+                            fontVariant: ['tabular-nums'],
+                          }}>
+                          ≈ {Math.round(epley1RM(p.maxWeightKg, p.topReps))} kg 1RM
+                        </Text>
+                      ) : null}
                       <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
                         {p.sets} série{p.sets > 1 ? 's' : ''}
                       </Text>

@@ -10,10 +10,10 @@ import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { HrBadge } from '@/components/hr-badge';
 import { PressableScale } from '@/components/pressable-scale';
-import { StatTile } from '@/components/stat-tile';
+import { StatTile, type Trend } from '@/components/stat-tile';
 import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
-import { dailyDurations, listSessions, statsSince } from '@/lib/db';
+import { dailyDurations, listSessions, statsBetween, statsSince } from '@/lib/db';
 import { hasMuscuDraft } from '@/lib/muscu-draft';
 import {
   DEFAULT_WEEK_PLAN,
@@ -40,6 +40,15 @@ function startOfWeek(): number {
 }
 
 const DAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const WEEK_MS = 7 * 86_400_000;
+
+/** Construit l'évolution d'une métrique par rapport à la semaine précédente. */
+function buildTrend(current: number, previous: number, fmt: (n: number) => string): Trend {
+  const delta = current - previous;
+  if (delta === 0) return { label: 'stable', tone: 'neutral' };
+  const sign = delta > 0 ? '+' : '−';
+  return { label: `${sign}${fmt(Math.abs(delta))}`, tone: delta > 0 ? 'positive' : 'negative' };
+}
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -47,18 +56,22 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const [stats, setStats] = useState<PeriodStats | null>(null);
+  const [lastStats, setLastStats] = useState<PeriodStats | null>(null);
   const [bars, setBars] = useState<Bar[]>([]);
   const [recent, setRecent] = useState<Session[]>([]);
   const [resumable, setResumable] = useState(false);
 
   const load = useCallback(async () => {
-    const [s, daily, sessions, draft] = await Promise.all([
-      statsSince(startOfWeek()),
+    const weekStart = startOfWeek();
+    const [s, prev, daily, sessions, draft] = await Promise.all([
+      statsSince(weekStart),
+      statsBetween(weekStart - WEEK_MS, weekStart),
       dailyDurations(7),
       listSessions(3),
       hasMuscuDraft(),
     ]);
     setStats(s);
+    setLastStats(prev);
     setResumable(draft);
 
     // Construit 7 barres (aujourd'hui à droite).
@@ -122,19 +135,34 @@ export default function HomeScreen() {
 
       {/* Résumé de la semaine */}
       <Card>
-        <Text style={{ ...Type.headline, color: theme.text }}>Cette semaine</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <Text style={{ ...Type.headline, color: theme.text }}>Cette semaine</Text>
+          {stats && lastStats ? (
+            <Text style={{ ...Type.caption, color: theme.textMuted }}>vs sem. dernière</Text>
+          ) : null}
+        </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
           <StatTile
             label="Séances"
             value={String(stats?.sessionCount ?? 0)}
             icon="calendar-check"
             compact
+            trend={
+              stats && lastStats
+                ? buildTrend(stats.sessionCount, lastStats.sessionCount, (n) => String(n))
+                : undefined
+            }
           />
           <StatTile
             label="Durée"
             value={formatDurationShort(stats?.totalDurationSec ?? 0)}
             icon="clock-outline"
             compact
+            trend={
+              stats && lastStats
+                ? buildTrend(stats.totalDurationSec, lastStats.totalDurationSec, formatDurationShort)
+                : undefined
+            }
           />
           <StatTile
             label="Distance"
@@ -142,6 +170,11 @@ export default function HomeScreen() {
             icon="map-marker-distance"
             color={theme.velo}
             compact
+            trend={
+              stats && lastStats
+                ? buildTrend(stats.totalDistanceM, lastStats.totalDistanceM, formatDistance)
+                : undefined
+            }
           />
           <StatTile
             label="Calories"
@@ -150,6 +183,13 @@ export default function HomeScreen() {
             icon="fire"
             color={theme.warning}
             compact
+            trend={
+              stats && lastStats
+                ? buildTrend(stats.totalCalories, lastStats.totalCalories, (n) =>
+                    String(Math.round(n)),
+                  )
+                : undefined
+            }
           />
         </View>
       </Card>
