@@ -4,7 +4,6 @@ import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
-  SlideInDown,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -82,7 +81,6 @@ export function ExerciseInfoSheet({ exercise, onClose }: Props) {
         style={{ flex: 1, backgroundColor: '#00000099', justifyContent: 'flex-end' }}>
         {exercise ? (
           <Animated.View
-            entering={SlideInDown.springify().damping(20).stiffness(220)}
             style={[
               sheetStyle,
               {
