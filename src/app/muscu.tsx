@@ -53,6 +53,8 @@ type Exercise = {
   muscles?: string[];
   /** Glyphe MaterialCommunityIcons illustrant le mouvement. */
   icon?: string;
+  /** Clé d'illustration photo (paire départ → fin), affichée dans la fiche. */
+  imageKey?: string;
 };
 type HrSample = { ts: number; hr: number };
 
@@ -115,6 +117,7 @@ export default function MuscuScreen() {
           howTo: ex.howTo,
           muscles: ex.muscles,
           icon: ex.icon,
+          imageKey: ex.imageKey,
           // Le gainage n'a pas de charge : on n'affiche pas de « dernière fois ».
           lastWeight: ex.timed ? undefined : lw,
           sets: Array.from({ length: ex.sets }, () => ({
