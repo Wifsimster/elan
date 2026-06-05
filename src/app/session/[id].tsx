@@ -8,7 +8,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { LineChart } from '@/components/line-chart';
 import { RouteMap } from '@/components/route-map';
-import { ShareCard } from '@/components/share-card';
+import { ShareCard, SHARE_CARD_WIDTH, SHARE_HERO_HEIGHT } from '@/components/share-card';
 import { StatTile } from '@/components/stat-tile';
 import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
@@ -24,6 +24,7 @@ import {
   type SessionRecord,
 } from '@/lib/db';
 import { sessionEffort } from '@/lib/effort';
+import { createRouteSnapshot, type RouteSnapshot } from '@/lib/static-map';
 import {
   formatCalories,
   formatDateTime,
@@ -48,6 +49,10 @@ export default function SessionDetailScreen() {
   const [records, setRecords] = useState<SessionRecord[]>([]);
   const [maxHr, setMaxHr] = useState(0);
   const [loading, setLoading] = useState(true);
+  // Fond de carte pré-rendu pour la carte partageable (tuiles homelab). Généré
+  // en arrière-plan dès l'ouverture pour être prêt au moment du partage ; reste
+  // `null` si aucun style n'est configuré (le partage retombe sur le tracé SVG).
+  const [mapSnapshot, setMapSnapshot] = useState<RouteSnapshot | null>(null);
   const share = useSessionShare();
   // Ref de la carte partageable (capturée en PNG lors du partage).
   const shareCardRef = useRef<View>(null);
@@ -57,6 +62,18 @@ export default function SessionDetailScreen() {
   useEffect(() => {
     if (share.error) Alert.alert('Partage', share.error);
   }, [share.error]);
+
+  // Pré-rend le fond de carte de la carte partageable (vélo avec tracé).
+  useEffect(() => {
+    if (session?.type !== 'velo' || points.length < 2) return;
+    let cancelled = false;
+    createRouteSnapshot(points, { width: SHARE_CARD_WIDTH, height: SHARE_HERO_HEIGHT }).then((s) => {
+      if (!cancelled) setMapSnapshot(s);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.type, points]);
 
   useEffect(() => {
     (async () => {
@@ -309,6 +326,7 @@ export default function SessionDetailScreen() {
           sets={sets}
           records={records}
           effort={effort}
+          mapSnapshot={mapSnapshot}
         />
       </View>
     </>
