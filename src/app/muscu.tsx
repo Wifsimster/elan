@@ -18,14 +18,17 @@ import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
 import { ExerciseInfoSheet } from '@/components/exercise-info-sheet';
 import { PressableScale } from '@/components/pressable-scale';
+import { RestTimer } from '@/components/rest-timer';
 import { Elevation, Radius, Type } from '@/constants/theme';
 import { autoBackup } from '@/lib/backup';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
   getProfile,
+  getSetting,
   lastWeightByExercise,
   replaceMuscuSets,
+  setSetting,
   updateSession,
 } from '@/lib/db';
 import { formatDuration } from '@/lib/format';
@@ -87,12 +90,16 @@ export default function MuscuScreen() {
   const [saving, setSaving] = useState(false);
   const [paused, setPaused] = useState(false);
   const [infoExercise, setInfoExercise] = useState<Exercise | null>(null);
+  // Repos inter-séries : horodatage de fin (null = aucun repos en cours).
+  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
 
   const startedAtRef = useRef<number>(0);
   const hrSamplesRef = useRef<HrSample[]>([]);
   const pausedRef = useRef<boolean>(false);
   const weightRef = useRef<number>(70);
   const maxHrRef = useRef<number>(190);
+  // Durée de repos préférée (s), réutilisée à chaque série cochée et persistée.
+  const restDurationRef = useRef<number>(90);
   // Passe à true une fois le montage (reprise ou démarrage) terminé : évite
   // d'écraser un brouillon valide pendant la phase d'hydratation.
   const hydratedRef = useRef<boolean>(false);
@@ -133,6 +140,13 @@ export default function MuscuScreen() {
       if (cancelled) return;
       weightRef.current = p.weightKg;
       maxHrRef.current = p.maxHr;
+
+      // Durée de repos préférée, mémorisée d'une séance à l'autre.
+      const savedRest = Number(await getSetting('rest_seconds'));
+      if (cancelled) return;
+      if (Number.isFinite(savedRest) && savedRest > 0) {
+        restDurationRef.current = Math.max(15, Math.min(600, savedRest));
+      }
 
       const draft = await loadMuscuDraft();
       if (cancelled) return;
@@ -225,7 +239,9 @@ export default function MuscuScreen() {
     );
 
   // Cocher / décocher une série une fois exécutée (suivi en cours de séance).
-  const toggleSet = (id: string, idx: number) =>
+  // Cocher une série démarre automatiquement le minuteur de repos.
+  const toggleSet = (id: string, idx: number) => {
+    const wasDone = exercises.find((e) => e.id === id)?.sets[idx]?.done ?? false;
     setExercises((prev) =>
       prev.map((e) =>
         e.id === id
@@ -233,6 +249,19 @@ export default function MuscuScreen() {
           : e,
       ),
     );
+    if (!wasDone) setRestEndsAt(nowMs() + restDurationRef.current * 1000);
+  };
+
+  // Ajuste (±15 s) ou ferme le minuteur de repos. Un ajustement mémorise la
+  // nouvelle durée comme préférence (réutilisée à la prochaine série).
+  const handleRestChange = (next: number | null) => {
+    setRestEndsAt(next);
+    if (next != null) {
+      const secs = Math.max(15, Math.min(600, Math.round((next - nowMs()) / 1000)));
+      restDurationRef.current = secs;
+      setSetting('rest_seconds', String(secs)); // best-effort, local
+    }
+  };
 
   const totalSets = exercises.reduce((a, e) => a + e.sets.length, 0);
   const doneSets = exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
@@ -573,40 +602,39 @@ export default function MuscuScreen() {
         </Card>
       </ScrollView>
 
-      {/* Contrôles */}
-      <View
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          paddingHorizontal: 16,
-          paddingTop: 12,
-          paddingBottom: insets.bottom + 12,
-          backgroundColor: theme.backgroundElement,
-          borderTopWidth: 1,
-          borderTopColor: theme.hairline,
-          flexDirection: 'row',
-          gap: 12,
-          ...Elevation.lg,
-        }}>
-        <View style={{ flex: 1 }}>
-          <Button
-            title={paused ? 'Reprendre' : 'Pause'}
-            icon={paused ? 'play' : 'pause'}
-            variant="secondary"
-            color={theme.muscu}
-            onPress={paused ? resume : pause}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            title="Terminer"
-            icon="flag-checkered"
-            color={theme.muscu}
-            loading={saving}
-            onPress={finish}
-          />
+      {/* Repos inter-séries + contrôles, ancrés en bas */}
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+        <RestTimer key={restEndsAt ?? 'idle'} endsAt={restEndsAt} onChange={handleRestChange} />
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: insets.bottom + 12,
+            backgroundColor: theme.backgroundElement,
+            borderTopWidth: 1,
+            borderTopColor: theme.hairline,
+            flexDirection: 'row',
+            gap: 12,
+            ...Elevation.lg,
+          }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              title={paused ? 'Reprendre' : 'Pause'}
+              icon={paused ? 'play' : 'pause'}
+              variant="secondary"
+              color={theme.muscu}
+              onPress={paused ? resume : pause}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              title="Terminer"
+              icon="flag-checkered"
+              color={theme.muscu}
+              loading={saving}
+              onPress={finish}
+            />
+          </View>
         </View>
       </View>
 
