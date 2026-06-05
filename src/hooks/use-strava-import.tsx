@@ -1,5 +1,6 @@
-// Import de fichiers Strava (GPX/TCX) : sélection, lecture locale, parsing,
-// déduplication et insertion. 100 % hors-ligne — aucun appel réseau.
+// Import de fichiers Strava (GPX/TCX/FIT, y compris .gz de l'export en masse) :
+// sélection, lecture locale, décodage, déduplication et insertion.
+// 100 % hors-ligne — aucun appel réseau.
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { useCallback, useState } from 'react';
@@ -51,8 +52,8 @@ export function useStravaImport() {
             res.details.push(`${asset.name} : fichier trop volumineux`);
             continue;
           }
-          const content = await new File(asset.uri).text();
-          const { drafts, skipped } = buildDrafts(content, profile.weightKg);
+          const bytes = await new File(asset.uri).bytes();
+          const { drafts, skipped } = buildDrafts(bytes, profile.weightKg);
           for (const reason of skipped) {
             res.skipped++;
             res.details.push(`${asset.name} : ${reason}`);

@@ -130,6 +130,13 @@ export async function restoreBackup(config?: BackupConfig): Promise<number> {
   if (parsed.app !== 'suivi-sport' || !parsed.data) {
     throw new Error('Format de sauvegarde non reconnu.');
   }
+  // Refuse une sauvegarde d'un format plus récent que celui géré : l'importer
+  // pourrait corrompre les données locales. (Champ absent = format 1 hérité.)
+  if ((parsed.format ?? 1) > BACKUP_FORMAT) {
+    throw new Error(
+      `Sauvegarde créée par une version plus récente (format ${parsed.format}). Mettez l'application à jour.`,
+    );
+  }
 
   await importAll(parsed.data);
   return parsed.data.sessions?.length ?? 0;

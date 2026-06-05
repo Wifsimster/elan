@@ -4,6 +4,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  BackHandler,
   Pressable,
   ScrollView,
   Text,
@@ -15,18 +16,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
+import { ExerciseInfoSheet } from '@/components/exercise-info-sheet';
 import { PressableScale } from '@/components/pressable-scale';
+import { RestTimer } from '@/components/rest-timer';
 import { Elevation, Radius, Type } from '@/constants/theme';
 import { autoBackup } from '@/lib/backup';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
   getProfile,
+  getSetting,
   lastWeightByExercise,
   replaceMuscuSets,
+  setSetting,
   updateSession,
 } from '@/lib/db';
 import { formatDuration } from '@/lib/format';
+import { clearMuscuDraft, loadMuscuDraft, saveMuscuDraft } from '@/lib/muscu-draft';
 import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
 import { nowMs } from '@/lib/time';
 import { useHeartRate } from '@/hooks/use-heart-rate';
@@ -44,8 +50,14 @@ type Exercise = {
   repUnit?: string;
   /** Dernière charge enregistrée pour cet exercice (amorce de progression). */
   lastWeight?: number;
-  /** Explication « comment faire », dépliable depuis la carte. */
+  /** Explication « comment faire », montrée dans la fiche détaillée. */
   howTo?: string;
+  /** Groupes musculaires sollicités, affichés dans la fiche. */
+  muscles?: string[];
+  /** Glyphe MaterialCommunityIcons illustrant le mouvement. */
+  icon?: string;
+  /** Clé d'illustration photo (paire départ → fin), affichée dans la fiche. */
+  imageKey?: string;
 };
 type HrSample = { ts: number; hr: number };
 
@@ -72,17 +84,31 @@ export default function MuscuScreen() {
   const router = useRouter();
 
   const watch = useStopwatch();
-  const { bpm } = useHeartRate();
+  const { bpm, subscribe: subscribeHr } = useHeartRate();
   const { template } = useLocalSearchParams<{ template?: string }>();
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
-  const [openHelp, setOpenHelp] = useState<string | null>(null);
+  const [paused, setPaused] = useState(false);
+  const [infoExercise, setInfoExercise] = useState<Exercise | null>(null);
+  // Repos inter-séries : horodatage de fin (null = aucun repos en cours).
+  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
 
   const startedAtRef = useRef<number>(0);
   const hrSamplesRef = useRef<HrSample[]>([]);
+  const pausedRef = useRef<boolean>(false);
   const weightRef = useRef<number>(70);
+  const maxHrRef = useRef<number>(190);
+  // Durée de repos préférée (s), réutilisée à chaque série cochée et persistée.
+  const restDurationRef = useRef<number>(90);
+  // Passe à true une fois le montage (reprise ou démarrage) terminé : évite
+  // d'écraser un brouillon valide pendant la phase d'hydratation.
+  const hydratedRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   const loadTemplate = async (t: WorkoutTemplate) => {
     const last = await lastWeightByExercise(t.exercises.map((e) => e.name));
@@ -96,6 +122,9 @@ export default function MuscuScreen() {
           target: targetHint(ex),
           repUnit: ex.timed ? 'sec' : 'reps',
           howTo: ex.howTo,
+          muscles: ex.muscles,
+          icon: ex.icon,
+          imageKey: ex.imageKey,
           // Le gainage n'a pas de charge : on n'affiche pas de « dernière fois ».
           lastWeight: ex.timed ? undefined : lw,
           sets: Array.from({ length: ex.sets }, () => ({
@@ -108,19 +137,68 @@ export default function MuscuScreen() {
   };
 
   useEffect(() => {
-    startedAtRef.current = nowMs();
-    watch.start();
-    getProfile().then((p) => (weightRef.current = p.weightKg));
-    const preset = templateById(template);
-    // loadTemplate ne pose son état qu'après une lecture DB async (hors rendu).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (preset) loadTemplate(preset); // pré-chargement depuis la « Séance du jour »
+    let cancelled = false;
+    (async () => {
+      const p = await getProfile();
+      if (cancelled) return;
+      weightRef.current = p.weightKg;
+      maxHrRef.current = p.maxHr;
+
+      // Durée de repos préférée, mémorisée d'une séance à l'autre.
+      const savedRest = Number(await getSetting('rest_seconds'));
+      if (cancelled) return;
+      if (Number.isFinite(savedRest) && savedRest > 0) {
+        restDurationRef.current = Math.max(15, Math.min(600, savedRest));
+      }
+
+      const draft = await loadMuscuDraft();
+      if (cancelled) return;
+
+      if (draft) {
+        // Reprise d'une séance mise en pause : on restaure tout son état et on
+        // la laisse en pause (l'utilisateur appuie sur « Reprendre » pour repartir).
+        startedAtRef.current = draft.startedAt;
+        hrSamplesRef.current = draft.hrSamples;
+        // Ré-attribue des ids frais : le compteur `uid` est repassé à 0 au
+        // redémarrage de l'app et collisionnerait avec les ids sauvegardés.
+        const restored = (draft.exercises as Exercise[]).map((e) => ({ ...e, id: nextId() }));
+        setExercises(restored);
+        watch.seed(draft.elapsedSec);
+        setPaused(true);
+      } else {
+        // Démarrage normal d'une nouvelle séance.
+        startedAtRef.current = nowMs();
+        watch.start();
+        const preset = templateById(template);
+        if (preset) loadTemplate(preset); // pré-chargement depuis la « Séance du jour »
+      }
+      hydratedRef.current = true;
+    })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Échantillonnage FC : on s'abonne aux trames BLE brutes pour ne pas perdre
+  // les paliers (React déduplique les setStates identiques côté `bpm`).
+  // Les trames reçues en pause sont ignorées pour ne pas fausser la moyenne.
   useEffect(() => {
-    if (bpm != null) hrSamplesRef.current.push({ ts: nowMs(), hr: bpm });
-  }, [bpm]);
+    return subscribeHr(({ ts, hr }) => {
+      if (pausedRef.current) return;
+      hrSamplesRef.current.push({ ts, hr });
+    });
+  }, [subscribeHr]);
+
+  const pause = () => {
+    watch.pause();
+    setPaused(true);
+  };
+
+  const resume = () => {
+    watch.start();
+    setPaused(false);
+  };
 
   const addExercise = (name: string) => {
     const trimmed = name.trim();
@@ -164,7 +242,9 @@ export default function MuscuScreen() {
     );
 
   // Cocher / décocher une série une fois exécutée (suivi en cours de séance).
-  const toggleSet = (id: string, idx: number) =>
+  // Cocher une série démarre automatiquement le minuteur de repos.
+  const toggleSet = (id: string, idx: number) => {
+    const wasDone = exercises.find((e) => e.id === id)?.sets[idx]?.done ?? false;
     setExercises((prev) =>
       prev.map((e) =>
         e.id === id
@@ -172,6 +252,19 @@ export default function MuscuScreen() {
           : e,
       ),
     );
+    if (!wasDone) setRestEndsAt(nowMs() + restDurationRef.current * 1000);
+  };
+
+  // Ajuste (±15 s) ou ferme le minuteur de repos. Un ajustement mémorise la
+  // nouvelle durée comme préférence (réutilisée à la prochaine série).
+  const handleRestChange = (next: number | null) => {
+    setRestEndsAt(next);
+    if (next != null) {
+      const secs = Math.max(15, Math.min(600, Math.round((next - nowMs()) / 1000)));
+      restDurationRef.current = secs;
+      setSetting('rest_seconds', String(secs)); // best-effort, local
+    }
+  };
 
   const totalSets = exercises.reduce((a, e) => a + e.sets.length, 0);
   const doneSets = exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
@@ -179,6 +272,24 @@ export default function MuscuScreen() {
     (a, e) => a + e.sets.reduce((b, s) => b + s.reps * s.weightKg, 0),
     0,
   );
+
+  // Sauvegarde du brouillon (séance en pause, reprenable). Best-effort, local.
+  const persistDraft = () =>
+    saveMuscuDraft({
+      version: 1,
+      startedAt: startedAtRef.current,
+      elapsedSec: watch.elapsedSec,
+      exercises,
+      hrSamples: hrSamplesRef.current,
+    });
+
+  // Écriture continue : à chaque changement structurel (exercices, pause), on
+  // re-sauvegarde, pour qu'une fermeture brutale de l'app ne perde rien.
+  useEffect(() => {
+    if (!hydratedRef.current || totalSets === 0) return;
+    persistDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercises, paused]);
 
   const computeHr = () => {
     const samples = hrSamplesRef.current;
@@ -208,6 +319,8 @@ export default function MuscuScreen() {
       type: 'muscu',
       weightKg: weightRef.current,
       durationSec,
+      avgHr,
+      maxHr: maxHrRef.current,
     });
 
     const id = await createSession('muscu', startedAtRef.current);
@@ -230,20 +343,56 @@ export default function MuscuScreen() {
     );
     await replaceMuscuSets(id, flat);
 
+    await clearMuscuDraft(); // séance terminée : plus de brouillon à reprendre
     autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
     router.replace({ pathname: '/session/[id]', params: { id } });
   };
 
-  const discard = () => {
+  // Quitter sans terminer : met la séance en pause (brouillon sauvegardé,
+  // reprenable plus tard) ou l'abandonne. Une séance vide sort sans rien garder.
+  const exitSession = (): boolean => {
+    if (saving) return true;
     if (totalSets === 0) {
+      clearMuscuDraft();
       router.back();
-      return;
+      return true;
     }
-    Alert.alert('Abandonner la séance ?', 'Les données ne seront pas enregistrées.', [
-      { text: 'Continuer', style: 'cancel' },
-      { text: 'Abandonner', style: 'destructive', onPress: () => router.back() },
-    ]);
+    Alert.alert(
+      'Quitter la séance ?',
+      'Mettez-la en pause pour la reprendre plus tard, ou abandonnez-la définitivement.',
+      [
+        { text: 'Continuer', style: 'cancel' },
+        {
+          text: 'Mettre en pause',
+          onPress: async () => {
+            watch.pause();
+            await persistDraft();
+            router.back();
+          },
+        },
+        {
+          text: 'Abandonner',
+          style: 'destructive',
+          onPress: async () => {
+            await clearMuscuDraft();
+            router.back();
+          },
+        },
+      ],
+    );
+    return true;
   };
+
+  // Le bouton retour matériel (Android) doit suivre le même chemin que la croix,
+  // sinon il quitterait la modale en perdant la séance en mémoire.
+  const exitRef = useRef(exitSession);
+  useEffect(() => {
+    exitRef.current = exitSession;
+  });
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => exitRef.current());
+    return () => sub.remove();
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -257,7 +406,7 @@ export default function MuscuScreen() {
         }}>
         {/* En-tête */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <PressableScale onPress={discard} haptic="selection" scaleTo={0.88} hitSlop={12}>
+          <PressableScale onPress={exitSession} haptic="selection" scaleTo={0.88} hitSlop={12}>
             <MaterialCommunityIcons name="close" size={26} color={theme.text} />
           </PressableScale>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -333,11 +482,11 @@ export default function MuscuScreen() {
               </View>
               {ex.howTo ? (
                 <PressableScale
-                  onPress={() => setOpenHelp((cur) => (cur === ex.id ? null : ex.id))}
+                  onPress={() => setInfoExercise(ex)}
                   haptic="selection"
                   hitSlop={8}>
                   <MaterialCommunityIcons
-                    name={openHelp === ex.id ? 'help-circle' : 'help-circle-outline'}
+                    name="information-outline"
                     size={22}
                     color={theme.muscu}
                   />
@@ -347,21 +496,6 @@ export default function MuscuScreen() {
                 <MaterialCommunityIcons name="trash-can-outline" size={20} color={theme.textSecondary} />
               </Pressable>
             </View>
-
-            {ex.howTo && openHelp === ex.id ? (
-              <View
-                style={{
-                  backgroundColor: theme.background,
-                  borderRadius: Radius.sm,
-                  borderLeftWidth: 3,
-                  borderLeftColor: theme.muscu,
-                  padding: 12,
-                }}>
-                <Text style={{ color: theme.textSecondary, fontSize: 13, lineHeight: 19 }}>
-                  {ex.howTo}
-                </Text>
-              </View>
-            ) : null}
 
             {ex.sets.map((s, i) => (
               <View
@@ -471,29 +605,43 @@ export default function MuscuScreen() {
         </Card>
       </ScrollView>
 
-      {/* Contrôles */}
-      <View
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          paddingHorizontal: 16,
-          paddingTop: 12,
-          paddingBottom: insets.bottom + 12,
-          backgroundColor: theme.backgroundElement,
-          borderTopWidth: 1,
-          borderTopColor: theme.hairline,
-          ...Elevation.lg,
-        }}>
-        <Button
-          title="Terminer la séance"
-          icon="flag-checkered"
-          color={theme.muscu}
-          loading={saving}
-          onPress={finish}
-        />
+      {/* Repos inter-séries + contrôles, ancrés en bas */}
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+        <RestTimer key={restEndsAt ?? 'idle'} endsAt={restEndsAt} onChange={handleRestChange} />
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: insets.bottom + 12,
+            backgroundColor: theme.backgroundElement,
+            borderTopWidth: 1,
+            borderTopColor: theme.hairline,
+            flexDirection: 'row',
+            gap: 12,
+            ...Elevation.lg,
+          }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              title={paused ? 'Reprendre' : 'Pause'}
+              icon={paused ? 'play' : 'pause'}
+              variant="secondary"
+              color={theme.muscu}
+              onPress={paused ? resume : pause}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              title="Terminer"
+              icon="flag-checkered"
+              color={theme.muscu}
+              loading={saving}
+              onPress={finish}
+            />
+          </View>
+        </View>
       </View>
+
+      <ExerciseInfoSheet exercise={infoExercise} onClose={() => setInfoExercise(null)} />
     </View>
   );
 }

@@ -5,7 +5,8 @@ import { sha256 } from 'js-sha256';
 
 import { estimateCalories } from '@/lib/calories';
 import { haversineMeters } from '@/lib/geo';
-import { parseStravaFile, type ParsedActivity, type ParsedPoint } from '@/lib/strava/parse';
+import { decodeStravaBytes } from '@/lib/strava/decode';
+import { type ParsedActivity, type ParsedPoint } from '@/lib/strava/parse';
 import type { TrackPoint } from '@/lib/types';
 
 export type ImportedPoint = Omit<TrackPoint, 'id' | 'sessionId'>;
@@ -179,9 +180,9 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
   };
 }
 
-/** Parse le contenu d'un fichier et construit les séances importables. */
-export function buildDrafts(content: string, weightKg: number): BuildResult {
-  const parsed = parseStravaFile(content);
+/** Décode un fichier (octets : GPX/TCX/FIT, éventuellement gzip) et construit les séances importables. */
+export function buildDrafts(bytes: Uint8Array, weightKg: number): BuildResult {
+  const parsed = decodeStravaBytes(bytes);
   const drafts: ImportedDraft[] = [];
   const skipped: string[] = [];
   for (const act of parsed.activities) {

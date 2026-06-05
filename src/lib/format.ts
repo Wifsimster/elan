@@ -14,8 +14,12 @@ export function formatDuration(totalSec: number): string {
 /** Durée compacte pour les listes : "1 h 02", "45 min". */
 export function formatDurationShort(totalSec: number): string {
   const s = Math.max(0, Math.floor(totalSec));
-  const h = Math.floor(s / 3600);
-  const m = Math.round((s % 3600) / 60);
+  // On arrondit à la minute la plus proche d'abord, puis on dérive heures et
+  // minutes : sinon arrondir les minutes seules pouvait produire « 1 h 60 »
+  // (ex. 1 h 59 min 30 s → 60 min).
+  const totalMin = Math.round(s / 60);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
   if (h > 0) return `${h} h ${m.toString().padStart(2, '0')}`;
   return `${m} min`;
 }
@@ -61,4 +65,16 @@ export function formatDateTime(ms: number): string {
 export function formatDateShort(ms: number): string {
   const d = new Date(ms);
   return `${d.getDate()} ${MOIS[d.getMonth()]}`;
+}
+
+/** « aujourd'hui », « hier », « il y a 4 jours » — relatif au début de journée. */
+export function formatRelativeDays(ms: number): string {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((today.getTime() - d.getTime()) / 86_400_000);
+  if (diffDays <= 0) return "aujourd'hui";
+  if (diffDays === 1) return 'hier';
+  return `il y a ${diffDays} jours`;
 }

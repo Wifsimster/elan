@@ -4,6 +4,13 @@ import { Text, View } from 'react-native';
 import { Radius, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+/** Évolution affichée sous la valeur (ex. comparaison à la période précédente). */
+export type Trend = {
+  label: string;
+  /** `positive` = vert, `negative` = atténué, `neutral` = stable. */
+  tone: 'positive' | 'negative' | 'neutral';
+};
+
 type Props = {
   label: string;
   value: string;
@@ -12,15 +19,26 @@ type Props = {
   color?: string;
   /** Affichage compact (police plus petite). */
   compact?: boolean;
+  /** Petite ligne d'évolution sous la valeur. */
+  trend?: Trend;
 };
 
 /**
  * Tuile de métrique « bento » : pastille d'icône teintée + grand chiffre tabulaire.
  * Conçue pour s'aligner en grille fluide (flexWrap) dans une Card.
  */
-export function StatTile({ label, value, unit, icon, color, compact }: Props) {
+export function StatTile({ label, value, unit, icon, color, compact, trend }: Props) {
   const theme = useTheme();
   const tint = color ?? theme.text;
+
+  const trendColor =
+    trend?.tone === 'positive'
+      ? theme.success
+      : trend?.tone === 'negative'
+        ? theme.textSecondary
+        : theme.textMuted;
+  const trendIcon =
+    trend?.tone === 'positive' ? 'arrow-up' : trend?.tone === 'negative' ? 'arrow-down' : 'minus';
 
   return (
     <View style={{ gap: 8, flex: 1, minWidth: 96 }}>
@@ -51,6 +69,12 @@ export function StatTile({ label, value, unit, icon, color, compact }: Props) {
           <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '700' }}>{unit}</Text>
         ) : null}
       </View>
+      {trend ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <MaterialCommunityIcons name={trendIcon} size={12} color={trendColor} />
+          <Text style={{ ...Type.caption, color: trendColor }}>{trend.label}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }

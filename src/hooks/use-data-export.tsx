@@ -1,6 +1,6 @@
 // Export des données vers un fichier partageable (bilan Markdown ou JSON brut).
 // Écrit dans le cache puis ouvre la feuille de partage du système — l'utilisateur
-// choisit la destination (Drive, mail, fichier…) pour alimenter son projet Claude.
+// choisit la destination (Drive, mail, fichier…) : coach IA, tableur, sauvegarde…
 // Aucun appel réseau : le partage est délégué à l'OS.
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -38,7 +38,7 @@ export function useDataExport() {
       await Sharing.shareAsync(file.uri, {
         mimeType: spec.mimeType,
         UTI: spec.uti,
-        dialogTitle: 'Exporter pour Claude',
+        dialogTitle: 'Exporter mes données',
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Export impossible.');

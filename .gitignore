@@ -41,3 +41,11 @@ example
 # generated native folders
 /ios
 /android
+
+# local build/dev logs
+.devbuild.log
+.metro.log
+.relbuild.log
+
+# Claude Code worktrees (subagents en isolation)
+.claude/worktrees/

@@ -127,6 +127,11 @@ export async function setSetting(key: string, value: string): Promise<void> {
   );
 }
 
+export async function deleteSetting(key: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM settings WHERE key = ?;', key);
+}
+
 const DEFAULT_PROFILE: Profile = { weightKg: 70, maxHr: 190 };
 
 export async function getProfile(): Promise<Profile> {
@@ -190,12 +195,67 @@ export async function getSession(id: number): Promise<Session | null> {
   return db.getFirstAsync<Session>('SELECT * FROM sessions WHERE id = ?;', id);
 }
 
-export async function listSessions(limit = 100): Promise<Session[]> {
+/** Options de filtrage de l'historique. Compatibilité ascendante : passer un
+ * nombre garde l'ancien comportement (limite seule, pas d'offset, pas de filtre). */
+export type ListSessionsOptions = {
+  limit?: number;
+  /** Décale la fenêtre (pour la pagination). */
+  offset?: number;
+  /** Restreint à un type d'activité. */
+  type?: ActivityType;
+  /** Recherche libre, insensible à la casse, sur :
+   *  - le code du type (« velo » / « muscu »),
+   *  - les notes de séance,
+   *  - les noms d'exercices muscu rattachés. */
+  search?: string;
+  /** Borne basse de `startedAt` (ms epoch, inclus). */
+  fromMs?: number;
+  /** Borne haute de `startedAt` (ms epoch, exclus). */
+  toMs?: number;
+};
+
+export async function listSessions(
+  optsOrLimit: number | ListSessionsOptions = 100,
+): Promise<Session[]> {
+  const opts: ListSessionsOptions =
+    typeof optsOrLimit === 'number' ? { limit: optsOrLimit } : optsOrLimit;
+  const { limit = 100, offset = 0, type, search, fromMs, toMs } = opts;
+
+  const where: string[] = ['endedAt IS NOT NULL'];
+  const params: (string | number)[] = [];
+
+  if (type) {
+    where.push('type = ?');
+    params.push(type);
+  }
+  if (fromMs != null) {
+    where.push('startedAt >= ?');
+    params.push(fromMs);
+  }
+  if (toMs != null) {
+    where.push('startedAt < ?');
+    params.push(toMs);
+  }
+  const trimmed = search?.trim();
+  if (trimmed) {
+    // SQLite : LIKE est insensible à la casse pour l'ASCII par défaut. On
+    // matche sur le code de type (« velo »/« muscu »), les notes ou un
+    // exercice muscu rattaché.
+    const like = `%${trimmed}%`;
+    where.push(
+      `(type LIKE ? OR IFNULL(notes, '') LIKE ? OR id IN (
+         SELECT sessionId FROM muscu_sets WHERE exercise LIKE ?
+       ))`,
+    );
+    params.push(like, like, like);
+  }
+
+  const sql = `SELECT * FROM sessions WHERE ${where.join(' AND ')}
+               ORDER BY startedAt DESC LIMIT ? OFFSET ?;`;
+  params.push(limit, offset);
+
   const db = await getDb();
-  return db.getAllAsync<Session>(
-    'SELECT * FROM sessions WHERE endedAt IS NOT NULL ORDER BY startedAt DESC LIMIT ?;',
-    limit,
-  );
+  return db.getAllAsync<Session>(sql, ...params);
 }
 
 export async function deleteSession(id: number): Promise<void> {
@@ -214,18 +274,26 @@ export async function insertTrackPoints(
   if (points.length === 0) return;
   const db = await getDb();
   await db.withTransactionAsync(async () => {
-    for (const p of points) {
-      await db.runAsync(
-        'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
-        sessionId,
-        p.ts,
-        p.lat,
-        p.lon,
-        p.altitude,
-        p.speedKmh,
-        p.hr,
-        p.cadence,
-      );
+    // Une longue sortie peut représenter plusieurs milliers de points : un
+    // statement préparé évite de re-parser le SQL à chaque insertion.
+    const stmt = await db.prepareAsync(
+      'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+    );
+    try {
+      for (const p of points) {
+        await stmt.executeAsync(
+          sessionId,
+          p.ts,
+          p.lat,
+          p.lon,
+          p.altitude,
+          p.speedKmh,
+          p.hr,
+          p.cadence,
+        );
+      }
+    } finally {
+      await stmt.finalizeAsync();
     }
   });
 }
@@ -295,18 +363,25 @@ export async function insertImportedSession(
       return;
     }
     const sessionId = res.lastInsertRowId;
-    for (const p of points) {
-      await db.runAsync(
-        'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
-        sessionId,
-        p.ts,
-        p.lat,
-        p.lon,
-        p.altitude,
-        p.speedKmh,
-        p.hr,
-        p.cadence,
-      );
+    if (points.length === 0) return;
+    const stmt = await db.prepareAsync(
+      'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+    );
+    try {
+      for (const p of points) {
+        await stmt.executeAsync(
+          sessionId,
+          p.ts,
+          p.lat,
+          p.lon,
+          p.altitude,
+          p.speedKmh,
+          p.hr,
+          p.cadence,
+        );
+      }
+    } finally {
+      await stmt.finalizeAsync();
     }
   });
   return result;
@@ -331,15 +406,16 @@ export async function replaceMuscuSets(
   const db = await getDb();
   await db.withTransactionAsync(async () => {
     await db.runAsync('DELETE FROM muscu_sets WHERE sessionId = ?;', sessionId);
-    for (const s of sets) {
-      await db.runAsync(
-        'INSERT INTO muscu_sets (sessionId, exercise, setIndex, reps, weightKg) VALUES (?, ?, ?, ?, ?);',
-        sessionId,
-        s.exercise,
-        s.setIndex,
-        s.reps,
-        s.weightKg,
-      );
+    if (sets.length === 0) return;
+    const stmt = await db.prepareAsync(
+      'INSERT INTO muscu_sets (sessionId, exercise, setIndex, reps, weightKg) VALUES (?, ?, ?, ?, ?);',
+    );
+    try {
+      for (const s of sets) {
+        await stmt.executeAsync(sessionId, s.exercise, s.setIndex, s.reps, s.weightKg);
+      }
+    } finally {
+      await stmt.finalizeAsync();
     }
   });
 }
@@ -361,20 +437,27 @@ export async function getMuscuSets(sessionId: number): Promise<MuscuSet[]> {
 export async function lastWeightByExercise(
   names: string[],
 ): Promise<Record<string, number>> {
+  if (names.length === 0) return {};
   const db = await getDb();
-  const out: Record<string, number> = {};
-  for (const name of names) {
-    const row = await db.getFirstAsync<{ weightKg: number }>(
-      `SELECT ms.weightKg
+  // Une seule requête pour tous les exercices : on prend la charge max de la
+  // dernière séance muscu terminée qui contient chaque exercice (window function).
+  const placeholders = names.map(() => '?').join(', ');
+  const rows = await db.getAllAsync<{ exercise: string; weightKg: number }>(
+    `SELECT exercise, weightKg FROM (
+       SELECT ms.exercise AS exercise,
+              ms.weightKg AS weightKg,
+              ROW_NUMBER() OVER (
+                PARTITION BY ms.exercise
+                ORDER BY s.startedAt DESC, ms.weightKg DESC
+              ) AS rn
          FROM muscu_sets ms
          JOIN sessions s ON s.id = ms.sessionId
-        WHERE s.type = 'muscu' AND s.endedAt IS NOT NULL AND ms.exercise = ?
-        ORDER BY s.startedAt DESC, ms.weightKg DESC
-        LIMIT 1;`,
-      name,
-    );
-    if (row) out[name] = row.weightKg;
-  }
+        WHERE s.type = 'muscu' AND s.endedAt IS NOT NULL AND ms.exercise IN (${placeholders})
+     ) WHERE rn = 1;`,
+    ...names,
+  );
+  const out: Record<string, number> = {};
+  for (const r of rows) out[r.exercise] = r.weightKg;
   return out;
 }
 
@@ -444,7 +527,8 @@ export async function exerciseHistory(name: string): Promise<ExercisePoint[]> {
 // Statistiques
 // ---------------------------------------------------------------------------
 
-export async function statsSince(sinceMs: number): Promise<PeriodStats> {
+/** Agrégats sur une fenêtre `[fromMs, toMs)` (ms epoch). */
+export async function statsBetween(fromMs: number, toMs: number): Promise<PeriodStats> {
   const db = await getDb();
   const row = await db.getFirstAsync<PeriodStats>(
     `SELECT
@@ -453,12 +537,18 @@ export async function statsSince(sinceMs: number): Promise<PeriodStats> {
        COALESCE(SUM(distanceM), 0) AS totalDistanceM,
        COALESCE(SUM(calories), 0) AS totalCalories
      FROM sessions
-     WHERE endedAt IS NOT NULL AND startedAt >= ?;`,
-    sinceMs,
+     WHERE endedAt IS NOT NULL AND startedAt >= ? AND startedAt < ?;`,
+    fromMs,
+    toMs,
   );
   return (
     row ?? { sessionCount: 0, totalDurationSec: 0, totalDistanceM: 0, totalCalories: 0 }
   );
+}
+
+/** Agrégats depuis `sinceMs` jusqu'à maintenant. */
+export async function statsSince(sinceMs: number): Promise<PeriodStats> {
+  return statsBetween(sinceMs, Number.MAX_SAFE_INTEGER);
 }
 
 /** Durée totale d'effort par jour sur les N derniers jours (pour le graphe). */
@@ -585,34 +675,66 @@ export async function importAll(snap: DbSnapshot): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.execAsync('DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions;');
 
-    for (const s of snap.sessions ?? []) {
-      await db.runAsync(
+    // Statements préparés : une restauration peut comporter des dizaines de
+    // milliers de points GPS, runAsync re-parse le SQL à chaque appel.
+    const sessions = snap.sessions ?? [];
+    if (sessions.length > 0) {
+      const stmt = await db.prepareAsync(
         `INSERT INTO sessions
            (id, type, startedAt, endedAt, durationSec, notes, avgHr, maxHr,
             distanceM, avgSpeedKmh, maxSpeedKmh, elevationGainM, avgCadence, maxCadence, calories,
             source, externalId)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-        n(s.id), n(s.type), n(s.startedAt), n(s.endedAt), n(s.durationSec), n(s.notes),
-        n(s.avgHr), n(s.maxHr), n(s.distanceM), n(s.avgSpeedKmh), n(s.maxSpeedKmh),
-        n(s.elevationGainM), n(s.avgCadence), n(s.maxCadence), n(s.calories),
-        n(s.source), n(s.externalId),
       );
+      try {
+        for (const s of sessions) {
+          await stmt.executeAsync(
+            n(s.id), n(s.type), n(s.startedAt), n(s.endedAt), n(s.durationSec), n(s.notes),
+            n(s.avgHr), n(s.maxHr), n(s.distanceM), n(s.avgSpeedKmh), n(s.maxSpeedKmh),
+            n(s.elevationGainM), n(s.avgCadence), n(s.maxCadence), n(s.calories),
+            n(s.source), n(s.externalId),
+          );
+        }
+      } finally {
+        await stmt.finalizeAsync();
+      }
     }
-    for (const p of snap.trackPoints ?? []) {
-      await db.runAsync(
+
+    const trackPoints = snap.trackPoints ?? [];
+    if (trackPoints.length > 0) {
+      const stmt = await db.prepareAsync(
         `INSERT INTO track_points (id, sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-        n(p.id), n(p.sessionId), n(p.ts), n(p.lat), n(p.lon),
-        n(p.altitude), n(p.speedKmh), n(p.hr), n(p.cadence),
       );
+      try {
+        for (const p of trackPoints) {
+          await stmt.executeAsync(
+            n(p.id), n(p.sessionId), n(p.ts), n(p.lat), n(p.lon),
+            n(p.altitude), n(p.speedKmh), n(p.hr), n(p.cadence),
+          );
+        }
+      } finally {
+        await stmt.finalizeAsync();
+      }
     }
-    for (const m of snap.muscuSets ?? []) {
-      await db.runAsync(
+
+    const muscuSets = snap.muscuSets ?? [];
+    if (muscuSets.length > 0) {
+      const stmt = await db.prepareAsync(
         `INSERT INTO muscu_sets (id, sessionId, exercise, setIndex, reps, weightKg)
          VALUES (?, ?, ?, ?, ?, ?);`,
-        n(m.id), n(m.sessionId), n(m.exercise), n(m.setIndex), n(m.reps), n(m.weightKg),
       );
+      try {
+        for (const m of muscuSets) {
+          await stmt.executeAsync(
+            n(m.id), n(m.sessionId), n(m.exercise), n(m.setIndex), n(m.reps), n(m.weightKg),
+          );
+        }
+      } finally {
+        await stmt.finalizeAsync();
+      }
     }
+
     for (const st of snap.settings ?? []) {
       if (BACKUP_EXCLUDED_KEYS.has(st.key)) continue;
       await db.runAsync(
