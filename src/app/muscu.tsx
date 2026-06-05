@@ -210,8 +210,21 @@ export default function MuscuScreen() {
     setDraft('');
   };
 
-  const removeExercise = (id: string) =>
-    setExercises((prev) => prev.filter((e) => e.id !== id));
+  const removeExercise = (id: string) => {
+    const exercise = exercises.find((e) => e.id === id);
+    Alert.alert(
+      'Supprimer cet exercice ?',
+      exercise ? `« ${exercise.name} » sera retiré de la séance.` : 'Cet exercice sera retiré de la séance.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => setExercises((prev) => prev.filter((e) => e.id !== id)),
+        },
+      ],
+    );
+  };
 
   const addSet = (id: string) =>
     setExercises((prev) =>
