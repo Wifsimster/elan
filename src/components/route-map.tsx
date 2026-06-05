@@ -31,6 +31,8 @@ type Props = {
   live?: boolean;
   /** Ref de la ScrollView parente : le pan de la carte bloque son défilement. */
   scrollRef?: React.RefObject<any>;
+  /** Plein écran : la carte remplit son parent (flex), sans bordure ni coins arrondis. */
+  fill?: boolean;
 };
 
 /**
@@ -64,13 +66,14 @@ export function RouteMap(props: Props) {
         color={props.color ?? theme.velo}
         live={props.live}
         interactive={props.interactive}
+        fill={props.fill}
       />
     );
   }
   return <SvgRoute {...props} />;
 }
 
-function SvgRoute({ points, height = 200, color, interactive, live, scrollRef }: Props) {
+function SvgRoute({ points, height = 200, color, interactive, live, scrollRef, fill }: Props) {
   const theme = useTheme();
   const stroke = color ?? theme.velo;
 
@@ -140,15 +143,19 @@ function SvgRoute({ points, height = 200, color, interactive, live, scrollRef }:
     <View
       accessible
       accessibilityLabel={live ? 'Tracé GPS de la sortie en cours' : 'Tracé GPS de la sortie'}
-      style={{
-        height,
-        borderRadius: Radius.md,
-        borderCurve: 'continuous',
-        overflow: 'hidden',
-        backgroundColor: theme.background,
-        borderWidth: 1,
-        borderColor: theme.border,
-      }}>
+      style={
+        fill
+          ? { flex: 1, overflow: 'hidden', backgroundColor: theme.background }
+          : {
+              height,
+              borderRadius: Radius.md,
+              borderCurve: 'continuous',
+              overflow: 'hidden',
+              backgroundColor: theme.background,
+              borderWidth: 1,
+              borderColor: theme.border,
+            }
+      }>
       {interactive ? <Animated.View style={viewStyle}>{svg}</Animated.View> : svg}
     </View>
   );

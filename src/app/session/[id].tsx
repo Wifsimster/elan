@@ -7,6 +7,7 @@ import Animated, { useAnimatedRef } from 'react-native-reanimated';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { LineChart } from '@/components/line-chart';
+import { PressableScale } from '@/components/pressable-scale';
 import { RouteMap } from '@/components/route-map';
 import { ShareCard } from '@/components/share-card';
 import { StatTile } from '@/components/stat-tile';
@@ -166,9 +167,32 @@ export default function SessionDetailScreen() {
         {/* Records personnels (façon « PR » Strava) */}
         <RecordsBanner records={records} year={new Date(session.startedAt).getFullYear()} />
 
-        {/* Tracé GPS (vélo) */}
+        {/* Tracé GPS (vélo) — vignette tactile : ouvre la carte en plein écran. */}
         {session.type === 'velo' && points.length >= 2 ? (
-          <RouteMap points={points} color={color} interactive scrollRef={scrollRef} />
+          <PressableScale
+            onPress={() =>
+              router.push({ pathname: '/session/map', params: { id: String(sessionId) } })
+            }
+            haptic="selection"
+            accessibilityLabel="Agrandir la carte en plein écran">
+            <RouteMap points={points} color={color} />
+            <View
+              style={{
+                position: 'absolute',
+                top: 10,
+                right: 10,
+                width: 34,
+                height: 34,
+                borderRadius: Radius.sm,
+                borderCurve: 'continuous',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.backgroundElement + 'E6',
+              }}
+              pointerEvents="none">
+              <MaterialCommunityIcons name="arrow-expand" size={18} color={theme.text} />
+            </View>
+          </PressableScale>
         ) : null}
 
         {/* Statistiques */}
