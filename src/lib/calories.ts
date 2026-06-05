@@ -47,7 +47,7 @@ function hrKcalPerMin(weightKg: number, avgHr: number, maxHr: number): number {
   return 0.082 * weightKg * Math.pow(pct, 1.7);
 }
 
-/** Bonus d'énergie lié au dénivelé positif (~2 kcal/m pour 70 kg, indép. de la vitesse). */
+/** Bonus d'énergie lié au dénivelé positif (~0,77 kcal/m pour 70 kg, indép. de la vitesse). */
 function elevationBonusKcal(weightKg: number, elevationGainM: number): number {
   if (elevationGainM <= 0) return 0;
   return weightKg * 0.011 * elevationGainM;

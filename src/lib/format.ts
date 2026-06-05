@@ -14,8 +14,12 @@ export function formatDuration(totalSec: number): string {
 /** Durée compacte pour les listes : "1 h 02", "45 min". */
 export function formatDurationShort(totalSec: number): string {
   const s = Math.max(0, Math.floor(totalSec));
-  const h = Math.floor(s / 3600);
-  const m = Math.round((s % 3600) / 60);
+  // On arrondit à la minute la plus proche d'abord, puis on dérive heures et
+  // minutes : sinon arrondir les minutes seules pouvait produire « 1 h 60 »
+  // (ex. 1 h 59 min 30 s → 60 min).
+  const totalMin = Math.round(s / 60);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
   if (h > 0) return `${h} h ${m.toString().padStart(2, '0')}`;
   return `${m} min`;
 }

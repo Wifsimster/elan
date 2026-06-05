@@ -45,6 +45,14 @@ describe('formatDurationShort', () => {
   it('0 secondes → "0 min"', () => {
     expect(formatDurationShort(0)).toBe('0 min');
   });
+
+  it('reporte la retenue des minutes au lieu de produire "H h 60"', () => {
+    // 1 h 59 min 30 s arrondit à 2 h pile (et non « 1 h 60 »).
+    expect(formatDurationShort(7170)).toBe('2 h 00');
+    expect(formatDurationShort(7189)).toBe('2 h 00');
+    // Juste sous le seuil de report : reste « 1 h 59 ».
+    expect(formatDurationShort(7169)).toBe('1 h 59');
+  });
 });
 
 describe('formatDistance', () => {
