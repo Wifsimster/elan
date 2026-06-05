@@ -158,7 +158,7 @@ export default function SessionDetailScreen() {
           <View>
             <Text style={{ ...Type.headline, color: theme.text }}>{meta.label}</Text>
             <Text style={{ color: theme.textSecondary, fontSize: 14 }}>
-              {formatDateTime(session.startedAt)}
+              {formatDateTime(session.startedAt, true)}
             </Text>
           </View>
         </View>
