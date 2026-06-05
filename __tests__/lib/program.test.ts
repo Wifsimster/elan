@@ -68,6 +68,8 @@ describe('targetHint', () => {
     repsMax: 12,
     startWeightKg: 10,
     howTo: '',
+    muscles: [],
+    icon: 'dumbbell',
   };
 
   it('plage de reps standard', () => {
@@ -109,6 +111,8 @@ describe('defaultReps', () => {
     repsMax: 12,
     startWeightKg: 10,
     howTo: '',
+    muscles: [],
+    icon: 'dumbbell',
   };
 
   it('milieu de fourchette, arrondi', () => {
