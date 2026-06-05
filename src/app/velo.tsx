@@ -19,7 +19,7 @@ import {
   insertTrackPoints,
   updateSession,
 } from '@/lib/db';
-import { formatDistance, formatDuration } from '@/lib/format';
+import { cadenceParts, distanceParts, formatDuration, hrParts, speedParts } from '@/lib/format';
 import { nowMs } from '@/lib/time';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useGpsTracker } from '@/hooks/use-gps-tracker';
@@ -278,29 +278,25 @@ export default function VeloScreen() {
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20 }}>
             <StatTile
               label="Distance"
-              value={formatDistance(gps.distanceM).replace(/\s?(km|m)$/, '')}
-              unit={gps.distanceM >= 1000 ? 'km' : 'm'}
+              {...distanceParts(gps.distanceM)}
               icon="map-marker-distance"
               color={theme.velo}
             />
             <StatTile
               label="Vitesse"
-              value={gps.speedKmh.toFixed(1)}
-              unit="km/h"
+              {...speedParts(gps.speedKmh)}
               icon="speedometer"
             />
             <StatTile
               label="Vitesse max"
-              value={gps.maxSpeedKmh.toFixed(1)}
-              unit="km/h"
+              {...speedParts(gps.maxSpeedKmh)}
               icon="speedometer-medium"
               compact
             />
             {hasSpeedSensor ? (
               <StatTile
                 label="Vitesse roue"
-                value={(sensorSpeedKmh ?? 0).toFixed(1)}
-                unit="km/h"
+                {...speedParts(sensorSpeedKmh ?? 0)}
                 icon="bike-fast"
                 color={theme.velo}
                 compact
@@ -309,8 +305,7 @@ export default function VeloScreen() {
             {hasCadenceSensor ? (
               <StatTile
                 label="Cadence"
-                value={cadenceRpm != null ? String(cadenceRpm) : '—'}
-                unit="tr/min"
+                {...cadenceParts(cadenceRpm)}
                 icon="rotate-right"
                 color={theme.velo}
                 compact
@@ -325,8 +320,7 @@ export default function VeloScreen() {
             />
             <StatTile
               label="Cardio"
-              value={bpm != null ? String(bpm) : '—'}
-              unit="bpm"
+              {...hrParts(bpm)}
               icon="heart-pulse"
               color={theme.heart}
               compact

@@ -25,12 +25,14 @@ import {
 } from '@/lib/db';
 import { sessionEffort } from '@/lib/effort';
 import {
-  formatCalories,
+  cadenceParts,
+  caloriesParts,
+  distanceParts,
+  elevationParts,
   formatDateTime,
-  formatDistance,
   formatDuration,
-  formatHr,
-  formatSpeed,
+  hrParts,
+  speedParts,
 } from '@/lib/format';
 import type { MuscuSet, Session, TrackPoint } from '@/lib/types';
 import { useSessionShare } from '@/hooks/use-session-share';
@@ -179,33 +181,33 @@ export default function SessionDetailScreen() {
               <>
                 <StatTile
                   label="Distance"
-                  value={formatDistance(session.distanceM)}
+                  {...distanceParts(session.distanceM)}
                   icon="map-marker-distance"
                   color={color}
                   compact
                 />
                 <StatTile
                   label="Vitesse moy."
-                  value={formatSpeed(session.avgSpeedKmh)}
+                  {...speedParts(session.avgSpeedKmh)}
                   icon="speedometer"
                   compact
                 />
                 <StatTile
                   label="Vitesse max"
-                  value={formatSpeed(session.maxSpeedKmh)}
+                  {...speedParts(session.maxSpeedKmh)}
                   icon="speedometer-medium"
                   compact
                 />
                 <StatTile
                   label="Dénivelé +"
-                  value={`${Math.round(session.elevationGainM ?? 0)} m`}
+                  {...elevationParts(session.elevationGainM)}
                   icon="elevation-rise"
                   compact
                 />
                 {session.avgCadence != null ? (
                   <StatTile
                     label="Cadence moy."
-                    value={`${Math.round(session.avgCadence)} tr/min`}
+                    {...cadenceParts(session.avgCadence)}
                     icon="rotate-right"
                     color={color}
                     compact
@@ -214,7 +216,7 @@ export default function SessionDetailScreen() {
                 {session.maxCadence != null ? (
                   <StatTile
                     label="Cadence max"
-                    value={`${Math.round(session.maxCadence)} tr/min`}
+                    {...cadenceParts(session.maxCadence)}
                     icon="rotate-right"
                     color={color}
                     compact
@@ -224,21 +226,21 @@ export default function SessionDetailScreen() {
             ) : null}
             <StatTile
               label="FC moy."
-              value={formatHr(session.avgHr)}
+              {...hrParts(session.avgHr)}
               icon="heart-pulse"
               color={theme.heart}
               compact
             />
             <StatTile
               label="FC max"
-              value={formatHr(session.maxHr)}
+              {...hrParts(session.maxHr)}
               icon="heart"
               color={theme.heart}
               compact
             />
             <StatTile
               label="Calories"
-              value={formatCalories(session.calories)}
+              {...caloriesParts(session.calories)}
               icon="fire"
               color={theme.warning}
               compact

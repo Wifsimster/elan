@@ -24,26 +24,69 @@ export function formatDurationShort(totalSec: number): string {
   return `${m} min`;
 }
 
+/**
+ * Mesure scindée en chiffre et unité, pour l'afficher dans une `StatTile`
+ * (grand nombre + unité en petit sur la ligne de base, sans retour à la ligne
+ * disgracieux). `unit` est absente quand la valeur est inconnue (« — »).
+ */
+export type Measure = { value: string; unit?: string };
+
+/** Recompose une `Measure` en chaîne « valeur unité » (« 12,4 km »). */
+function joinMeasure(m: Measure): string {
+  return m.unit ? `${m.value} ${m.unit}` : m.value;
+}
+
+/** Décimale française : 12.4 -> "12,4". */
+const decimalFr = (n: number, digits = 1) => n.toFixed(digits).replace('.', ',');
+
+/** Mètres -> { "12,4", "km" } ou { "850", "m" }. */
+export function distanceParts(meters: number | null | undefined): Measure {
+  if (meters == null) return { value: '—' };
+  if (meters >= 1000) return { value: decimalFr(meters / 1000), unit: 'km' };
+  return { value: String(Math.round(meters)), unit: 'm' };
+}
+
+export function speedParts(kmh: number | null | undefined): Measure {
+  if (kmh == null) return { value: '—' };
+  return { value: decimalFr(kmh), unit: 'km/h' };
+}
+
+export function hrParts(bpm: number | null | undefined): Measure {
+  if (bpm == null) return { value: '—' };
+  return { value: String(Math.round(bpm)), unit: 'bpm' };
+}
+
+export function caloriesParts(kcal: number | null | undefined): Measure {
+  if (kcal == null) return { value: '—' };
+  return { value: String(Math.round(kcal)), unit: 'kcal' };
+}
+
+/** Mètres -> { "57", "m" } (dénivelé, jamais converti en km). */
+export function elevationParts(meters: number | null | undefined): Measure {
+  return { value: String(Math.round(meters ?? 0)), unit: 'm' };
+}
+
+/** Tours/min -> { "84", "tr/min" } (cadence). */
+export function cadenceParts(rpm: number | null | undefined): Measure {
+  if (rpm == null) return { value: '—' };
+  return { value: String(Math.round(rpm)), unit: 'tr/min' };
+}
+
 /** Mètres -> "12,4 km" ou "850 m". */
 export function formatDistance(meters: number | null | undefined): string {
-  if (meters == null) return '—';
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1).replace('.', ',')} km`;
-  return `${Math.round(meters)} m`;
+  return joinMeasure(distanceParts(meters));
 }
 
 export function formatSpeed(kmh: number | null | undefined): string {
-  if (kmh == null) return '—';
-  return `${kmh.toFixed(1).replace('.', ',')} km/h`;
+  return joinMeasure(speedParts(kmh));
 }
 
 export function formatHr(bpm: number | null | undefined): string {
-  if (bpm == null) return '—';
-  return `${Math.round(bpm)} bpm`;
+  return joinMeasure(hrParts(bpm));
 }
 
 export function formatCalories(kcal: number | null | undefined): string {
-  if (kcal == null) return '—';
-  return `${Math.round(kcal)} kcal`;
+  return joinMeasure(caloriesParts(kcal));
 }
 
 const JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
