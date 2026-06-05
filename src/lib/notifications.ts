@@ -1,7 +1,8 @@
-// Rappels du soir (opt-in) : une notification locale la veille au soir d'une
-// séance planifiée (muscu ou vélo). Pas de relance, pas de nudge d'inactivité,
-// pas de récap. La planification est 100 % locale (AlarmManager côté Android,
-// aucune connexion réseau, aucun service push).
+// Rappels de séance (opt-in) : une notification locale le jour même d'une
+// séance planifiée (muscu ou vélo), à l'heure choisie (midi par défaut, libre
+// sur toute la journée). Pas de nudge d'inactivité, pas de récap. La
+// planification est 100 % locale (AlarmManager côté Android, aucune connexion
+// réseau, aucun service push).
 
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
@@ -20,7 +21,7 @@ export type NotificationConfig = {
 
 export const DEFAULT_NOTIFICATION_CONFIG: NotificationConfig = {
   enabled: false,
-  hour: 21,
+  hour: 12,
 };
 
 export async function getNotificationConfig(): Promise<NotificationConfig> {
@@ -50,7 +51,7 @@ export async function saveNotificationConfig(cfg: NotificationConfig): Promise<v
 async function ensureChannel(): Promise<void> {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: 'Rappels du soir',
+    name: 'Rappels de séance',
     importance: Notifications.AndroidImportance.DEFAULT,
     enableVibrate: true,
     showBadge: false,
@@ -63,16 +64,16 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return res.granted || res.status === 'granted';
 }
 
-function describeTomorrow(plan: PlannedSession): { title: string; body: string } | null {
+function describeToday(plan: PlannedSession): { title: string; body: string } | null {
   if (plan.kind === 'repos') return null;
   if (plan.kind === 'velo') {
     return {
-      title: `Demain : ${plan.label}`,
+      title: `Aujourd'hui : ${plan.label}`,
       body: 'Pense à préparer le vélo et la ceinture.',
     };
   }
   return {
-    title: `Demain : ${plan.label}`,
+    title: `Aujourd'hui : ${plan.label}`,
     body: 'Pense à sortir les haltères.',
   };
 }
@@ -93,13 +94,14 @@ export async function applyNotifications(): Promise<void> {
     await ensureChannel();
 
     // plan[0] = lundi ... plan[6] = dimanche.
-    // Pour chaque jour i, si i+1 est une séance, on planifie un rappel le soir de i.
+    // Pour chaque jour i qui est une séance, on planifie un rappel le jour même
+    // à l'heure choisie (libre sur toute la journée, midi par défaut).
     // expo-notifications WEEKLY : weekday 1 = dimanche, 2 = lundi, ..., 7 = samedi.
     for (let i = 0; i < 7; i++) {
-      const next = plan[(i + 1) % 7];
-      const content = describeTomorrow(next);
+      const today = plan[i];
+      const content = describeToday(today);
       if (!content) continue;
-      const weekday = i === 6 ? 1 : i + 2; // i = 6 (dimanche soir) -> dimanche
+      const weekday = i === 6 ? 1 : i + 2; // i = 6 (dimanche) -> dimanche
       await Notifications.scheduleNotificationAsync({
         content: {
           title: content.title,

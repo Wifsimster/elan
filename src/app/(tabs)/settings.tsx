@@ -353,7 +353,7 @@ export default function SettingsScreen() {
       {/* Planning hebdomadaire personnalisable */}
       <WeekPlanCard />
 
-      {/* Rappels du soir (opt-in) */}
+      {/* Rappels de séance (opt-in) */}
       <NotificationsCard />
 
       {/* Données */}
@@ -705,11 +705,11 @@ function NotificationsCard() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <MaterialCommunityIcons name="bell-outline" size={22} color={theme.accent} />
         <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
-          Rappels du soir
+          Rappels de séance
         </Text>
       </View>
       <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-        {"Un rappel local la veille au soir d'une séance prévue, pour penser à préparer le matériel. Aucune notification les jours de repos, et aucune relance si la séance est manquée. 100 % local — aucune connexion réseau."}
+        {"Un rappel local le jour même d'une séance prévue, à l'heure de ton choix (midi par défaut), pour penser à préparer le matériel. Aucune notification les jours de repos, et aucune relance si la séance est manquée. 100 % local — aucune connexion réseau."}
       </Text>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -728,7 +728,7 @@ function NotificationsCard() {
         value={cfg.hour}
         unit="h"
         step={1}
-        min={17}
+        min={0}
         max={23}
         onChange={changeHour}
       />
