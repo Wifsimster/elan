@@ -1,5 +1,9 @@
 // Tests pour les helpers de formatage (durée, distance, vitesse, FC, date — FR).
 import {
+  cadenceParts,
+  caloriesParts,
+  distanceParts,
+  elevationParts,
   formatCalories,
   formatDateShort,
   formatDateTime,
@@ -8,6 +12,8 @@ import {
   formatDurationShort,
   formatHr,
   formatSpeed,
+  hrParts,
+  speedParts,
 } from '@/lib/format';
 
 describe('formatDuration', () => {
@@ -105,6 +111,46 @@ describe('formatCalories', () => {
   });
 
   it('arrondit en kcal', () => {
+    expect(formatCalories(412.6)).toBe('413 kcal');
+  });
+});
+
+describe('scission valeur / unité (Measure)', () => {
+  it('distanceParts sépare le chiffre de l’unité', () => {
+    expect(distanceParts(12_400)).toEqual({ value: '12,4', unit: 'km' });
+    expect(distanceParts(850)).toEqual({ value: '850', unit: 'm' });
+  });
+
+  it('valeur inconnue → pas d’unité (« — » seul, sans retour à la ligne)', () => {
+    expect(distanceParts(null)).toEqual({ value: '—' });
+    expect(speedParts(null)).toEqual({ value: '—' });
+    expect(hrParts(undefined)).toEqual({ value: '—' });
+    expect(caloriesParts(null)).toEqual({ value: '—' });
+    expect(cadenceParts(null)).toEqual({ value: '—' });
+  });
+
+  it('speedParts utilise la virgule décimale (FR)', () => {
+    expect(speedParts(18.27)).toEqual({ value: '18,3', unit: 'km/h' });
+  });
+
+  it('hrParts / caloriesParts arrondissent', () => {
+    expect(hrParts(72.6)).toEqual({ value: '73', unit: 'bpm' });
+    expect(caloriesParts(412.6)).toEqual({ value: '413', unit: 'kcal' });
+  });
+
+  it('elevationParts reste en mètres et tolère null (→ 0)', () => {
+    expect(elevationParts(57)).toEqual({ value: '57', unit: 'm' });
+    expect(elevationParts(null)).toEqual({ value: '0', unit: 'm' });
+  });
+
+  it('cadenceParts arrondit les tr/min', () => {
+    expect(cadenceParts(84.4)).toEqual({ value: '84', unit: 'tr/min' });
+  });
+
+  it('les formateurs-chaîne restent cohérents avec leurs parts', () => {
+    expect(formatDistance(12_400)).toBe('12,4 km');
+    expect(formatSpeed(18.27)).toBe('18,3 km/h');
+    expect(formatHr(72.6)).toBe('73 bpm');
     expect(formatCalories(412.6)).toBe('413 kcal');
   });
 });

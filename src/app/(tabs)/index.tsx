@@ -23,6 +23,7 @@ import {
   type PlannedSession,
 } from '@/lib/program';
 import {
+  distanceParts,
   formatDistance,
   formatDurationShort,
   formatDateTime,
@@ -166,7 +167,7 @@ export default function HomeScreen() {
           />
           <StatTile
             label="Distance"
-            value={formatDistance(stats?.totalDistanceM ?? 0)}
+            {...distanceParts(stats?.totalDistanceM ?? 0)}
             icon="map-marker-distance"
             color={theme.velo}
             compact
