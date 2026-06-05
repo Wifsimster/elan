@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.2.1](https://github.com/Wifsimster/tracker-activite/compare/v1.2.0...v1.2.1) (2026-06-05)
+
+
+### 🐛 Corrections
+
+* **accueil:** bouton « Reprendre » sur la carte du jour si une muscu est en pause ([b8aae62](https://github.com/Wifsimster/tracker-activite/commit/b8aae62eb074500a7a7c662ef67793f2adbc45ab))
+
 ## [1.2.0](https://github.com/Wifsimster/tracker-activite/compare/v1.1.0...v1.2.0) (2026-06-05)
 
 
