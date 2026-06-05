@@ -22,6 +22,14 @@ import { clearAllData, getProfile, saveProfile } from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
 import { getMapStyleUrl, setMapStyleUrl } from '@/lib/map';
 import {
+  applyNotifications,
+  DEFAULT_NOTIFICATION_CONFIG,
+  getNotificationConfig,
+  requestNotificationPermission,
+  saveNotificationConfig,
+  type NotificationConfig,
+} from '@/lib/notifications';
+import {
   DEFAULT_WEEK_PLAN,
   getEffectiveWeekPlan,
   resetCustomWeekPlan,
@@ -345,6 +353,9 @@ export default function SettingsScreen() {
       {/* Planning hebdomadaire personnalisable */}
       <WeekPlanCard />
 
+      {/* Rappels du soir (opt-in) */}
+      <NotificationsCard />
+
       {/* Données */}
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -576,7 +587,7 @@ function WeekPlanCard() {
     setPlan((prev) => {
       const next = prev.slice();
       next[dayIndex] = optionToPlanned(opt);
-      saveCustomWeekPlan(next);
+      saveCustomWeekPlan(next).then(() => applyNotifications());
       return next;
     });
   };
@@ -593,6 +604,7 @@ function WeekPlanCard() {
           onPress: async () => {
             await resetCustomWeekPlan();
             setPlan(DEFAULT_WEEK_PLAN);
+            await applyNotifications();
           },
         },
       ],
@@ -651,6 +663,77 @@ function WeekPlanCard() {
         color={theme.accent}
         onPress={reset}
       />
+    </Card>
+  );
+}
+
+function NotificationsCard() {
+  const theme = useTheme();
+  const [cfg, setCfg] = useState<NotificationConfig>(DEFAULT_NOTIFICATION_CONFIG);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getNotificationConfig().then(setCfg);
+  }, []);
+
+  const toggleEnabled = async (next: boolean) => {
+    setError(null);
+    if (next) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        setError(
+          "Permission refusée. Activez les notifications de l'app dans les réglages système pour utiliser les rappels.",
+        );
+        return;
+      }
+    }
+    const updated: NotificationConfig = { ...cfg, enabled: next };
+    setCfg(updated);
+    await saveNotificationConfig(updated);
+    await applyNotifications();
+  };
+
+  const changeHour = async (hour: number) => {
+    const updated: NotificationConfig = { ...cfg, hour };
+    setCfg(updated);
+    await saveNotificationConfig(updated);
+    if (updated.enabled) await applyNotifications();
+  };
+
+  return (
+    <Card style={{ gap: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <MaterialCommunityIcons name="bell-outline" size={22} color={theme.accent} />
+        <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+          Rappels du soir
+        </Text>
+      </View>
+      <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+        {"Un rappel local la veille au soir d'une séance prévue, pour penser à préparer le matériel. Aucune notification les jours de repos, et aucune relance si la séance est manquée. 100 % local — aucune connexion réseau."}
+      </Text>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600' }}>
+          Activer les rappels
+        </Text>
+        <Switch
+          value={cfg.enabled}
+          onValueChange={toggleEnabled}
+          trackColor={{ true: theme.accent }}
+        />
+      </View>
+
+      <SettingStepper
+        label="Heure du rappel"
+        value={cfg.hour}
+        unit="h"
+        step={1}
+        min={17}
+        max={23}
+        onChange={changeHour}
+      />
+
+      {error ? <Text style={{ color: theme.heart, fontSize: 13 }}>{error}</Text> : null}
     </Card>
   );
 }
