@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.3.0](https://github.com/Wifsimster/tracker-activite/compare/v1.2.1...v1.3.0) (2026-06-05)
+
+
+### ✨ Fonctionnalités
+
+* **muscu:** saisie directe du poids au kg près ([#22](https://github.com/Wifsimster/tracker-activite/issues/22)) ([46f9396](https://github.com/Wifsimster/tracker-activite/commit/46f93966101e0b565bb6c0504f03f6eb1434ada1))
+* **partage:** afficher le fond de carte dans l'image partagée ([#19](https://github.com/Wifsimster/tracker-activite/issues/19)) ([e7e7024](https://github.com/Wifsimster/tracker-activite/commit/e7e7024ed8a7e9d82905d5949007e30651b3e85c))
+
 ## [1.2.1](https://github.com/Wifsimster/tracker-activite/compare/v1.2.0...v1.2.1) (2026-06-05)
 
 
