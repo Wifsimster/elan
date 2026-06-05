@@ -3,7 +3,7 @@
 // `useSessionShare`, sans aucun appel réseau (le partage est délégué à l'OS).
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { forwardRef } from 'react';
-import { Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import Svg, { Circle, Polyline } from 'react-native-svg';
 
 import { Gradient } from '@/components/gradient';
@@ -21,10 +21,13 @@ import {
 } from '@/lib/format';
 import { decimateByDistance } from '@/lib/geo';
 import { createProjection } from '@/lib/route-projection';
+import type { RouteSnapshot } from '@/lib/static-map';
 import type { MuscuSet, Session, TrackPoint } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
 
 export const SHARE_CARD_WIDTH = 360;
+/** Hauteur du visuel d'en-tête (tracé / fond de carte). */
+export const SHARE_HERO_HEIGHT = 200;
 
 type Props = {
   session: Session;
@@ -32,6 +35,8 @@ type Props = {
   sets: MuscuSet[];
   records: SessionRecord[];
   effort: Effort;
+  /** Fond de carte pré-rendu (tuiles homelab) ; absent → tracé sur fond uni. */
+  mapSnapshot?: RouteSnapshot | null;
 };
 
 type StatItem = { label: string; value: string; color?: string };
@@ -44,7 +49,7 @@ const RECORD_NOUN: Record<SessionRecord['kind'], string> = {
 };
 
 export const ShareCard = forwardRef<View, Props>(function ShareCard(
-  { session, points, sets, records, effort },
+  { session, points, sets, records, effort, mapSnapshot },
   ref,
 ) {
   const theme = useTheme();
@@ -93,7 +98,7 @@ export const ShareCard = forwardRef<View, Props>(function ShareCard(
         backgroundColor: theme.background,
       }}>
       {hasRoute ? (
-        <RouteHero points={points} color={color} theme={theme} />
+        <RouteHero points={points} color={color} theme={theme} snapshot={mapSnapshot} />
       ) : (
         <IconHero gradient={meta.colorKey} icon={meta.icon} />
       )}
@@ -153,13 +158,19 @@ function RouteHero({
   points,
   color,
   theme,
+  snapshot,
 }: {
   points: TrackPoint[];
   color: string;
   theme: ReturnType<typeof useTheme>;
+  snapshot?: RouteSnapshot | null;
 }) {
+  // Un fond de carte a pu être pré-rendu (tuiles homelab) : on superpose alors
+  // le tracé dessus. Sinon, tracé seul sur fond uni (mode 100 % hors-ligne).
+  if (snapshot) return <MapHero points={points} color={color} theme={theme} snapshot={snapshot} />;
+
   const W = SHARE_CARD_WIDTH;
-  const H = 200;
+  const H = SHARE_HERO_HEIGHT;
   const pad = 24;
   const pts = points.length > 400 ? decimateByDistance(points, 10) : points;
   const proj = createProjection(pts, { width: W - pad * 2, height: H - pad * 2 });
@@ -181,6 +192,55 @@ function RouteHero({
         />
         <Circle cx={sx + pad} cy={sy + pad} r={7} fill={theme.success} />
         <Circle cx={ex + pad} cy={ey + pad} r={7} fill="none" stroke={theme.heart} strokeWidth={3.5} />
+      </Svg>
+    </View>
+  );
+}
+
+/**
+ * En-tête avec vrai fond de carte : le PNG des tuiles (rendu par MapLibre) en
+ * fond, le tracé GPS superposé en SVG. Le SVG utilise le même repère pixel que
+ * le PNG (`viewBox` = dimensions du PNG) pour un calage exact sur les tuiles.
+ */
+function MapHero({
+  points,
+  color,
+  theme,
+  snapshot,
+}: {
+  points: TrackPoint[];
+  color: string;
+  theme: ReturnType<typeof useTheme>;
+  snapshot: RouteSnapshot;
+}) {
+  const W = SHARE_CARD_WIDTH;
+  const H = SHARE_HERO_HEIGHT;
+  // Échelle PNG → affichage : épaissit trait et marqueurs en conséquence.
+  const k = snapshot.width / W;
+  const pts = points.length > 400 ? decimateByDistance(points, 10) : points;
+  const str = pts.map((p) => snapshot.project(p).map((n) => n.toFixed(1)).join(',')).join(' ');
+  const [sx, sy] = snapshot.project(pts[0]);
+  const [ex, ey] = snapshot.project(pts[pts.length - 1]);
+
+  return (
+    <View style={{ width: W, height: H, backgroundColor: theme.backgroundElement }}>
+      <Image
+        source={{ uri: snapshot.uri }}
+        style={{ position: 'absolute', width: W, height: H }}
+        resizeMode="cover"
+      />
+      <Svg width={W} height={H} viewBox={`0 0 ${snapshot.width} ${snapshot.height}`}>
+        <Polyline
+          points={str}
+          fill="none"
+          stroke={color}
+          strokeWidth={5 * k}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {/* Bordure blanche sur les marqueurs pour les détacher du fond de carte. */}
+        <Circle cx={sx} cy={sy} r={7 * k} fill={theme.success} stroke="#FFFFFF" strokeWidth={2.5 * k} />
+        <Circle cx={ex} cy={ey} r={7 * k} fill={color} stroke="#FFFFFF" strokeWidth={2.5 * k} />
       </Svg>
     </View>
   );
