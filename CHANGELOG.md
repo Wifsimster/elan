@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.4.0](https://github.com/Wifsimster/tracker-activite/compare/v1.3.0...v1.4.0) (2026-06-05)
+
+
+### ✨ Fonctionnalités
+
+* **muscu:** ajoute les programmes Dos/lombaire et Cervicales/nuque ([#26](https://github.com/Wifsimster/tracker-activite/issues/26)) ([bc99cdc](https://github.com/Wifsimster/tracker-activite/commit/bc99cdc3fb6a0ddb34b7dac95756683b8128e5d9))
+
+
+### 🐛 Corrections
+
+* **muscu:** n'afficher le sélecteur de programme que sur une séance vide ([#25](https://github.com/Wifsimster/tracker-activite/issues/25)) ([d718280](https://github.com/Wifsimster/tracker-activite/commit/d7182800bc7658cfc687859887543f6cb6f03d50))
+
 ## [1.3.0](https://github.com/Wifsimster/tracker-activite/compare/v1.2.1...v1.3.0) (2026-06-05)
 
 
