@@ -17,6 +17,8 @@ type Props = {
   live?: boolean;
   /** Carte explorable (pinch/pan) — réservé à l'historique, à l'arrêt. */
   interactive?: boolean;
+  /** Plein écran : remplit le parent (flex), sans bordure ni coins arrondis. */
+  fill?: boolean;
 };
 
 const lonLat = (p: GeoPoint): [number, number] => [p.lon, p.lat];
@@ -26,7 +28,7 @@ const lonLat = (p: GeoPoint): [number, number] => [p.lon, p.lat];
  * surimpression. Aucune tuile n'est demandée à un tiers : le style pointe
  * uniquement vers le serveur de l'utilisateur.
  */
-export function MapLibreRoute({ points, styleUrl, height, color, live, interactive }: Props) {
+export function MapLibreRoute({ points, styleUrl, height, color, live, interactive, fill }: Props) {
   const theme = useTheme();
 
   const coords = useMemo(() => points.map(lonLat), [points]);
@@ -63,14 +65,18 @@ export function MapLibreRoute({ points, styleUrl, height, color, live, interacti
 
   return (
     <View
-      style={{
-        height,
-        borderRadius: Radius.md,
-        borderCurve: 'continuous',
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: theme.border,
-      }}
+      style={
+        fill
+          ? { flex: 1, overflow: 'hidden' }
+          : {
+              height,
+              borderRadius: Radius.md,
+              borderCurve: 'continuous',
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: theme.border,
+            }
+      }
       // Mode live : lecture passive, on bloque les gestes (sécurité à vélo).
       pointerEvents={interactive ? 'auto' : 'none'}>
       <MapView
