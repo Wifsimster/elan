@@ -110,11 +110,13 @@ export default function MuscuScreen() {
     pausedRef.current = paused;
   }, [paused]);
 
+  // Pré-remplit la séance depuis un programme. Appelé uniquement sur une séance
+  // vide (bouton « Charger un programme » ou « Séance du jour ») : on remplace la
+  // liste plutôt que d'empiler, pour ne jamais dupliquer les exercices.
   const loadTemplate = async (t: WorkoutTemplate) => {
     const last = await lastWeightByExercise(t.exercises.map((e) => e.name));
-    setExercises((prev) => [
-      ...prev,
-      ...t.exercises.map((ex) => {
+    setExercises(
+      t.exercises.map((ex) => {
         const lw = last[ex.name];
         return {
           id: nextId(),
@@ -133,7 +135,7 @@ export default function MuscuScreen() {
           })),
         };
       }),
-    ]);
+    );
   };
 
   useEffect(() => {
@@ -451,31 +453,38 @@ export default function MuscuScreen() {
           />
         </Card>
 
-        {/* Charger un programme */}
-        <Card style={{ gap: 10 }}>
-          <Text style={{ ...Type.subtitle, color: theme.text }}>Charger un programme</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {TEMPLATES.map((t) => (
-              <PressableScale
-                key={t.id}
-                onPress={() => loadTemplate(t)}
-                haptic="light"
-                style={{
-                  flex: 1,
-                  alignItems: 'center',
-                  gap: 2,
-                  paddingVertical: 12,
-                  borderRadius: Radius.sm,
-                  borderWidth: 1,
-                  borderColor: theme.muscu,
-                  backgroundColor: theme.backgroundElement,
-                }}>
-                <Text style={{ color: theme.muscu, fontWeight: '800', fontSize: 15 }}>{t.name}</Text>
-                <Text style={{ color: theme.textSecondary, fontSize: 11 }}>{t.day}</Text>
-              </PressableScale>
-            ))}
-          </View>
-        </Card>
+        {/* Charger un programme — uniquement pour démarrer une séance vide.
+            Une fois des exercices en place, le sélecteur disparaît : on ne
+            « recharge » pas un programme par-dessus (ça empilait des doublons). */}
+        {exercises.length === 0 ? (
+          <Card style={{ gap: 10 }}>
+            <Text style={{ ...Type.subtitle, color: theme.text }}>Charger un programme</Text>
+            <Text style={{ ...Type.caption, color: theme.textSecondary, marginTop: -4 }}>
+              Choisis un programme pour pré-remplir la séance, ou ajoute tes exercices plus bas.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {TEMPLATES.map((t) => (
+                <PressableScale
+                  key={t.id}
+                  onPress={() => loadTemplate(t)}
+                  haptic="light"
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    gap: 2,
+                    paddingVertical: 12,
+                    borderRadius: Radius.sm,
+                    borderWidth: 1,
+                    borderColor: theme.muscu,
+                    backgroundColor: theme.backgroundElement,
+                  }}>
+                  <Text style={{ color: theme.muscu, fontWeight: '800', fontSize: 15 }}>{t.name}</Text>
+                  <Text style={{ color: theme.textSecondary, fontSize: 11 }}>{t.day}</Text>
+                </PressableScale>
+              ))}
+            </View>
+          </Card>
+        ) : null}
 
         {/* Exercices */}
         {exercises.map((ex) => (
