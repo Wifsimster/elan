@@ -6,6 +6,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { Elevation, Radius, Type } from '@/constants/theme';
 import { formatDuration } from '@/lib/format';
 import { haptics } from '@/lib/haptics';
+import { sounds } from '@/lib/sounds';
 import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
@@ -39,12 +40,14 @@ export function RestTimer({ endsAt, onChange }: Props) {
     return () => clearInterval(id);
   }, [endsAt]);
 
-  // Fin du repos : un seul retour haptique, puis auto-fermeture après un délai.
+  // Fin du repos : un seul retour haptique + petit carillon pour inviter à
+  // reprendre, puis auto-fermeture après un délai.
   useEffect(() => {
     if (endsAt == null) return;
     if (now >= endsAt && !firedRef.current) {
       firedRef.current = true;
       haptics.success();
+      sounds.restDone();
     }
     if (now >= endsAt + LINGER_MS) onChange(null);
   }, [now, endsAt, onChange]);
