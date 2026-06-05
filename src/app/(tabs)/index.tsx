@@ -14,6 +14,7 @@ import { StatTile } from '@/components/stat-tile';
 import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
 import { dailyDurations, listSessions, statsSince } from '@/lib/db';
+import { hasMuscuDraft } from '@/lib/muscu-draft';
 import {
   DEFAULT_WEEK_PLAN,
   getEffectiveWeekPlan,
@@ -48,14 +49,17 @@ export default function HomeScreen() {
   const [stats, setStats] = useState<PeriodStats | null>(null);
   const [bars, setBars] = useState<Bar[]>([]);
   const [recent, setRecent] = useState<Session[]>([]);
+  const [resumable, setResumable] = useState(false);
 
   const load = useCallback(async () => {
-    const [s, daily, sessions] = await Promise.all([
+    const [s, daily, sessions, draft] = await Promise.all([
       statsSince(startOfWeek()),
       dailyDurations(7),
       listSessions(3),
+      hasMuscuDraft(),
     ]);
     setStats(s);
+    setResumable(draft);
 
     // Construit 7 barres (aujourd'hui à droite).
     const byDay = new Map(daily.map((d) => [d.day, d.durationSec]));
@@ -100,13 +104,19 @@ export default function HomeScreen() {
       {/* Séance du jour (programme perso) */}
       <TodayCard lastSessionAt={recent[0]?.startedAt ?? null} />
 
-      {/* Démarrer une séance */}
+      {/* Démarrer une séance — ou reprendre la muscu en pause */}
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <View style={{ flex: 1 }}>
           <Button title="Vélo" icon="bike" size="lg" color={theme.velo} onPress={() => router.push('/velo')} />
         </View>
         <View style={{ flex: 1 }}>
-          <Button title="Muscu" icon="dumbbell" size="lg" color={theme.muscu} onPress={() => router.push('/muscu')} />
+          <Button
+            title={resumable ? 'Reprendre' : 'Muscu'}
+            icon={resumable ? 'play' : 'dumbbell'}
+            size="lg"
+            color={theme.muscu}
+            onPress={() => router.push('/muscu')}
+          />
         </View>
       </View>
 

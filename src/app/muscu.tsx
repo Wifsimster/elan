@@ -4,6 +4,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  BackHandler,
   Pressable,
   ScrollView,
   Text,
@@ -28,6 +29,7 @@ import {
   updateSession,
 } from '@/lib/db';
 import { formatDuration } from '@/lib/format';
+import { clearMuscuDraft, loadMuscuDraft, saveMuscuDraft } from '@/lib/muscu-draft';
 import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
 import { nowMs } from '@/lib/time';
 import { useHeartRate } from '@/hooks/use-heart-rate';
@@ -91,6 +93,9 @@ export default function MuscuScreen() {
   const pausedRef = useRef<boolean>(false);
   const weightRef = useRef<number>(70);
   const maxHrRef = useRef<number>(190);
+  // Passe à true une fois le montage (reprise ou démarrage) terminé : évite
+  // d'écraser un brouillon valide pendant la phase d'hydratation.
+  const hydratedRef = useRef<boolean>(false);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -122,16 +127,39 @@ export default function MuscuScreen() {
   };
 
   useEffect(() => {
-    startedAtRef.current = nowMs();
-    watch.start();
-    getProfile().then((p) => {
+    let cancelled = false;
+    (async () => {
+      const p = await getProfile();
+      if (cancelled) return;
       weightRef.current = p.weightKg;
       maxHrRef.current = p.maxHr;
-    });
-    const preset = templateById(template);
-    // loadTemplate ne pose son état qu'après une lecture DB async (hors rendu).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (preset) loadTemplate(preset); // pré-chargement depuis la « Séance du jour »
+
+      const draft = await loadMuscuDraft();
+      if (cancelled) return;
+
+      if (draft) {
+        // Reprise d'une séance mise en pause : on restaure tout son état et on
+        // la laisse en pause (l'utilisateur appuie sur « Reprendre » pour repartir).
+        startedAtRef.current = draft.startedAt;
+        hrSamplesRef.current = draft.hrSamples;
+        // Ré-attribue des ids frais : le compteur `uid` est repassé à 0 au
+        // redémarrage de l'app et collisionnerait avec les ids sauvegardés.
+        const restored = (draft.exercises as Exercise[]).map((e) => ({ ...e, id: nextId() }));
+        setExercises(restored);
+        watch.seed(draft.elapsedSec);
+        setPaused(true);
+      } else {
+        // Démarrage normal d'une nouvelle séance.
+        startedAtRef.current = nowMs();
+        watch.start();
+        const preset = templateById(template);
+        if (preset) loadTemplate(preset); // pré-chargement depuis la « Séance du jour »
+      }
+      hydratedRef.current = true;
+    })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -213,6 +241,24 @@ export default function MuscuScreen() {
     0,
   );
 
+  // Sauvegarde du brouillon (séance en pause, reprenable). Best-effort, local.
+  const persistDraft = () =>
+    saveMuscuDraft({
+      version: 1,
+      startedAt: startedAtRef.current,
+      elapsedSec: watch.elapsedSec,
+      exercises,
+      hrSamples: hrSamplesRef.current,
+    });
+
+  // Écriture continue : à chaque changement structurel (exercices, pause), on
+  // re-sauvegarde, pour qu'une fermeture brutale de l'app ne perde rien.
+  useEffect(() => {
+    if (!hydratedRef.current || totalSets === 0) return;
+    persistDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercises, paused]);
+
   const computeHr = () => {
     const samples = hrSamplesRef.current;
     if (samples.length === 0) return { avgHr: null, maxHr: null };
@@ -265,20 +311,56 @@ export default function MuscuScreen() {
     );
     await replaceMuscuSets(id, flat);
 
+    await clearMuscuDraft(); // séance terminée : plus de brouillon à reprendre
     autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
     router.replace({ pathname: '/session/[id]', params: { id } });
   };
 
-  const discard = () => {
+  // Quitter sans terminer : met la séance en pause (brouillon sauvegardé,
+  // reprenable plus tard) ou l'abandonne. Une séance vide sort sans rien garder.
+  const exitSession = (): boolean => {
+    if (saving) return true;
     if (totalSets === 0) {
+      clearMuscuDraft();
       router.back();
-      return;
+      return true;
     }
-    Alert.alert('Abandonner la séance ?', 'Les données ne seront pas enregistrées.', [
-      { text: 'Continuer', style: 'cancel' },
-      { text: 'Abandonner', style: 'destructive', onPress: () => router.back() },
-    ]);
+    Alert.alert(
+      'Quitter la séance ?',
+      'Mettez-la en pause pour la reprendre plus tard, ou abandonnez-la définitivement.',
+      [
+        { text: 'Continuer', style: 'cancel' },
+        {
+          text: 'Mettre en pause',
+          onPress: async () => {
+            watch.pause();
+            await persistDraft();
+            router.back();
+          },
+        },
+        {
+          text: 'Abandonner',
+          style: 'destructive',
+          onPress: async () => {
+            await clearMuscuDraft();
+            router.back();
+          },
+        },
+      ],
+    );
+    return true;
   };
+
+  // Le bouton retour matériel (Android) doit suivre le même chemin que la croix,
+  // sinon il quitterait la modale en perdant la séance en mémoire.
+  const exitRef = useRef(exitSession);
+  useEffect(() => {
+    exitRef.current = exitSession;
+  });
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => exitRef.current());
+    return () => sub.remove();
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -292,7 +374,7 @@ export default function MuscuScreen() {
         }}>
         {/* En-tête */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <PressableScale onPress={discard} haptic="selection" scaleTo={0.88} hitSlop={12}>
+          <PressableScale onPress={exitSession} haptic="selection" scaleTo={0.88} hitSlop={12}>
             <MaterialCommunityIcons name="close" size={26} color={theme.text} />
           </PressableScale>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

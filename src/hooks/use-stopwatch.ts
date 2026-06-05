@@ -37,5 +37,15 @@ export function useStopwatch() {
     setRunning(false);
   }, []);
 
-  return { elapsedSec, running, start, pause, reset };
+  // Pré-charge un temps écoulé (reprise d'une séance en pause) sans démarrer :
+  // le prochain `start()` enchaînera à partir de cette base.
+  const seed = useCallback((sec: number) => {
+    const base = Math.max(0, sec);
+    accumulatedRef.current = base;
+    startedAtRef.current = null;
+    setElapsedSec(Math.floor(base));
+    setRunning(false);
+  }, []);
+
+  return { elapsedSec, running, start, pause, reset, seed };
 }
