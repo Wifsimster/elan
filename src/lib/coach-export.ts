@@ -86,6 +86,7 @@ function programSection(): string {
       const charge = ex.startWeightKg > 0 ? `${num(ex.startWeightKg)} kg` : 'poids du corps';
       lines.push(
         `${i + 1}. **${ex.name}** — ${targetHint(ex)}, charge de départ ${charge}`,
+        `   _Muscles :_ ${ex.muscles.join(', ')}`,
         `   _Exécution :_ ${ex.howTo}`,
       );
     }

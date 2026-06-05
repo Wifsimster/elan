@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
+import { ExerciseInfoSheet } from '@/components/exercise-info-sheet';
 import { PressableScale } from '@/components/pressable-scale';
 import { Elevation, Radius, Type } from '@/constants/theme';
 import { autoBackup } from '@/lib/backup';
@@ -44,8 +45,12 @@ type Exercise = {
   repUnit?: string;
   /** Dernière charge enregistrée pour cet exercice (amorce de progression). */
   lastWeight?: number;
-  /** Explication « comment faire », dépliable depuis la carte. */
+  /** Explication « comment faire », montrée dans la fiche détaillée. */
   howTo?: string;
+  /** Groupes musculaires sollicités, affichés dans la fiche. */
+  muscles?: string[];
+  /** Glyphe MaterialCommunityIcons illustrant le mouvement. */
+  icon?: string;
 };
 type HrSample = { ts: number; hr: number };
 
@@ -79,7 +84,7 @@ export default function MuscuScreen() {
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [openHelp, setOpenHelp] = useState<string | null>(null);
+  const [infoExercise, setInfoExercise] = useState<Exercise | null>(null);
 
   const startedAtRef = useRef<number>(0);
   const hrSamplesRef = useRef<HrSample[]>([]);
@@ -103,6 +108,8 @@ export default function MuscuScreen() {
           target: targetHint(ex),
           repUnit: ex.timed ? 'sec' : 'reps',
           howTo: ex.howTo,
+          muscles: ex.muscles,
+          icon: ex.icon,
           // Le gainage n'a pas de charge : on n'affiche pas de « dernière fois ».
           lastWeight: ex.timed ? undefined : lw,
           sets: Array.from({ length: ex.sets }, () => ({
@@ -361,11 +368,11 @@ export default function MuscuScreen() {
               </View>
               {ex.howTo ? (
                 <PressableScale
-                  onPress={() => setOpenHelp((cur) => (cur === ex.id ? null : ex.id))}
+                  onPress={() => setInfoExercise(ex)}
                   haptic="selection"
                   hitSlop={8}>
                   <MaterialCommunityIcons
-                    name={openHelp === ex.id ? 'help-circle' : 'help-circle-outline'}
+                    name="information-outline"
                     size={22}
                     color={theme.muscu}
                   />
@@ -375,21 +382,6 @@ export default function MuscuScreen() {
                 <MaterialCommunityIcons name="trash-can-outline" size={20} color={theme.textSecondary} />
               </Pressable>
             </View>
-
-            {ex.howTo && openHelp === ex.id ? (
-              <View
-                style={{
-                  backgroundColor: theme.background,
-                  borderRadius: Radius.sm,
-                  borderLeftWidth: 3,
-                  borderLeftColor: theme.muscu,
-                  padding: 12,
-                }}>
-                <Text style={{ color: theme.textSecondary, fontSize: 13, lineHeight: 19 }}>
-                  {ex.howTo}
-                </Text>
-              </View>
-            ) : null}
 
             {ex.sets.map((s, i) => (
               <View
@@ -535,6 +527,8 @@ export default function MuscuScreen() {
           />
         </View>
       </View>
+
+      <ExerciseInfoSheet exercise={infoExercise} onClose={() => setInfoExercise(null)} />
     </View>
   );
 }
