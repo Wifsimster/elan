@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, BackHandler, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -211,6 +211,30 @@ export default function VeloScreen() {
       },
     ]);
   };
+
+  // Le bouton retour matériel (Android) doit suivre le même chemin que la croix
+  // (confirmation d'abandon), sinon il quitterait la modale en perdant la sortie
+  // en cours et en laissant le suivi GPS actif (batterie). Cf. muscu.tsx.
+  const discardRef = useRef(discard);
+  useEffect(() => {
+    discardRef.current = discard;
+  });
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      discardRef.current();
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Filet de sécurité : si l'écran est démonté par un chemin imprévu, on coupe
+  // le suivi GPS pour ne pas laisser `watchPositionAsync` tourner en fond.
+  useEffect(() => {
+    const stop = gps.stop;
+    return () => {
+      stop();
+    };
+  }, [gps.stop]);
 
   const liveCalories = estimateCalories({
     type: 'velo',
