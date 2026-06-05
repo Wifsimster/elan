@@ -78,12 +78,18 @@ export default function MuscuScreen() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [openHelp, setOpenHelp] = useState<string | null>(null);
 
   const startedAtRef = useRef<number>(0);
   const hrSamplesRef = useRef<HrSample[]>([]);
+  const pausedRef = useRef<boolean>(false);
   const weightRef = useRef<number>(70);
   const maxHrRef = useRef<number>(190);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   const loadTemplate = async (t: WorkoutTemplate) => {
     const last = await lastWeightByExercise(t.exercises.map((e) => e.name));
@@ -124,11 +130,23 @@ export default function MuscuScreen() {
 
   // Échantillonnage FC : on s'abonne aux trames BLE brutes pour ne pas perdre
   // les paliers (React déduplique les setStates identiques côté `bpm`).
+  // Les trames reçues en pause sont ignorées pour ne pas fausser la moyenne.
   useEffect(() => {
     return subscribeHr(({ ts, hr }) => {
+      if (pausedRef.current) return;
       hrSamplesRef.current.push({ ts, hr });
     });
   }, [subscribeHr]);
+
+  const pause = () => {
+    watch.pause();
+    setPaused(true);
+  };
+
+  const resume = () => {
+    watch.start();
+    setPaused(false);
+  };
 
   const addExercise = (name: string) => {
     const trimmed = name.trim();
@@ -494,15 +512,28 @@ export default function MuscuScreen() {
           backgroundColor: theme.backgroundElement,
           borderTopWidth: 1,
           borderTopColor: theme.hairline,
+          flexDirection: 'row',
+          gap: 12,
           ...Elevation.lg,
         }}>
-        <Button
-          title="Terminer la séance"
-          icon="flag-checkered"
-          color={theme.muscu}
-          loading={saving}
-          onPress={finish}
-        />
+        <View style={{ flex: 1 }}>
+          <Button
+            title={paused ? 'Reprendre' : 'Pause'}
+            icon={paused ? 'play' : 'pause'}
+            variant="secondary"
+            color={theme.muscu}
+            onPress={paused ? resume : pause}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            title="Terminer"
+            icon="flag-checkered"
+            color={theme.muscu}
+            loading={saving}
+            onPress={finish}
+          />
+        </View>
       </View>
     </View>
   );
