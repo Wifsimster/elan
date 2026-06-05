@@ -544,6 +544,7 @@ export default function MuscuScreen() {
                     suffix="kg"
                     step={2.5}
                     min={0}
+                    decimal
                     onChange={(v) => updateSet(ex.id, i, { weightKg: v })}
                   />
                 </View>
@@ -670,16 +671,32 @@ function Stepper({
   suffix,
   step,
   min,
+  decimal,
   onChange,
 }: {
   value: number;
   suffix: string;
   step: number;
   min: number;
+  /** Autorise la saisie décimale (poids : réglage au kg, voire 0,5 kg près). */
+  decimal?: boolean;
   onChange: (v: number) => void;
 }) {
   const theme = useTheme();
   const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
+
+  // Saisie directe : taper la valeur ouvre un champ pour la régler à l'unité
+  // exacte (les boutons +/- restent pour un ajustement rapide par paliers).
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState('');
+
+  const commit = () => {
+    setEditing(false);
+    const parsed = parseFloat(text.replace(',', '.'));
+    if (!Number.isFinite(parsed)) return; // saisie vide / invalide : on garde la valeur
+    const rounded = decimal ? Math.round(parsed * 10) / 10 : Math.round(parsed);
+    onChange(Math.max(min, rounded));
+  };
 
   return (
     <View
@@ -701,12 +718,39 @@ function Stepper({
         style={{ padding: 4 }}>
         <MaterialCommunityIcons name="minus" size={18} color={theme.text} />
       </Pressable>
-      <View style={{ alignItems: 'center', flex: 1 }}>
-        <Text style={{ color: theme.text, fontWeight: '800', fontSize: 15, fontVariant: ['tabular-nums'] }}>
-          {fmt(value)}
-        </Text>
+      <Pressable
+        onPress={() => {
+          setText(fmt(value).replace(',', '.'));
+          setEditing(true);
+        }}
+        style={{ alignItems: 'center', flex: 1 }}>
+        {editing ? (
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            onBlur={commit}
+            onSubmitEditing={commit}
+            keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
+            returnKeyType="done"
+            autoFocus
+            selectTextOnFocus
+            style={{
+              color: theme.text,
+              fontWeight: '800',
+              fontSize: 15,
+              fontVariant: ['tabular-nums'],
+              textAlign: 'center',
+              minWidth: 48,
+              padding: 0,
+            }}
+          />
+        ) : (
+          <Text style={{ color: theme.text, fontWeight: '800', fontSize: 15, fontVariant: ['tabular-nums'] }}>
+            {fmt(value)}
+          </Text>
+        )}
         <Text style={{ color: theme.textSecondary, fontSize: 10 }}>{suffix}</Text>
-      </View>
+      </Pressable>
       <Pressable onPress={() => onChange(value + step)} hitSlop={6} style={{ padding: 4 }}>
         <MaterialCommunityIcons name="plus" size={18} color={theme.text} />
       </Pressable>
