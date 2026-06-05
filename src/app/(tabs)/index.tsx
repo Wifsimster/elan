@@ -115,7 +115,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Séance du jour (programme perso) */}
-      <TodayCard lastSessionAt={recent[0]?.startedAt ?? null} />
+      <TodayCard lastSessionAt={recent[0]?.startedAt ?? null} resumable={resumable} />
 
       {/* Démarrer une séance — ou reprendre la muscu en pause */}
       <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -229,7 +229,14 @@ export default function HomeScreen() {
 
 const WEEKDAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 
-function TodayCard({ lastSessionAt }: { lastSessionAt: number | null }) {
+function TodayCard({
+  lastSessionAt,
+  resumable,
+}: {
+  lastSessionAt: number | null;
+  /** Une séance muscu est en pause : le bouton invite à reprendre plutôt qu'à démarrer. */
+  resumable: boolean;
+}) {
   const theme = useTheme();
   const router = useRouter();
   const jsDay = new Date().getDay();
@@ -281,6 +288,8 @@ function TodayCard({ lastSessionAt }: { lastSessionAt: number | null }) {
   }
 
   const isVelo = plan.kind === 'velo';
+  // Séance muscu du jour mise en pause : on propose de la reprendre.
+  const isResumeMuscu = plan.kind === 'muscu' && resumable;
   const color = isVelo ? theme.velo : theme.muscu;
   const icon = isVelo ? 'bike' : 'dumbbell';
   const tmpl = plan.kind === 'muscu' ? templateById(plan.templateId) : undefined;
@@ -321,7 +330,12 @@ function TodayCard({ lastSessionAt }: { lastSessionAt: number | null }) {
           ) : null}
         </View>
       </View>
-      <Button title="Démarrer" icon="play" color={color} onPress={start} />
+      <Button
+        title={isResumeMuscu ? 'Reprendre' : 'Démarrer'}
+        icon="play"
+        color={color}
+        onPress={start}
+      />
     </Card>
   );
 }
