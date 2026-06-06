@@ -256,8 +256,18 @@ export const WEEK_PLAN: PlannedSession[] = DEFAULT_WEEK_PLAN;
 
 const WEEK_PLAN_KEY = 'week_plan';
 
-/** Valide une valeur lue depuis les réglages : 7 entrées, chacune bien formée. */
-function isValidWeekPlan(value: unknown): value is PlannedSession[] {
+/** Vrai si `id` correspond à un template muscu connu (les 4 programmes). */
+function isKnownTemplateId(id: unknown): id is WorkoutTemplate['id'] {
+  return typeof id === 'string' && TEMPLATES.some((t) => t.id === id);
+}
+
+/**
+ * Valide une valeur lue depuis les réglages : 7 entrées, chacune bien formée.
+ * Pour la muscu, on accepte n'importe quel template connu (pas seulement
+ * full-body A/B) afin qu'un plan restauré depuis une sauvegarde ne soit pas
+ * silencieusement rejeté. Exportée pour les tests.
+ */
+export function isValidWeekPlan(value: unknown): value is PlannedSession[] {
   if (!Array.isArray(value) || value.length !== 7) return false;
   return value.every((entry) => {
     if (!entry || typeof entry !== 'object') return false;
@@ -265,10 +275,7 @@ function isValidWeekPlan(value: unknown): value is PlannedSession[] {
     if (e.kind === 'repos') return true;
     if (e.kind === 'velo') return typeof e.label === 'string';
     if (e.kind === 'muscu') {
-      return (
-        typeof e.label === 'string' &&
-        (e.templateId === 'fullbody-a' || e.templateId === 'fullbody-b')
-      );
+      return typeof e.label === 'string' && isKnownTemplateId(e.templateId);
     }
     return false;
   });

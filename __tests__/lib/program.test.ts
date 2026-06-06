@@ -1,11 +1,14 @@
 // Tests pour les utilitaires du programme muscu (templates, planning, helpers).
 import {
+  DEFAULT_WEEK_PLAN,
   TEMPLATES,
   WEEK_PLAN,
   defaultReps,
+  isValidWeekPlan,
   planForDay,
   targetHint,
   templateById,
+  type PlannedSession,
   type TemplateExercise,
 } from '@/lib/program';
 
@@ -100,6 +103,45 @@ describe('targetHint', () => {
         perSideLabel: 'côté',
       }),
     ).toBe('3 × 15-30 s / côté');
+  });
+});
+
+describe('isValidWeekPlan', () => {
+  it('accepte le planning par défaut', () => {
+    expect(isValidWeekPlan(DEFAULT_WEEK_PLAN)).toBe(true);
+  });
+
+  it('rejette autre chose qu’un tableau de 7 entrées', () => {
+    expect(isValidWeekPlan(null)).toBe(false);
+    expect(isValidWeekPlan('repos')).toBe(false);
+    expect(isValidWeekPlan([{ kind: 'repos' }])).toBe(false); // trop court
+    expect(isValidWeekPlan(Array(8).fill({ kind: 'repos' }))).toBe(false); // trop long
+  });
+
+  it('accepte une muscu pour chacun des templates connus', () => {
+    for (const t of TEMPLATES) {
+      const plan: PlannedSession[] = [
+        { kind: 'muscu', label: t.name, templateId: t.id },
+        ...Array(6).fill({ kind: 'repos' as const }),
+      ];
+      expect(isValidWeekPlan(plan)).toBe(true);
+    }
+  });
+
+  it('rejette une muscu dont le templateId est inconnu', () => {
+    const plan = [
+      { kind: 'muscu', label: 'X', templateId: 'inexistant' },
+      ...Array(6).fill({ kind: 'repos' }),
+    ];
+    expect(isValidWeekPlan(plan)).toBe(false);
+  });
+
+  it('rejette une entrée de type inconnu ou un vélo sans label', () => {
+    const unknownKind = [{ kind: 'natation' }, ...Array(6).fill({ kind: 'repos' })];
+    expect(isValidWeekPlan(unknownKind)).toBe(false);
+
+    const veloNoLabel = [{ kind: 'velo' }, ...Array(6).fill({ kind: 'repos' })];
+    expect(isValidWeekPlan(veloNoLabel)).toBe(false);
   });
 });
 
