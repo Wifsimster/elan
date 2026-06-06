@@ -1,0 +1,181 @@
+// Test d'intégration de la couche SQLite (lib/db.ts) : round-trip
+// exportAll → clear → importAll, exclusion des réglages secrets, et
+// idempotence de l'import Strava (index unique partiel sur externalId).
+//
+// Le harnais Jest n'exécute pas le module natif expo-sqlite (RN). On le
+// remplace ici par un adaptateur minimal au-dessus de better-sqlite3
+// (SQLite réel, en mémoire) qui implémente la surface d'API utilisée par
+// db.ts : execAsync / getFirstAsync / getAllAsync / runAsync /
+// prepareAsync / withTransactionAsync.
+jest.mock('expo-sqlite', () => {
+  const Database = require('better-sqlite3');
+  const num = (v: number | bigint) => (typeof v === 'bigint' ? Number(v) : v);
+
+  function open() {
+    const db = new Database(':memory:');
+    return {
+      execAsync: async (sql: string) => {
+        db.exec(sql);
+      },
+      getFirstAsync: async (sql: string, ...params: unknown[]) =>
+        db.prepare(sql).get(...params) ?? null,
+      getAllAsync: async (sql: string, ...params: unknown[]) => db.prepare(sql).all(...params),
+      runAsync: async (sql: string, ...params: unknown[]) => {
+        const info = db.prepare(sql).run(...params);
+        return { lastInsertRowId: num(info.lastInsertRowid), changes: num(info.changes) };
+      },
+      prepareAsync: async (sql: string) => {
+        const stmt = db.prepare(sql);
+        return {
+          executeAsync: async (...params: unknown[]) => {
+            const info = stmt.run(...params);
+            return { lastInsertRowId: num(info.lastInsertRowid), changes: num(info.changes) };
+          },
+          finalizeAsync: async () => {},
+        };
+      },
+      withTransactionAsync: async (fn: () => Promise<void>) => {
+        db.exec('BEGIN');
+        try {
+          await fn();
+          db.exec('COMMIT');
+        } catch (e) {
+          db.exec('ROLLBACK');
+          throw e;
+        }
+      },
+    };
+  }
+
+  return { openDatabaseAsync: async () => open() };
+});
+
+import {
+  clearAllData,
+  createSession,
+  exportAll,
+  getMuscuSets,
+  getTrackPoints,
+  importAll,
+  insertImportedSession,
+  insertTrackPoints,
+  replaceMuscuSets,
+  setSetting,
+  updateSession,
+  type DbSnapshot,
+  type ImportedSessionRow,
+} from '@/lib/db';
+
+/** Trie les tableaux d'un snapshot pour comparer indépendamment de l'ordre SQL. */
+function normalize(snap: DbSnapshot): DbSnapshot {
+  return {
+    sessions: [...snap.sessions].sort((a, b) => a.id - b.id),
+    trackPoints: [...snap.trackPoints].sort((a, b) => a.id - b.id),
+    muscuSets: [...snap.muscuSets].sort((a, b) => a.id - b.id),
+    settings: [...snap.settings].sort((a, b) => a.key.localeCompare(b.key)),
+  };
+}
+
+const importedRow = (externalId: string): ImportedSessionRow => ({
+  type: 'velo',
+  startedAt: 1_700_500_000_000,
+  endedAt: 1_700_503_600_000,
+  durationSec: 3600,
+  notes: 'Importé depuis Strava',
+  avgHr: 140,
+  maxHr: 165,
+  distanceM: 25_000,
+  avgSpeedKmh: 25,
+  maxSpeedKmh: 48,
+  elevationGainM: 320,
+  avgCadence: 85,
+  maxCadence: 100,
+  calories: 600,
+  source: 'strava',
+  externalId,
+});
+
+beforeAll(async () => {
+  // Une séance vélo terminée + ses points GPS.
+  const veloId = await createSession('velo', 1_700_000_000_000);
+  await updateSession(veloId, {
+    endedAt: 1_700_003_600_000,
+    durationSec: 3600,
+    distanceM: 30_000,
+    avgSpeedKmh: 30,
+    maxSpeedKmh: 55,
+    elevationGainM: 400,
+    calories: 700,
+  });
+  await insertTrackPoints(veloId, [
+    { ts: 1_700_000_000_000, lat: 48.8566, lon: 2.3522, altitude: 35, speedKmh: 0, hr: 110, cadence: null },
+    { ts: 1_700_000_010_000, lat: 48.857, lon: 2.3525, altitude: 36, speedKmh: 18, hr: 120, cadence: 85 },
+  ]);
+
+  // Une séance muscu terminée + ses séries.
+  const muscuId = await createSession('muscu', 1_700_100_000_000);
+  await updateSession(muscuId, { endedAt: 1_700_103_000_000, durationSec: 3000 });
+  await replaceMuscuSets(muscuId, [
+    { exercise: 'Goblet squat', setIndex: 1, reps: 10, weightKg: 20 },
+    { exercise: 'Goblet squat', setIndex: 2, reps: 9, weightKg: 22 },
+  ]);
+
+  // Réglages : un public (conservé) et deux secrets (exclus des sauvegardes).
+  await setSetting('profile', JSON.stringify({ weightKg: 78, maxHr: 188 }));
+  await setSetting('backup_s3', 'SECRET-CREDENTIALS');
+  await setSetting('backup_last', '{"ok":true}');
+});
+
+describe('exportAll', () => {
+  it('exporte séances, points et séries, et exclut les réglages secrets', async () => {
+    const snap = await exportAll();
+    expect(snap.sessions).toHaveLength(2);
+    expect(snap.trackPoints).toHaveLength(2);
+    expect(snap.muscuSets).toHaveLength(2);
+
+    const keys = snap.settings.map((s) => s.key);
+    expect(keys).toContain('profile');
+    expect(keys).not.toContain('backup_s3');
+    expect(keys).not.toContain('backup_last');
+  });
+});
+
+describe('round-trip exportAll → clear → importAll', () => {
+  it('restaure des données identiques (ids préservés)', async () => {
+    const before = normalize(await exportAll());
+
+    await clearAllData();
+    const cleared = await exportAll();
+    expect(cleared.sessions).toHaveLength(0);
+    expect(cleared.trackPoints).toHaveLength(0);
+    expect(cleared.muscuSets).toHaveLength(0);
+
+    await importAll(before);
+    const after = normalize(await exportAll());
+
+    expect(after).toEqual(before);
+  });
+
+  it('les points et séries restent rattachés à leur séance après restauration', async () => {
+    const snap = normalize(await exportAll());
+    const velo = snap.sessions.find((s) => s.type === 'velo')!;
+    const muscu = snap.sessions.find((s) => s.type === 'muscu')!;
+
+    expect(await getTrackPoints(velo.id)).toHaveLength(2);
+    expect(await getMuscuSets(muscu.id)).toHaveLength(2);
+  });
+});
+
+describe('insertImportedSession — déduplication par externalId', () => {
+  it('insère la première fois puis signale un doublon pour le même externalId', async () => {
+    const first = await insertImportedSession(importedRow('strava-abc123'), []);
+    expect(first).toBe('imported');
+
+    const second = await insertImportedSession(importedRow('strava-abc123'), []);
+    expect(second).toBe('duplicate');
+
+    // Un externalId différent passe.
+    const other = await insertImportedSession(importedRow('strava-def456'), []);
+    expect(other).toBe('imported');
+  });
+});

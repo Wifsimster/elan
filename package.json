@@ -48,6 +48,7 @@
     "@react-native/jest-preset": "^0.85.3",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.2.2",
+    "better-sqlite3": "^12.10.0",
     "commit-and-tag-version": "^12.7.3",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~56.0.4",
