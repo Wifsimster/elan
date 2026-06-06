@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.5.0](https://github.com/Wifsimster/tracker-activite/compare/v1.4.0...v1.5.0) (2026-06-06)
+
+
+### ✨ Fonctionnalités
+
+* **notifications:** liste les exercices du jour dans le rappel de séance ([#27](https://github.com/Wifsimster/tracker-activite/issues/27)) ([9370155](https://github.com/Wifsimster/tracker-activite/commit/9370155429cbc43cef892a3f4f386e61f21fec72))
+* **planning:** propose les programmes Dos et Cervicales dans le planning hebdo ([#29](https://github.com/Wifsimster/tracker-activite/issues/29)) ([80a0b9c](https://github.com/Wifsimster/tracker-activite/commit/80a0b9c6d93d3d673517a10e7c0ba843509164d6)), closes [#28](https://github.com/Wifsimster/tracker-activite/issues/28)
+
 ## [1.4.0](https://github.com/Wifsimster/tracker-activite/compare/v1.3.0...v1.4.0) (2026-06-05)
 
 
