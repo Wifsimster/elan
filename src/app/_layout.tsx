@@ -1,11 +1,13 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { BackupProvider } from '@/hooks/use-backup';
 import { CadenceSpeedProvider } from '@/hooks/use-cadence-speed';
 import { HeartRateProvider } from '@/hooks/use-heart-rate';
+import { applyNotifications } from '@/lib/notifications';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -13,6 +15,14 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const scheme = useColorScheme();
+
+  // Re-arme les rappels de séance au lancement : les notifications planifiées
+  // sont effacées au redémarrage de l'appareil, donc on les reprogramme à
+  // chaque ouverture pour que le programme reste rappelé de façon fiable.
+  // Sans effet (et sans permission demandée) si les rappels sont désactivés.
+  useEffect(() => {
+    applyNotifications();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

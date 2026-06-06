@@ -709,7 +709,7 @@ function NotificationsCard() {
         </Text>
       </View>
       <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-        {"Un rappel local le jour même d'une séance prévue, à l'heure de ton choix (midi par défaut), pour penser à préparer le matériel. Aucune notification les jours de repos, et aucune relance si la séance est manquée. 100 % local — aucune connexion réseau."}
+        {"Un rappel local le jour même d'une séance prévue, à l'heure de ton choix (midi par défaut). Il liste les exercices du programme du jour pour t'aider à le respecter. Aucune notification les jours de repos, et aucune relance si la séance est manquée. 100 % local — aucune connexion réseau."}
       </Text>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
