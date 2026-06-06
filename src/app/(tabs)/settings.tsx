@@ -34,7 +34,9 @@ import {
   getEffectiveWeekPlan,
   resetCustomWeekPlan,
   saveCustomWeekPlan,
+  templateById,
   type PlannedSession,
+  type WorkoutTemplate,
 } from '@/lib/program';
 import type { Profile } from '@/lib/types';
 import { matchWheelSize, WHEEL_SIZES } from '@/lib/wheel-sizes';
@@ -546,13 +548,15 @@ const WEEK_DAY_LABELS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Sam
 type WeekPlanOption =
   | { kind: 'repos'; label: string }
   | { kind: 'velo'; label: string }
-  | { kind: 'muscu'; label: string; templateId: 'fullbody-a' | 'fullbody-b' };
+  | { kind: 'muscu'; label: string; templateId: WorkoutTemplate['id'] };
 
 const WEEK_PLAN_OPTIONS: WeekPlanOption[] = [
   { kind: 'repos', label: 'Repos' },
   { kind: 'velo', label: 'Vélo' },
   { kind: 'muscu', label: 'Muscu A', templateId: 'fullbody-a' },
   { kind: 'muscu', label: 'Muscu B', templateId: 'fullbody-b' },
+  { kind: 'muscu', label: 'Dos', templateId: 'dos-lombaire' },
+  { kind: 'muscu', label: 'Cervicales', templateId: 'cervicales' },
 ];
 
 /** Convertit une option d'UI en `PlannedSession` à persister. */
@@ -561,7 +565,7 @@ function optionToPlanned(opt: WeekPlanOption): PlannedSession {
   if (opt.kind === 'velo') return { kind: 'velo', label: 'Vélo' };
   return {
     kind: 'muscu',
-    label: opt.templateId === 'fullbody-a' ? 'Full-body A' : 'Full-body B',
+    label: templateById(opt.templateId)?.name ?? opt.label,
     templateId: opt.templateId,
   };
 }
