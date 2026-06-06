@@ -9,6 +9,41 @@ capteurs externes : **GPS** et **ceinture cardiaque Bluetooth**.
 
 ---
 
+## Captures d'écran
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/01-accueil.png" width="240" alt="Tableau de bord" /><br />
+      <sub><b>Tableau de bord</b><br />Résumé de la semaine & activité sur 7 jours</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/04-session-velo.png" width="240" alt="Sortie vélo" /><br />
+      <sub><b>Sortie vélo</b><br />Carte du parcours, records & statistiques</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/05-session-velo-charts.png" width="240" alt="Vitesse & altitude" /><br />
+      <sub><b>Vitesse & altitude</b><br />Courbes détaillées de la séance</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/03-historique.png" width="240" alt="Historique" /><br />
+      <sub><b>Historique</b><br />Toutes les séances, filtrables par type</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/06-progression.png" width="240" alt="Progression muscu" /><br />
+      <sub><b>Progression muscu</b><br />Suivi des charges, exercice par exercice</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/10-reglages.png" width="240" alt="Capteurs" /><br />
+      <sub><b>Capteurs</b><br />Ceinture cardiaque & capteurs vélo Bluetooth</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
 ## Fonctionnalités
 
 - **Séance Vélo en direct** — chronomètre, distance, vitesse instantanée et max,
