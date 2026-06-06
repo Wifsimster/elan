@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   BackHandler,
-  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -237,12 +236,27 @@ export default function MuscuScreen() {
       ),
     );
 
-  const removeSet = (id: string, idx: number) =>
+  const dropSet = (id: string, idx: number) =>
     setExercises((prev) =>
       prev.map((e) =>
         e.id === id ? { ...e, sets: e.sets.filter((_, i) => i !== idx) } : e,
       ),
     );
+
+  // Une série déjà cochée (effectuée) ne se supprime pas d'un geste : un pouce
+  // qui dérape juste à côté du « + kg » effacerait un résultat sans retour. On
+  // confirme dans ce cas ; une série vide non cochée part directement.
+  const removeSet = (id: string, idx: number) => {
+    const done = exercises.find((e) => e.id === id)?.sets[idx]?.done ?? false;
+    if (!done) {
+      dropSet(id, idx);
+      return;
+    }
+    Alert.alert('Supprimer cette série ?', 'Cette série effectuée sera retirée.', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Supprimer', style: 'destructive', onPress: () => dropSet(id, idx) },
+    ]);
+  };
 
   const updateSet = (id: string, idx: number, patch: Partial<SetRow>) =>
     setExercises((prev) =>
@@ -520,9 +534,13 @@ export default function MuscuScreen() {
                   />
                 </PressableScale>
               ) : null}
-              <Pressable onPress={() => removeExercise(ex.id)} hitSlop={10}>
+              <PressableScale
+                onPress={() => removeExercise(ex.id)}
+                haptic="selection"
+                hitSlop={12}
+                accessibilityLabel={`Supprimer l'exercice ${ex.name}`}>
                 <MaterialCommunityIcons name="trash-can-outline" size={20} color={theme.textSecondary} />
-              </Pressable>
+              </PressableScale>
             </View>
 
             {ex.sets.map((s, i) => (
@@ -576,9 +594,13 @@ export default function MuscuScreen() {
                     onChange={(v) => updateSet(ex.id, i, { weightKg: v })}
                   />
                 </View>
-                <Pressable onPress={() => removeSet(ex.id, i)} hitSlop={8}>
+                <PressableScale
+                  onPress={() => removeSet(ex.id, i)}
+                  haptic="selection"
+                  hitSlop={12}
+                  accessibilityLabel={`Supprimer la série ${i + 1}`}>
                   <MaterialCommunityIcons name="close-circle-outline" size={20} color={theme.textSecondary} />
-                </Pressable>
+                </PressableScale>
               </View>
             ))}
 
@@ -658,7 +680,8 @@ export default function MuscuScreen() {
               onPress={paused ? resume : pause}
             />
           </View>
-          <View style={{ flex: 1 }}>
+          {/* Terminer reçoit plus de poids que Pause (cf. velo.tsx). */}
+          <View style={{ flex: 1.4 }}>
             <Button
               title="Terminer"
               icon="flag-checkered"
@@ -734,23 +757,28 @@ function Stepper({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: theme.background,
-        borderRadius: 10,
+        borderRadius: Radius.sm,
+        borderCurve: 'continuous',
         borderWidth: 1,
         borderColor: theme.border,
         paddingHorizontal: 4,
         paddingVertical: 4,
       }}>
-      <Pressable
+      <PressableScale
         onPress={() => onChange(Math.max(min, value - step))}
-        hitSlop={6}
+        haptic="selection"
+        hitSlop={10}
+        accessibilityLabel={`Diminuer ${suffix}`}
         style={{ padding: 4 }}>
         <MaterialCommunityIcons name="minus" size={18} color={theme.text} />
-      </Pressable>
-      <Pressable
+      </PressableScale>
+      <PressableScale
         onPress={() => {
           setText(fmt(value).replace(',', '.'));
           setEditing(true);
         }}
+        haptic="selection"
+        accessibilityLabel={`${fmt(value)} ${suffix}, modifier`}
         style={{ alignItems: 'center', flex: 1 }}>
         {editing ? (
           <TextInput
@@ -778,10 +806,15 @@ function Stepper({
           </Text>
         )}
         <Text style={{ color: theme.textSecondary, fontSize: 10 }}>{suffix}</Text>
-      </Pressable>
-      <Pressable onPress={() => onChange(value + step)} hitSlop={6} style={{ padding: 4 }}>
+      </PressableScale>
+      <PressableScale
+        onPress={() => onChange(value + step)}
+        haptic="selection"
+        hitSlop={10}
+        accessibilityLabel={`Augmenter ${suffix}`}
+        style={{ padding: 4 }}>
         <MaterialCommunityIcons name="plus" size={18} color={theme.text} />
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }

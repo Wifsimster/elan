@@ -24,6 +24,13 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
+/**
+ * Dégradés clairs sur lesquels un texte blanc tombe sous le seuil WCAG (même la
+ * barre « grand texte » à 3:1) : on y pose un texte sombre pour rester lisible.
+ */
+const BRIGHT_GRADIENTS = new Set<GradientName>(['velo', 'success', 'fire']);
+const ON_BRIGHT = '#0B0E13';
+
 /** Déduit le dégradé correspondant à une couleur d'activité du thème. */
 function gradientFor(color: string | undefined, theme: ReturnType<typeof useTheme>): GradientName {
   if (color === theme.velo) return 'velo';
@@ -55,7 +62,9 @@ export function Button({
 
   const fg =
     variant === 'primary' || variant === 'danger'
-      ? '#FFFFFF'
+      ? BRIGHT_GRADIENTS.has(grad)
+        ? ON_BRIGHT
+        : '#FFFFFF'
       : variant === 'ghost'
         ? theme.textSecondary
         : accent;
@@ -97,6 +106,8 @@ export function Button({
         disabled={disabled || loading}
         haptic="light"
         onPress={onPress}
+        accessibilityLabel={title}
+        accessibilityState={{ disabled: !!disabled, busy: !!loading }}
         style={[
           {
             borderRadius: Radius.lg,
@@ -130,6 +141,8 @@ export function Button({
       disabled={disabled || loading}
       haptic="selection"
       onPress={onPress}
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: !!disabled, busy: !!loading }}
       style={[
         base,
         variant === 'secondary'

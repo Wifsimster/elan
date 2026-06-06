@@ -18,6 +18,11 @@ type Props = {
   formatY?: (y: number) => string;
   /** Formatte les libellés de l'axe X (défaut : entier). */
   formatX?: (x: number) => string;
+  /**
+   * Nom de la métrique (ex. « Vitesse »). Sert à construire le résumé lu par les
+   * lecteurs d'écran (le tracé SVG est sinon invisible — WCAG 1.4.1).
+   */
+  label?: string;
 };
 
 // Marges réservées aux libellés d'axes (en pixels).
@@ -34,7 +39,7 @@ const PAD_B = 22;
  * La largeur est mesurée au `onLayout` ; on dessine ensuite en pixels réels pour
  * des libellés nets (pas de mise à l'échelle d'un `viewBox`).
  */
-export function LineChart({ data, color, height = 168, avg, formatY, formatX }: Props) {
+export function LineChart({ data, color, height = 168, avg, formatY, formatX, label }: Props) {
   const theme = useTheme();
   const gradId = `chart-${useId().replace(/:/g, '')}`;
   const [width, setWidth] = useState(0);
@@ -74,8 +79,20 @@ export function LineChart({ data, color, height = 168, avg, formatY, formatX }: 
   const fmtY = formatY ?? ((v: number) => String(Math.round(v)));
   const fmtX = formatX ?? ((v: number) => String(Math.round(v)));
 
+  // Résumé lu par les lecteurs d'écran : le tracé SVG est invisible pour eux,
+  // on annonce donc min / moyenne / max à partir des valeurs brutes.
+  const rawMin = Math.min(...ys);
+  const rawMax = Math.max(...ys);
+  const a11ySummary =
+    `${label ? `${label} : ` : ''}minimum ${fmtY(rawMin)}, maximum ${fmtY(rawMax)}` +
+    (avg != null ? `, moyenne ${fmtY(avg)}` : '');
+
   return (
-    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ height }}>
+    <View
+      accessible
+      accessibilityLabel={a11ySummary}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      style={{ height }}>
       {width > 0 ? (
         <>
           <Svg width={width} height={height}>
@@ -117,6 +134,22 @@ export function LineChart({ data, color, height = 168, avg, formatY, formatX }: 
               />
             ) : null}
           </Svg>
+
+          {/* Étiquette « moy. » sur la ligne de moyenne pointillée (sinon le trait
+              n'est lisible que par sa position, signal visuel seul). */}
+          {avg != null ? (
+            <Text
+              style={{
+                position: 'absolute',
+                right: PAD_R + 2,
+                top: sy(avg) - 14,
+                fontSize: 10,
+                fontWeight: '700',
+                color: theme.textMuted,
+              }}>
+              moy.
+            </Text>
+          ) : null}
 
           {/* Libellés d'axe Y (haut / milieu / bas). */}
           {yTicks.map((t, i) => (

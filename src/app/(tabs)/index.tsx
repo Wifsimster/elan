@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,11 +9,21 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { HrBadge } from '@/components/hr-badge';
+import { OnboardingSheet } from '@/components/onboarding-sheet';
 import { PressableScale } from '@/components/pressable-scale';
 import { StatTile, type Trend } from '@/components/stat-tile';
 import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
-import { dailyDurations, listSessions, statsBetween, statsSince } from '@/lib/db';
+import {
+  dailyDurations,
+  getProfile,
+  getSetting,
+  listSessions,
+  saveProfile,
+  setSetting,
+  statsBetween,
+  statsSince,
+} from '@/lib/db';
 import { hasMuscuDraft } from '@/lib/muscu-draft';
 import {
   DEFAULT_WEEK_PLAN,
@@ -61,6 +71,9 @@ export default function HomeScreen() {
   const [bars, setBars] = useState<Bar[]>([]);
   const [recent, setRecent] = useState<Session[]>([]);
   const [resumable, setResumable] = useState(false);
+  // Accueil premier lancement : capture le profil (sinon calories/zones cardio
+  // tournent sur les valeurs par défaut 70 kg / 190 bpm, fausses en silence).
+  const [onboarding, setOnboarding] = useState<{ weightKg: number; maxHr: number } | null>(null);
 
   const load = useCallback(async () => {
     const weekStart = startOfWeek();
@@ -98,22 +111,56 @@ export default function HomeScreen() {
     }, [load]),
   );
 
+  // Une seule fois : si l'onboarding n'a jamais été fait, on l'affiche en
+  // pré-remplissant les steppers avec le profil courant (défauts compris).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const done = await getSetting('onboarding_done');
+      if (cancelled || done) return;
+      const p = await getProfile();
+      if (!cancelled) setOnboarding({ weightKg: p.weightKg, maxHr: p.maxHr });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const finishOnboarding = useCallback(
+    async (profile: { weightKg: number; maxHr: number }) => {
+      await saveProfile(profile);
+      await setSetting('onboarding_done', '1');
+      setOnboarding(null);
+      load();
+    },
+    [load],
+  );
+
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={{
-        paddingTop: insets.top + 12,
-        paddingBottom: 32,
-        paddingHorizontal: 16,
-        gap: 16,
-      }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ gap: 2 }}>
-          <Text style={{ ...Type.label, color: theme.textSecondary }}>Bonjour 👋</Text>
-          <Text style={{ ...Type.title, color: theme.text }}>Élan</Text>
+    <>
+      {onboarding ? (
+        <OnboardingSheet
+          visible
+          initialWeightKg={onboarding.weightKg}
+          initialMaxHr={onboarding.maxHr}
+          onDone={finishOnboarding}
+        />
+      ) : null}
+      <ScrollView
+        style={{ backgroundColor: theme.background }}
+        contentContainerStyle={{
+          paddingTop: insets.top + 12,
+          paddingBottom: 32,
+          paddingHorizontal: 16,
+          gap: 16,
+        }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ gap: 2 }}>
+            <Text style={{ ...Type.label, color: theme.textSecondary }}>Bonjour 👋</Text>
+            <Text style={{ ...Type.title, color: theme.text }}>Élan</Text>
+          </View>
+          <HrBadge />
         </View>
-        <HrBadge />
-      </View>
 
       {/* Séance du jour (programme perso) */}
       <TodayCard lastSessionAt={recent[0]?.startedAt ?? null} resumable={resumable} />
@@ -224,7 +271,8 @@ export default function HomeScreen() {
           ))}
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 

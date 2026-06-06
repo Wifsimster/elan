@@ -96,6 +96,7 @@ export default function ExerciseScreen() {
       {points && points.length === 0 ? (
         <EmptyState
           icon="chart-line"
+          tint={theme.muscu}
           title="Aucune donnée"
           subtitle="Cet exercice n'a pas encore de séance enregistrée."
         />

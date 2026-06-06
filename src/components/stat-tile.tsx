@@ -19,6 +19,8 @@ type Props = {
   color?: string;
   /** Affichage compact (police plus petite). */
   compact?: boolean;
+  /** Métrique mise en avant (chiffre plus grand) — usage : valeur clé à lire en effort. */
+  hero?: boolean;
   /** Petite ligne d'évolution sous la valeur. */
   trend?: Trend;
 };
@@ -27,9 +29,10 @@ type Props = {
  * Tuile de métrique « bento » : pastille d'icône teintée + grand chiffre tabulaire.
  * Conçue pour s'aligner en grille fluide (flexWrap) dans une Card.
  */
-export function StatTile({ label, value, unit, icon, color, compact, trend }: Props) {
+export function StatTile({ label, value, unit, icon, color, compact, hero, trend }: Props) {
   const theme = useTheme();
   const tint = color ?? theme.text;
+  const valueSize = hero ? 44 : compact ? 24 : 32;
 
   const trendColor =
     trend?.tone === 'positive'
@@ -41,7 +44,7 @@ export function StatTile({ label, value, unit, icon, color, compact, trend }: Pr
     trend?.tone === 'positive' ? 'arrow-up' : trend?.tone === 'negative' ? 'arrow-down' : 'minus';
 
   return (
-    <View style={{ gap: 8, flex: 1, minWidth: 96 }}>
+    <View style={{ gap: 8, flex: 1, minWidth: hero ? '100%' : 96 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         {icon ? (
           <View
@@ -62,7 +65,8 @@ export function StatTile({ label, value, unit, icon, color, compact, trend }: Pr
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
         <Text
           selectable
-          style={{ ...Type.metric, fontSize: compact ? 24 : 32, color: tint }}>
+          maxFontSizeMultiplier={1.3}
+          style={{ ...Type.metric, fontSize: valueSize, color: tint }}>
           {value}
         </Text>
         {unit ? (

@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
@@ -36,19 +37,25 @@ export function PressableScale({
   disabled,
   ...rest
 }: Props) {
+  // Respecte « Réduire les animations » du système : on conserve le retour
+  // haptique mais on supprime le ressort d'échelle (confort vestibulaire).
+  const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
     <AnimatedPressable
+      accessibilityRole="button"
       disabled={disabled}
       onPressIn={() => {
+        if (reduceMotion) return;
         // Les shared values Reanimated se mutent par `.value` ; la règle
         // d'immutabilité du React Compiler est un faux positif ici.
         // eslint-disable-next-line react-hooks/immutability
         scale.value = withSpring(scaleTo, Motion.spring.snappy);
       }}
       onPressOut={() => {
+        if (reduceMotion) return;
         // eslint-disable-next-line react-hooks/immutability
         scale.value = withSpring(1, Motion.spring.bouncy);
       }}

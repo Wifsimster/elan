@@ -22,8 +22,18 @@ export function HrBadge() {
         ? '...'
         : 'Connecter';
 
+  const a11yLabel = connected
+    ? bpm != null
+      ? `Fréquence cardiaque ${bpm} battements par minute`
+      : 'Ceinture cardiaque connectée'
+    : status === 'connecting'
+      ? 'Connexion de la ceinture cardiaque…'
+      : 'Connecter une ceinture cardiaque';
+
   const content = (
     <View
+      accessible
+      accessibilityLabel={a11yLabel}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -69,7 +79,9 @@ export function HrBadge() {
 
   return (
     <Link href="/settings" asChild>
-      <PressableScale haptic="selection">{content}</PressableScale>
+      <PressableScale haptic="selection" hitSlop={10} accessibilityLabel={a11yLabel}>
+        {content}
+      </PressableScale>
     </Link>
   );
 }
