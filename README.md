@@ -66,7 +66,7 @@ capteurs externes : **GPS** et **ceinture cardiaque Bluetooth**.
 | Stockage | `expo-sqlite` (base locale, migrations versionnées) |
 | GPS | `expo-location` (premier plan) |
 | Cardio BLE | `react-native-ble-plx` |
-| Tracé | `react-native-svg` (rendu vectoriel, sans fond cartographique) |
+| Carte | [MapLibre](https://maplibre.org) (`@maplibre/maplibre-react-native`, tuiles auto-hébergées) avec repli `react-native-svg` (tracé vectoriel sans réseau) |
 | Icônes | `@expo/vector-icons` (MaterialCommunityIcons) |
 
 ## ⚠️ Development build requis
