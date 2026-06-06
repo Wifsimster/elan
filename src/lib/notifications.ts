@@ -64,7 +64,20 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return res.granted || res.status === 'granted';
 }
 
-function describeToday(plan: PlannedSession): { title: string; body: string } | null {
+/**
+ * Convertit un index du planning (0 = lundi … 6 = dimanche) vers le `weekday`
+ * attendu par expo-notifications (1 = dimanche, 2 = lundi, …, 7 = samedi).
+ * Exporté pour les tests.
+ */
+export function planIndexToWeekday(index: number): number {
+  return index === 6 ? 1 : index + 2; // 6 (dimanche) -> 1 (dimanche)
+}
+
+/**
+ * Construit le contenu du rappel pour une séance planifiée, ou `null` les jours
+ * de repos. Fonction pure (pas d'accès réseau/DB) — exportée pour les tests.
+ */
+export function describeToday(plan: PlannedSession): { title: string; body: string } | null {
   if (plan.kind === 'repos') return null;
   if (plan.kind === 'velo') {
     return {
@@ -109,7 +122,7 @@ export async function applyNotifications(): Promise<void> {
       const today = plan[i];
       const content = describeToday(today);
       if (!content) continue;
-      const weekday = i === 6 ? 1 : i + 2; // i = 6 (dimanche) -> dimanche
+      const weekday = planIndexToWeekday(i);
       await Notifications.scheduleNotificationAsync({
         content: {
           title: content.title,
