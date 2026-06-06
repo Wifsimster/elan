@@ -1,0 +1,1 @@
+Local cycling & strength tracker: GPS, Bluetooth heart rate, no cloud.
