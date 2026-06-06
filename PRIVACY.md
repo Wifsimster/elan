@@ -10,6 +10,8 @@ sauf si vous activez vous-même une sauvegarde vers votre propre serveur.
 ## Responsable du traitement
 
 - **Éditeur :** Damien Battistella — BATTISTELLA EI (entreprise individuelle)
+- **SIRET :** 103 406 161 00010 (SIREN : 103 406 161)
+- **Activité :** programmation informatique
 - **Adresse :** Artigues-près-Bordeaux, 33370, France
 - **Contact :** battistella@proton.me
 
