@@ -136,7 +136,7 @@ export default function SettingsScreen() {
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MaterialCommunityIcons name="heart-pulse" size={22} color={theme.heart} />
-          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+          <Text style={{ ...Type.sectionTitle, color: theme.text }}>
             Ceinture cardiaque
           </Text>
         </View>
@@ -162,7 +162,7 @@ export default function SettingsScreen() {
         )}
 
         {hr.error ? (
-          <Text style={{ color: theme.heart, fontSize: 13 }}>{hr.error}</Text>
+          <Text style={{ color: theme.danger, fontSize: 13 }}>{hr.error}</Text>
         ) : null}
 
         {hr.status === 'scanning' && hr.scanned.length === 0 ? (
@@ -204,7 +204,7 @@ export default function SettingsScreen() {
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MaterialCommunityIcons name="rotate-right" size={22} color={theme.velo} />
-          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+          <Text style={{ ...Type.sectionTitle, color: theme.text }}>
             Capteurs vélo
           </Text>
         </View>
@@ -231,7 +231,11 @@ export default function SettingsScreen() {
                 {csc.cadenceRpm != null ? `${csc.cadenceRpm} tr/min` : `${(csc.speedKmh ?? 0).toFixed(1)} km/h`}
               </Text>
             ) : null}
-            <Pressable onPress={() => csc.disconnect(d.id)} hitSlop={8}>
+            <Pressable
+              onPress={() => csc.disconnect(d.id)}
+              hitSlop={14}
+              accessibilityRole="button"
+              accessibilityLabel={`Déconnecter ${d.name}`}>
               <MaterialCommunityIcons name="bluetooth-off" size={20} color={theme.textMuted} />
             </Pressable>
           </View>
@@ -246,7 +250,7 @@ export default function SettingsScreen() {
         />
 
         {csc.error ? (
-          <Text style={{ color: theme.heart, fontSize: 13 }}>{csc.error}</Text>
+          <Text style={{ color: theme.danger, fontSize: 13 }}>{csc.error}</Text>
         ) : null}
 
         {csc.status === 'scanning' && csc.scanned.length === 0 ? (
@@ -308,7 +312,7 @@ export default function SettingsScreen() {
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MaterialCommunityIcons name="map-outline" size={22} color={theme.velo} />
-          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>Carte</Text>
+          <Text style={{ ...Type.sectionTitle, color: theme.text }}>Carte</Text>
         </View>
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
           {'URL du style MapLibre servi par ton homelab. Renseignée, les sorties vélo affichent un vrai fond de carte (rues) ; sinon, un tracé sur fond uni. Les tuiles ne sont demandées qu’à ton serveur.'}
@@ -326,7 +330,7 @@ export default function SettingsScreen() {
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MaterialCommunityIcons name="account-outline" size={22} color={theme.accent} />
-          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>Profil</Text>
+          <Text style={{ ...Type.sectionTitle, color: theme.text }}>Profil</Text>
         </View>
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
           Utilisé pour estimer les calories et les zones cardio.
@@ -362,7 +366,7 @@ export default function SettingsScreen() {
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MaterialCommunityIcons name="database-outline" size={22} color={theme.accent} />
-          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>Données</Text>
+          <Text style={{ ...Type.sectionTitle, color: theme.text }}>Données</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
           <MaterialCommunityIcons name="lock-outline" size={18} color={theme.success} />
@@ -382,7 +386,7 @@ export default function SettingsScreen() {
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MaterialCommunityIcons name="export-variant" size={22} color={theme.accent} />
-          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+          <Text style={{ ...Type.sectionTitle, color: theme.text }}>
             Exporter mes données
           </Text>
         </View>
@@ -405,7 +409,7 @@ export default function SettingsScreen() {
           onPress={dataExport.exportJson}
         />
         {dataExport.error ? (
-          <Text style={{ color: theme.heart, fontSize: 13 }}>{dataExport.error}</Text>
+          <Text style={{ color: theme.danger, fontSize: 13 }}>{dataExport.error}</Text>
         ) : null}
       </Card>
 
@@ -413,7 +417,7 @@ export default function SettingsScreen() {
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MaterialCommunityIcons name="cloud-download-outline" size={22} color={theme.velo} />
-          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>Import Strava</Text>
+          <Text style={{ ...Type.sectionTitle, color: theme.text }}>Import Strava</Text>
         </View>
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
           {"Exportez depuis Strava (page de l'activité → « Exporter GPX », ou « Télécharger vos données » dans les réglages du compte), puis importez le fichier ici. Formats acceptés : GPX, TCX et FIT, y compris compressés (.gz) — comme dans l'export en masse. Tout est traité sur l'appareil."}
@@ -434,7 +438,7 @@ export default function SettingsScreen() {
         />
 
         {strava.error ? (
-          <Text style={{ color: theme.heart, fontSize: 13 }}>{strava.error}</Text>
+          <Text style={{ color: theme.danger, fontSize: 13 }}>{strava.error}</Text>
         ) : null}
 
         {strava.result ? (
@@ -449,7 +453,7 @@ export default function SettingsScreen() {
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MaterialCommunityIcons name="cloud-upload-outline" size={22} color={theme.accent} />
-          <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+          <Text style={{ ...Type.sectionTitle, color: theme.text }}>
             Sauvegarde homelab
           </Text>
         </View>
@@ -516,7 +520,7 @@ export default function SettingsScreen() {
         />
 
         {backup.error ? (
-          <Text style={{ color: theme.heart, fontSize: 13 }}>{backup.error}</Text>
+          <Text style={{ color: theme.danger, fontSize: 13 }}>{backup.error}</Text>
         ) : null}
 
         <Button
@@ -619,7 +623,7 @@ function WeekPlanCard() {
     <Card style={{ gap: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <MaterialCommunityIcons name="calendar-week" size={22} color={theme.accent} />
-        <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+        <Text style={{ ...Type.sectionTitle, color: theme.text }}>
           Planning hebdomadaire
         </Text>
       </View>
@@ -708,7 +712,7 @@ function NotificationsCard() {
     <Card style={{ gap: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <MaterialCommunityIcons name="bell-outline" size={22} color={theme.accent} />
-        <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+        <Text style={{ ...Type.sectionTitle, color: theme.text }}>
           Rappels de séance
         </Text>
       </View>
@@ -737,7 +741,7 @@ function NotificationsCard() {
         onChange={changeHour}
       />
 
-      {error ? <Text style={{ color: theme.heart, fontSize: 13 }}>{error}</Text> : null}
+      {error ? <Text style={{ color: theme.danger, fontSize: 13 }}>{error}</Text> : null}
     </Card>
   );
 }
@@ -758,7 +762,7 @@ function BackupStatusLine() {
     color = theme.success;
     label = `Dernière sauvegarde : ${formatDateTime(last.at)}`;
   } else if (last && !last.ok) {
-    color = theme.heart;
+    color = theme.danger;
     label = `Échec le ${formatDateTime(last.at)}`;
   }
 
@@ -822,7 +826,7 @@ function HrStatusLine() {
     connected: { label: device ? `Connectée · ${device.name}` : 'Connectée', color: theme.success },
     connecting: { label: 'Connexion…', color: theme.warning },
     scanning: { label: 'Recherche…', color: theme.warning },
-    error: { label: 'Erreur', color: theme.heart },
+    error: { label: 'Erreur', color: theme.danger },
     idle: { label: 'Non connectée', color: theme.textSecondary },
     unsupported: { label: 'Non disponible', color: theme.textSecondary },
   };
@@ -968,10 +972,16 @@ function SettingStepper({
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
       <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600' }}>{label}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        <Pressable onPress={() => onChange(Math.max(min, value - step))} hitSlop={8}>
+        <Pressable
+          onPress={() => onChange(Math.max(min, value - step))}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={`Diminuer ${label}`}>
           <MaterialCommunityIcons name="minus-circle-outline" size={28} color={theme.accent} />
         </Pressable>
         <Text
+          accessibilityLabel={`${label} : ${value} ${unit}`}
+          maxFontSizeMultiplier={1.3}
           style={{
             color: theme.text,
             fontSize: 17,
@@ -982,7 +992,11 @@ function SettingStepper({
           }}>
           {value} {unit}
         </Text>
-        <Pressable onPress={() => onChange(Math.min(max, value + step))} hitSlop={8}>
+        <Pressable
+          onPress={() => onChange(Math.min(max, value + step))}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={`Augmenter ${label}`}>
           <MaterialCommunityIcons name="plus-circle-outline" size={28} color={theme.accent} />
         </Pressable>
       </View>

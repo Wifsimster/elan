@@ -267,7 +267,7 @@ export default function VeloScreen() {
         {/* Chrono */}
         <View style={{ alignItems: 'center', paddingVertical: 8 }}>
           <Text style={{ ...Type.overline, color: theme.velo }}>Durée</Text>
-          <Text selectable style={{ ...Type.metricLg, color: theme.text }}>
+          <Text selectable maxFontSizeMultiplier={1.2} style={{ ...Type.metricLg, color: theme.text }}>
             {formatDuration(watch.elapsedSec)}
           </Text>
           <GpsStatusPill status={gps.status} accuracyM={gps.accuracyM} phase={phase} />
