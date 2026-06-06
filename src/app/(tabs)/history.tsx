@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, TextInput, View, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,6 +35,7 @@ const PAGE_SIZE = 50;
 export default function HistoryScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [range, setRange] = useState<RangeKey>('all');
@@ -230,15 +231,31 @@ export default function HistoryScreen() {
       ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
       ListEmptyComponent={
         loading ? null : (
-          <EmptyState
-            icon="clipboard-text-clock-outline"
-            title="Rien à afficher"
-            subtitle={
-              search || typeFilter !== 'all' || range !== 'all'
-                ? 'Aucune séance ne correspond à ces filtres.'
-                : 'Vos séances enregistrées apparaîtront ici.'
-            }
-          />
+          (() => {
+            const filtered = search || typeFilter !== 'all' || range !== 'all';
+            return (
+              <EmptyState
+                icon="clipboard-text-clock-outline"
+                title="Rien à afficher"
+                subtitle={
+                  filtered
+                    ? 'Aucune séance ne correspond à ces filtres.'
+                    : 'Vos séances enregistrées apparaîtront ici. Vous pouvez aussi importer votre historique Strava.'
+                }
+                // Pas d'import quand un filtre masque les résultats : l'utilisateur
+                // a des séances, elles sont juste filtrées.
+                action={
+                  filtered
+                    ? undefined
+                    : {
+                        label: 'Importer depuis Strava',
+                        icon: 'file-import-outline',
+                        onPress: () => router.push('/settings'),
+                      }
+                }
+              />
+            );
+          })()
         )
       }
     />

@@ -141,16 +141,22 @@ export default function SessionDetailScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
               <Pressable
                 onPress={() => share.share(shareCardRef)}
-                hitSlop={10}
-                disabled={share.sharing}>
+                hitSlop={12}
+                disabled={share.sharing}
+                accessibilityRole="button"
+                accessibilityLabel="Partager la séance">
                 <MaterialCommunityIcons
                   name="share-variant"
                   size={21}
                   color={share.sharing ? theme.textMuted : theme.text}
                 />
               </Pressable>
-              <Pressable onPress={confirmDelete} hitSlop={10}>
-                <MaterialCommunityIcons name="trash-can-outline" size={22} color={theme.heart} />
+              <Pressable
+                onPress={confirmDelete}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="Supprimer la séance">
+                <MaterialCommunityIcons name="trash-can-outline" size={22} color={theme.danger} />
               </Pressable>
             </View>
           ),
@@ -304,19 +310,26 @@ export default function SessionDetailScreen() {
               color={color}
               avg={session.avgSpeedKmh}
               formatX={fmtKm}
+              label="Vitesse en km/h"
             />
           </ChartCard>
         ) : null}
 
         {elevation.length >= 2 ? (
           <ChartCard title="Altitude" unit="m">
-            <LineChart data={elevation} color={theme.textSecondary} formatX={fmtKm} />
+            <LineChart data={elevation} color={theme.textSecondary} formatX={fmtKm} label="Altitude en mètres" />
           </ChartCard>
         ) : null}
 
         {hr.length >= 2 ? (
           <ChartCard title="Fréquence cardiaque" unit="bpm">
-            <LineChart data={hr} color={theme.heart} avg={session.avgHr} formatX={fmtKm} />
+            <LineChart
+              data={hr}
+              color={theme.heart}
+              avg={session.avgHr}
+              formatX={fmtKm}
+              label="Fréquence cardiaque en battements par minute"
+            />
           </ChartCard>
         ) : null}
 

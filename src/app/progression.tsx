@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,7 @@ const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).rep
 export default function ProgressionScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [items, setItems] = useState<ExerciseSummary[]>([]);
 
   useFocusEffect(
@@ -41,8 +42,14 @@ export default function ProgressionScreen() {
       {items.length === 0 ? (
         <EmptyState
           icon="chart-line"
+          tint={theme.muscu}
           title="Pas encore de données"
           subtitle="Enregistre quelques séances de muscu pour suivre ta progression."
+          action={{
+            label: 'Démarrer une séance muscu',
+            icon: 'dumbbell',
+            onPress: () => router.push('/muscu'),
+          }}
         />
       ) : (
         items.map((it) => (

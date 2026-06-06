@@ -273,9 +273,17 @@ export default function VeloScreen() {
           <GpsStatusPill status={gps.status} accuracyM={gps.accuracyM} phase={phase} />
         </View>
 
-        {/* Statistiques live */}
+        {/* Statistiques live — Vitesse en hero (valeur clé à lire d'un coup d'œil
+            en mouvement), puis Distance et Cardio, le reste en compact. */}
         <Card>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20 }}>
+            <StatTile
+              label="Vitesse"
+              {...speedParts(gps.speedKmh)}
+              icon="speedometer"
+              color={theme.velo}
+              hero
+            />
             <StatTile
               label="Distance"
               {...distanceParts(gps.distanceM)}
@@ -283,9 +291,10 @@ export default function VeloScreen() {
               color={theme.velo}
             />
             <StatTile
-              label="Vitesse"
-              {...speedParts(gps.speedKmh)}
-              icon="speedometer"
+              label="Cardio"
+              {...hrParts(bpm)}
+              icon="heart-pulse"
+              color={theme.heart}
             />
             <StatTile
               label="Vitesse max"
@@ -316,13 +325,6 @@ export default function VeloScreen() {
               value={String(Math.round(gps.elevationGainM))}
               unit="m"
               icon="elevation-rise"
-              compact
-            />
-            <StatTile
-              label="Cardio"
-              {...hrParts(bpm)}
-              icon="heart-pulse"
-              color={theme.heart}
               compact
             />
             <StatTile
@@ -386,7 +388,9 @@ export default function VeloScreen() {
                 onPress={phase === 'paused' ? resume : pause}
               />
             </View>
-            <View style={{ flex: 1 }}>
+            {/* Terminer (action engageante) reçoit plus de poids que Pause pour
+                réduire le risque d'appui par erreur en plein effort. */}
+            <View style={{ flex: 1.4 }}>
               <Button
                 title="Terminer"
                 icon="flag-checkered"
@@ -500,7 +504,7 @@ function GpsStatusPill({
     }
   } else if (status === 'denied') {
     label = 'GPS refusé';
-    color = theme.heart;
+    color = theme.danger;
   }
 
   return (
