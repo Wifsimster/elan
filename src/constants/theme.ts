@@ -16,7 +16,9 @@ export const Colors = {
   light: {
     text: '#0B0E13',
     textSecondary: '#5A6472',
-    textMuted: '#8A93A1',
+    // Texte tertiaire : assombri pour passer le contraste AA (≈4.6:1 sur blanc)
+    // — porte des libellés d'axes et du contenu secondaire réel.
+    textMuted: '#6B7280',
     background: '#F3F5FA',
     backgroundElement: '#FFFFFF',
     surfaceHigh: '#FFFFFF',
@@ -35,7 +37,9 @@ export const Colors = {
   dark: {
     text: '#F4F7FB',
     textSecondary: '#9AA3B0',
-    textMuted: '#6B7484',
+    // Texte tertiaire : éclairci pour passer le contraste AA sur les surfaces
+    // sombres (l'ancien #6B7484 tombait sous 3:1 sur backgroundElement).
+    textMuted: '#868FA0',
     background: '#0A0C10',
     backgroundElement: '#14181F',
     surfaceHigh: '#1B202A',
@@ -134,6 +138,7 @@ export type TypeToken =
   | 'metricLg'
   | 'title'
   | 'headline'
+  | 'sectionTitle'
   | 'subtitle'
   | 'body'
   | 'label'
@@ -146,6 +151,9 @@ export const Type: Record<TypeToken, TextStyle> = {
   metricLg: { fontSize: 64, fontWeight: '800', letterSpacing: -2, fontVariant: ['tabular-nums'] },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.6, lineHeight: 32 },
   headline: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3, lineHeight: 26 },
+  // Titre de section (en-têtes de cartes Réglages, etc.) : un cran sous `headline`,
+  // standardise les anciens `17/800` codés en dur et leur rend le letterSpacing.
+  sectionTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3, lineHeight: 24 },
   subtitle: { fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
   body: { fontSize: 15, fontWeight: '500', lineHeight: 22 },
   label: { fontSize: 13, fontWeight: '600' },

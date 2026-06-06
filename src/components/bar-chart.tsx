@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { Gradient } from '@/components/gradient';
-import { type GradientName } from '@/constants/theme';
+import { Radius, type GradientName } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type Bar = { label: string; value: number };
@@ -23,34 +23,40 @@ export function BarChart({ data, gradient = 'accent', height = 120, formatValue 
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: height + 24 }}>
       {data.map((d, i) => {
         const ratio = d.value / max;
-        const isMax = d.value === max && d.value > 0;
+        const hasValue = d.value > 0;
         const barHeight = Math.max(4, ratio * height);
         return (
           <View key={i} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
-            {isMax && formatValue ? (
+            {/* Valeur au-dessus de chaque barre non nulle (réservation d'espace sinon). */}
+            {hasValue && formatValue ? (
               <Text style={{ fontSize: 10, color: theme.textSecondary, fontWeight: '800' }}>
                 {formatValue(d.value)}
               </Text>
             ) : (
               <View style={{ height: 14 }} />
             )}
-            {d.value > 0 ? (
-              <Gradient
-                colors={gradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={{ width: '64%', height: barHeight, borderRadius: 8, borderCurve: 'continuous' }}
-              />
-            ) : (
-              <View
-                style={{
-                  width: '64%',
-                  height: 4,
-                  borderRadius: 8,
-                  backgroundColor: theme.border,
-                }}
-              />
-            )}
+            {/* Rail de fond pleine hauteur : chaque jour garde une présence visuelle
+                (sans rail, une semaine creuse paraît « cassée »). La barre se pose
+                par-dessus, alignée en bas. */}
+            <View
+              style={{
+                width: '64%',
+                height,
+                borderRadius: Radius.sm,
+                borderCurve: 'continuous',
+                backgroundColor: theme.hairline,
+                justifyContent: 'flex-end',
+                overflow: 'hidden',
+              }}>
+              {hasValue ? (
+                <Gradient
+                  colors={gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={{ width: '100%', height: barHeight, borderRadius: Radius.sm, borderCurve: 'continuous' }}
+                />
+              ) : null}
+            </View>
             <Text style={{ fontSize: 11, color: theme.textSecondary, fontWeight: '600' }}>
               {d.label}
             </Text>
