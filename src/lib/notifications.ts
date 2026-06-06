@@ -8,7 +8,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { getSetting, setSetting } from '@/lib/db';
-import { getEffectiveWeekPlan, type PlannedSession } from '@/lib/program';
+import { getEffectiveWeekPlan, templateById, type PlannedSession } from '@/lib/program';
 
 const SETTING_KEY = 'notifications';
 const CHANNEL_ID = 'routine';
@@ -72,9 +72,17 @@ function describeToday(plan: PlannedSession): { title: string; body: string } | 
       body: 'Pense à préparer le vélo et la ceinture.',
     };
   }
+  // Muscu : on liste les exercices du programme du jour, pour rappeler
+  // précisément quoi faire et aider à respecter le programme. Repli sur un
+  // message générique si le template est introuvable (plan corrompu).
+  const exercises = templateById(plan.templateId)?.exercises ?? [];
+  const body =
+    exercises.length > 0
+      ? `Au programme : ${exercises.map((e) => e.name).join(', ')}.`
+      : 'Pense à sortir les haltères.';
   return {
     title: `Aujourd'hui : ${plan.label}`,
-    body: 'Pense à sortir les haltères.',
+    body,
   };
 }
 
