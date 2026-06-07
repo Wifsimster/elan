@@ -1,0 +1,29 @@
+Élan is a personal, local-first activity tracker built for cycling and strength training. Your data never leaves your phone: no account, no server, no cloud, no ads.
+
+LIVE CYCLING TRACKING
+• Stopwatch, distance, instant and max speed
+• Elevation gain and GPS route of your ride
+• Live heart rate and estimated calories
+• Route map (optional self-hosted tiles, otherwise a network-free vector trace)
+
+STRENGTH TRAINING
+• Customizable programs and a daily workout
+• Sets (reps × weight), total volume lifted
+• Rest timer and estimated 1RM
+• Progression tracking, exercise by exercise
+
+BLUETOOTH SENSORS
+• Heart rate chest strap (standard Heart Rate profile)
+• Cycling cadence/speed sensor
+• Automatic reconnection to your last sensor
+
+YOUR DATA, YOURS
+• Everything is stored in a local database on the device
+• Optional backup to YOUR own S3-compatible server (self-hosted) — your credentials are never shared
+• Import Strava / GPX / TCX / FIT files from your phone
+• Export your data (Markdown / JSON) via the Android share sheet
+
+PRIVACY
+Élan contains no trackers, no analytics, and sends no data to the publisher. Network access is strictly optional and configured by you.
+
+Note: calorie estimates use the MET method. They are rough estimates, not a medical measurement.

@@ -10,13 +10,13 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "supportsTablet": true,
-      "bundleIdentifier": "com.local.elan",
+      "bundleIdentifier": "ovh.battistella.elan",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.local.elan",
+      "package": "ovh.battistella.elan",
       "versionCode": 8,
       "adaptiveIcon": {
         "backgroundColor": "#0A0C10",

@@ -1,0 +1,29 @@
+Élan est un tracker d'activité physique personnel et 100 % local, conçu pour le vélo et la musculation. Vos données ne quittent jamais votre téléphone : aucun compte, aucun serveur, aucun cloud, aucune publicité.
+
+SUIVI VÉLO EN DIRECT
+• Chronomètre, distance, vitesse instantanée et maximale
+• Dénivelé positif et tracé GPS de votre parcours
+• Fréquence cardiaque en direct et calories estimées
+• Carte du parcours (fond de carte auto-hébergé optionnel, sinon tracé vectoriel sans réseau)
+
+SUIVI MUSCULATION
+• Programmes personnalisables et séance du jour
+• Séries (répétitions × charge), volume total soulevé
+• Minuteur de repos et 1RM estimé
+• Suivi de progression, exercice par exercice
+
+CAPTEURS BLUETOOTH
+• Ceinture cardiaque (profil standard Heart Rate)
+• Capteur de cadence/vitesse vélo
+• Reconnexion automatique au dernier capteur
+
+VOS DONNÉES, CHEZ VOUS
+• Tout est stocké dans une base locale sur l'appareil
+• Sauvegarde optionnelle vers VOTRE propre serveur compatible S3 (auto-hébergé) — vos identifiants ne sont jamais partagés
+• Import de fichiers Strava / GPX / TCX / FIT depuis votre téléphone
+• Export de vos données (Markdown / JSON) via le partage Android
+
+CONFIDENTIALITÉ
+Élan ne contient aucun traceur, aucun outil de mesure d'audience et n'envoie aucune donnée à l'éditeur. L'accès réseau est strictement optionnel et configuré par vous.
+
+Note : les estimations de calories reposent sur la méthode des MET. Ce sont des ordres de grandeur, pas une mesure médicale.
