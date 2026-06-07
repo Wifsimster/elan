@@ -53,3 +53,6 @@ example
 
 # Claude Code worktrees (subagents en isolation)
 .claude/worktrees/
+
+# Clés de signature Android (NE JAMAIS committer)
+credentials/

@@ -43,6 +43,46 @@ eas build --platform android --profile production
 > exporter/visualiser. À conserver précieusement (perte = impossible de mettre à
 > jour l'app sous le même package).
 
+### Alternative : build local (Gradle, sans EAS)
+
+Le projet sait aussi produire un AAB de prod **en local**, signé avec une *upload
+key* que **tu** gères (cohérent avec la philosophie local-first). La signature
+release est câblée par le config plugin **`plugins/withReleaseSigning.js`**, qui
+réinjecte le `signingConfigs.release` à chaque `expo prebuild` — donc rien à
+refaire à la main après un prebuild.
+
+Les credentials ne sont **jamais** dans le repo : ils vivent dans
+`~/.gradle/gradle.properties` (hors projet, jamais regénéré par prebuild) :
+
+```properties
+ELAN_UPLOAD_STORE_FILE=/chemin/absolu/credentials/elan-upload.jks
+ELAN_UPLOAD_KEY_ALIAS=elan-upload
+ELAN_UPLOAD_STORE_PASSWORD=…
+ELAN_UPLOAD_KEY_PASSWORD=…
+```
+
+Générer la keystore une fois (validité ~27 ans) :
+
+```bash
+keytool -genkeypair -v -keystore credentials/elan-upload.jks -alias elan-upload \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -dname "CN=Damien Battistella, O=BATTISTELLA EI, C=FR"
+```
+
+Puis builder (le profil sans la propriété retombe sur la clé debug) :
+
+```bash
+npx expo prebuild -p android --clean          # régénère android/ (le plugin câble la signature)
+cd android && ./gradlew :app:bundleRelease     # → app/build/outputs/bundle/release/app-release.aab
+./gradlew :app:signingReport | grep -A4 "Variant: release"   # vérifier l'empreinte de la clé
+```
+
+> ⚠️ `credentials/` est **gitignoré**. Sauvegarder `credentials/elan-upload.jks`
+> + les mots de passe hors du repo (gestionnaire de secrets / S3). Perte de
+> l'upload key = reset à demander à Google (Play App Signing détient la vraie
+> clé de distribution). Avec un build local, l'upload se fait **manuellement**
+> dans la Play Console (pas de `eas submit`).
+
 ## 3. Test fermé obligatoire (nouveaux comptes)
 
 Tout **nouveau compte développeur** doit, avant la production :
