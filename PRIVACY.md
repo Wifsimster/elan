@@ -1,6 +1,6 @@
 # Politique de confidentialité — Élan
 
-**Dernière mise à jour : 6 juin 2026**
+**Dernière mise à jour : 7 juin 2026**
 
 Élan est une application Android de suivi d'activité physique (vélo et musculation)
 **personnelle et locale**. Cette politique explique quelles données l'application
@@ -68,11 +68,19 @@ Vous pouvez configurer une sauvegarde vers un serveur de stockage compatible S3
 
 ### Fonds de carte (tuiles MapLibre)
 
-Pour afficher vos parcours sur une carte, vous pouvez renseigner l'URL d'un
-serveur de tuiles cartographiques. L'application récupère alors les tuiles depuis
-**ce serveur**, qui reçoit techniquement les requêtes correspondantes (dont votre
-adresse IP). À défaut d'URL, Élan affiche le tracé en mode vectoriel **sans aucun
-accès réseau**.
+Par défaut, le fond de carte en ligne est **désactivé** : Élan affiche vos
+parcours en mode vectoriel **sans aucun accès réseau**. Vous pouvez l'activer
+dans les Réglages pour obtenir un vrai fond de carte (rues). Dans ce cas, les
+tuiles sont récupérées auprès d'un serveur qui reçoit techniquement les requêtes
+correspondantes (dont votre adresse IP) :
+
+- par défaut, le service **OpenFreeMap** (`openfreemap.org`), un fournisseur de
+  tuiles **gratuit et open source** s'appuyant sur les données OpenStreetMap ;
+- ou, si vous le renseignez, **votre propre** serveur de tuiles MapLibre.
+
+BATTISTELLA EI n'opère pas ces serveurs. Seul le fournisseur que vous activez
+reçoit les requêtes. Désactivez le fond de carte en ligne pour rester totalement
+hors-ligne.
 
 ### Import de fichiers (Strava / GPX / TCX / FIT)
 

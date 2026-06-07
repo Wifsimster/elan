@@ -1,9 +1,10 @@
 import { Camera, GeoJSONSource, Layer, Map as MapView } from '@maplibre/maplibre-react-native';
 import type { Feature, LineString, Point } from 'geojson';
 import { useMemo } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Radius } from '@/constants/theme';
+import { mapAttribution } from '@/lib/map';
 import type { GeoPoint } from '@/lib/route-projection';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -24,9 +25,11 @@ type Props = {
 const lonLat = (p: GeoPoint): [number, number] => [p.lon, p.lat];
 
 /**
- * Fond de carte MapLibre (tuiles servies par le homelab) avec le tracé en
- * surimpression. Aucune tuile n'est demandée à un tiers : le style pointe
- * uniquement vers le serveur de l'utilisateur.
+ * Fond de carte MapLibre avec le tracé en surimpression. Le style provient du
+ * serveur configuré par l'utilisateur (OpenFreeMap par défaut, ou son propre
+ * serveur de tuiles). N'est rendu que si un fond de carte est activé ; sinon,
+ * `RouteMap` retombe sur le tracé SVG hors-ligne. L'attribution OSM est affichée
+ * en surimpression, comme l'exige l'usage des données OpenStreetMap.
  */
 export function MapLibreRoute({ points, styleUrl, height, color, live, interactive, fill }: Props) {
   const theme = useTheme();
@@ -34,6 +37,9 @@ export function MapLibreRoute({ points, styleUrl, height, color, live, interacti
   const coords = useMemo(() => points.map(lonLat), [points]);
   const first = coords[0];
   const last = coords[coords.length - 1];
+
+  // Attribution obligatoire dès qu'un fond de carte (données OSM) est affiché.
+  const attribution = mapAttribution(styleUrl);
 
   const bounds = useMemo(() => {
     if (coords.length < 2) return null;
@@ -138,6 +144,23 @@ export function MapLibreRoute({ points, styleUrl, height, color, live, interacti
           </GeoJSONSource>
         ) : null}
       </MapView>
+
+      {/* Attribution OSM — obligatoire dès qu'un fond de carte est affiché. */}
+      <Text
+        style={{
+          position: 'absolute',
+          right: 4,
+          bottom: 4,
+          fontSize: 9,
+          lineHeight: 12,
+          color: '#000000',
+          backgroundColor: 'rgba(255,255,255,0.7)',
+          paddingHorizontal: 4,
+          borderRadius: 3,
+          overflow: 'hidden',
+        }}>
+        {attribution}
+      </Text>
     </View>
   );
 }
