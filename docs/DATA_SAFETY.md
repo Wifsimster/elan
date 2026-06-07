@@ -1,7 +1,11 @@
 # Sécurité des données — réponses Play Console (Élan)
 
-Réponses prêtes à reporter dans **Play Console → Contenu de l'application →
-Sécurité des données**. Adapte si l'app évolue.
+Ce document fournit les réponses prêtes à l'emploi pour le questionnaire
+**Sécurité des données** de la Play Console. Il s'adresse à la personne qui
+publie l'application. À adapter si l'application évolue.
+
+Réponses à reporter dans **Play Console → Contenu de l'application →
+Sécurité des données**.
 
 ## Important : ce que « collecter » veut dire pour Google
 
@@ -12,8 +16,9 @@ faire sortir des données de l'appareil :
 
 - **Sauvegarde S3** : l'utilisateur envoie ses données vers **son propre**
   serveur (qu'il configure lui-même).
-- **Fonds de carte** : si une URL de tuiles est renseignée, le serveur de tuiles
-  reçoit techniquement l'adresse IP.
+- **Fonds de carte** : **désactivé par défaut**. Si l'utilisateur active le fond
+  de carte en ligne, le serveur de tuiles (OpenFreeMap par défaut, ou son propre
+  serveur) reçoit techniquement l'adresse IP.
 
 > **Recommandation : déclaration prudente.** Comme une transmission hors-appareil
 > est possible (sauvegarde opt-in), on déclare ces données comme « collectées »

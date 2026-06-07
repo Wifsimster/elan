@@ -1,11 +1,44 @@
 # Élan 🚴‍♂️🏋️
 
-Tracker d'activité physique **personnel et 100 % local** pour Android.
-Conçu pour le **vélo** (suivi GPS) et la **musculation**, avec prise en charge des
-capteurs externes : **GPS** et **ceinture cardiaque Bluetooth**.
+Élan est une application mobile de **suivi sportif personnel**, pensée pour le **vélo** et la **musculation**. Elle fonctionne **100 % hors-ligne** : aucune donnée ne quitte votre téléphone, sans compte ni serveur.
 
-> 🔒 **Vos données ne quittent jamais votre téléphone.** Tout est stocké dans une base
-> SQLite locale. Aucune connexion à un serveur, aucun compte, aucun cloud.
+> 🔒 **Vos données restent sur votre appareil.** Tout est stocké dans une base locale. Les seules connexions réseau sont **optionnelles** et configurées par vous-même (sauvegarde et fonds de carte sur vos propres serveurs).
+
+---
+
+## Table des matières
+
+- [À quoi sert ce produit ?](#à-quoi-sert-ce-produit-)
+- [Captures d'écran](#captures-décran)
+- [Fonctionnalités principales](#fonctionnalités-principales)
+- [Comment ça fonctionne](#comment-ça-fonctionne)
+- [Environnements](#environnements)
+- [Déploiement](#déploiement)
+- [Stack technique](#stack-technique)
+- [Documentation complémentaire](#documentation-complémentaire)
+
+### Documentation technique
+
+| Document | Description |
+|----------|-------------|
+| [Capteurs Bluetooth](docs/CAPTEURS.md) | Appairer une ceinture cardiaque ou un capteur vélo, reconnexion auto, dépannage |
+| [Importer vos sorties](docs/IMPORT.md) | Reprendre d'anciennes activités depuis des fichiers GPX, TCX ou FIT |
+| [Sauvegarde des données](docs/SAUVEGARDE.md) | Configurer la sauvegarde optionnelle vers votre propre serveur S3 |
+| [Export « coach » pour une IA](docs/EXPORT-COACH.md) | Générer un bilan d'entraînement Markdown ou JSON à analyser par une IA |
+| [Guide de publication Play Store](docs/PUBLISHING.md) | Procédure pas à pas pour publier l'application sur le Google Play Store |
+| [Sécurité des données](docs/DATA_SAFETY.md) | Réponses prêtes à l'emploi pour le questionnaire « Sécurité des données » de la Play Console |
+| [Politique de confidentialité](PRIVACY.md) | Engagement de confidentialité de l'application (texte public) |
+| [Système de design PULSE](DESIGN.md) | Règles visuelles : couleurs, typographie, composants |
+
+---
+
+## À quoi sert ce produit ?
+
+- **Mesurer vos sorties vélo** en temps réel : distance, vitesse, dénivelé et tracé du parcours.
+- **Suivre vos séances de musculation** : exercices, séries, charges soulevées et progression.
+- **Enregistrer votre fréquence cardiaque** via une ceinture Bluetooth pour estimer l'effort et les calories.
+- **Garder l'historique** de toutes vos activités et visualiser vos progrès dans le temps.
+- **Rester maître de vos données** : tout est local, sauvegardes et cartes restent sous votre contrôle.
 
 ---
 
@@ -44,107 +77,90 @@ capteurs externes : **GPS** et **ceinture cardiaque Bluetooth**.
 
 ---
 
-## Fonctionnalités
+## Fonctionnalités principales
 
-- **Séance Vélo en direct** — chronomètre, distance, vitesse instantanée et max,
-  dénivelé positif, tracé GPS, fréquence cardiaque et calories estimées.
-- **Séance Muscu en direct** — exercices, séries (répétitions × charge), volume total
-  soulevé, durée et fréquence cardiaque.
-- **Ceinture cardiaque Bluetooth** — connexion au profil GATT standard *Heart Rate*
-  (service `0x180D`), reconnexion automatique à la dernière ceinture.
-- **Tableau de bord** — résumé de la semaine et graphe d'activité sur 7 jours.
-- **Historique** — toutes les séances, filtrables par type, avec page de détail
-  (tracé du parcours, répartition des exercices).
-- **Profil** — poids et FC max, utilisés pour estimer calories et zones cardio.
+- **Séance vélo en direct** — Chronomètre, distance, vitesse instantanée et maximale, dénivelé positif, tracé GPS et calories estimées.
+- **Séance musculation en direct** — Exercices, séries (répétitions × charge), volume total soulevé et durée.
+- **Ceinture cardiaque Bluetooth** — Connexion automatique à votre capteur cardiaque et reconnexion au lancement.
+- **Capteur de cadence/vitesse vélo** — Prise en charge des capteurs Bluetooth de vélo (cadence et vitesse roue).
+- **Programmes de musculation** — Modèles de séances prêts à l'emploi (full-body, dos, cervicales) pour démarrer rapidement.
+- **Planning hebdomadaire** — Organisation de vos séances sur la semaine, avec rappels optionnels le jour prévu.
+- **Tableau de bord** — Résumé de la semaine et graphe d'activité sur 7 jours.
+- **Historique & détail** — Toutes les séances filtrables par type, avec page de détail (tracé, courbes, exercices).
+- **Progression** — Suivi des charges et des performances, exercice par exercice.
+- **Import de fichiers** — Reprise de vos anciennes sorties depuis des fichiers GPX, TCX ou FIT (Strava, autres apps).
+- **Partage d'image** — Génération d'une carte visuelle de séance à partager.
+- **Sauvegarde sur votre serveur** — Export chiffré en transit vers votre propre stockage compatible S3 (optionnel).
+- **Export « coach »** — Bilan d'entraînement lisible par une IA, à déposer dans votre propre outil de suivi.
 
-## Pile technique
+---
 
-| Domaine | Choix |
-| --- | --- |
-| Framework | [Expo](https://expo.dev) SDK 56 · React Native 0.85 · React 19 |
-| Navigation | Expo Router (typed routes) |
-| Stockage | `expo-sqlite` (base locale, migrations versionnées) |
-| GPS | `expo-location` (premier plan) |
-| Cardio BLE | `react-native-ble-plx` |
-| Carte | [MapLibre](https://maplibre.org) (`@maplibre/maplibre-react-native`, tuiles auto-hébergées) avec repli `react-native-svg` (tracé vectoriel sans réseau) |
-| Icônes | `@expo/vector-icons` (MaterialCommunityIcons) |
+## Comment ça fonctionne
 
-## ⚠️ Development build requis
-
-L'accès Bluetooth (`react-native-ble-plx`) **n'est pas disponible dans Expo Go**.
-Il faut générer un *development build* :
-
-```bash
-# Sur une machine avec Android Studio / SDK Android
-npx expo run:android
+```mermaid
+graph LR
+    A[Capteurs GPS & Bluetooth] --> B[Application Élan]
+    F[Fichiers GPX / TCX / FIT] --> B
+    B --> C[(Base de données locale)]
+    C --> D[Sauvegarde S3 personnelle]
+    C --> E[Fond de carte en ligne opt-in]
+    C --> G[Export coach / partage]
 ```
 
-Ou via EAS Build (cloud) :
+L'application collecte les données pendant la séance grâce au GPS et aux capteurs Bluetooth. Tout est enregistré dans une **base locale** sur le téléphone. Vous pouvez aussi **importer** d'anciennes activités depuis des fichiers. Les connexions externes (sauvegarde, cartes) sont **optionnelles** et pointent vers **vos propres serveurs**.
 
-```bash
-npm install -g eas-cli
-eas build --profile development --platform android
+---
+
+## Environnements
+
+L'application est **locale** : elle ne dépend d'aucun serveur de l'éditeur. Les services réseau ci-dessous sont configurés par l'utilisateur et désactivés par défaut.
+
+| Service | Configuration | Description |
+|---------|---------------|-------------|
+| Base de données | Automatique | Stockage local sur l'appareil (aucune action requise) |
+| Sauvegarde S3 | Saisie par l'utilisateur | Serveur compatible S3 (par exemple MinIO ou SeaweedFS auto-hébergé) |
+| Fonds de carte | Opt-in (désactivé par défaut) | OpenFreeMap (gratuit, open source) ou serveur de tuiles MapLibre auto-hébergé |
+
+> En l'absence de configuration, l'application reste pleinement fonctionnelle et la carte bascule sur un tracé vectoriel sans réseau.
+
+---
+
+## Déploiement
+
+```mermaid
+graph LR
+    A[Développeur] -->|Versionnement & tag| B[Build de production]
+    B -->|AAB signé| C{Méthode}
+    C -->|EAS Build| D[Play Console]
+    C -->|Build local Gradle| D
+    D -->|Test fermé puis production| E[Utilisateurs Android]
 ```
 
-Le GPS et le stockage fonctionnent aussi en *development build*.
+La diffusion passe par le **Google Play Store**. Une version de production (App Bundle `.aab`) est produite soit dans le cloud via **EAS Build**, soit **localement** avec Gradle. L'application signée est ensuite envoyée à la **Play Console**, validée en test fermé, puis publiée. Le détail complet figure dans le [guide de publication](docs/PUBLISHING.md).
 
-## Démarrage
+---
 
-```bash
-npm install
-npx expo run:android   # development build sur appareil/émulateur connecté
-```
+## Stack technique
 
-Puis, dans l'app : **Réglages → Rechercher une ceinture** pour appairer votre
-capteur cardiaque, et renseignez votre poids pour l'estimation des calories.
+- **Application :** Expo SDK 56, React Native 0.85, React 19, TypeScript
+- **Navigation :** Expo Router (routes typées)
+- **Stockage :** `expo-sqlite` (base locale, migrations versionnées)
+- **Capteurs :** `expo-location` (GPS), `react-native-ble-plx` (Bluetooth cardio & cadence)
+- **Cartes :** MapLibre — fond en ligne opt-in (OpenFreeMap ou serveur auto-hébergé) avec repli vectoriel `react-native-svg` hors-ligne
+- **Cible :** Android (iOS configuré mais secondaire)
 
-## Structure du projet
+---
 
-```
-src/
-  app/                       # Routes (Expo Router)
-    _layout.tsx              # Stack racine + HeartRateProvider + thème
-    (tabs)/                  # Onglets : Accueil, Historique, Réglages
-      index.tsx              #   Tableau de bord
-      history.tsx            #   Historique des séances
-      settings.tsx           #   Profil, ceinture, données
-    velo.tsx                 # Séance vélo en direct (plein écran)
-    muscu.tsx                # Séance muscu en direct (plein écran)
-    session/[id].tsx         # Détail d'une séance
-  components/                # UI réutilisable (Card, Button, StatTile, RouteMap…)
-  hooks/
-    use-heart-rate.tsx       # Contexte BLE partagé (ceinture cardiaque)
-    use-gps-tracker.ts       # Suivi GPS (distance, vitesse, dénivelé)
-    use-stopwatch.ts         # Chronomètre actif avec pause
-    use-theme.ts             # Thème clair/sombre
-  lib/
-    db.ts                    # Accès SQLite + migrations + requêtes
-    ble.ts                   # BleManager + parsing trame Heart Rate
-    geo.ts                   # Distance haversine
-    calories.ts              # Estimation MET + zones cardio
-    format.ts                # Formatage (durée, distance, dates…)
-    types.ts                 # Types du domaine
-```
+## Documentation complémentaire
 
-## Modèle de données (SQLite)
+- [Capteurs Bluetooth](docs/CAPTEURS.md) — Appairage ceinture cardiaque & capteur vélo.
+- [Importer vos sorties](docs/IMPORT.md) — Import de fichiers GPX, TCX et FIT.
+- [Sauvegarde des données](docs/SAUVEGARDE.md) — Sauvegarde S3 optionnelle.
+- [Export « coach » pour une IA](docs/EXPORT-COACH.md) — Bilan d'entraînement pour une IA.
+- [Guide de publication Play Store](docs/PUBLISHING.md) — Mise en ligne sur le Google Play Store.
+- [Sécurité des données](docs/DATA_SAFETY.md) — Questionnaire Play Console.
+- [Politique de confidentialité](PRIVACY.md) — Texte public de confidentialité.
+- [Système de design PULSE](DESIGN.md) — Règles visuelles de l'application.
+- [Journal des modifications](CHANGELOG.md) — Historique des versions.
 
-- `sessions` — une séance (type vélo/muscu, durée, cardio, et pour le vélo :
-  distance, vitesse, dénivelé, calories).
-- `track_points` — points GPS d'un tracé vélo (lat/lon, altitude, vitesse, FC).
-- `muscu_sets` — séries de musculation (exercice, n° de série, reps, charge).
-- `settings` — réglages clé/valeur (profil, dernière ceinture appairée).
-
-## Notes
-
-- Le suivi GPS est en **premier plan** : gardez l'app ouverte pendant la sortie
-  (l'écran reste allumé via `expo-keep-awake`).
-- L'estimation des calories repose sur la méthode des MET : c'est un ordre de
-  grandeur, pas une mesure médicale.
-
-## Scripts
-
-```bash
-npm run android      # lance le development build
-npx tsc --noEmit     # vérification de types
-npx expo lint        # linter
-```
+> **Note pour les développeurs :** le Bluetooth nécessite un *development build* (`npx expo run:android`), il ne fonctionne pas dans Expo Go. Les instructions techniques détaillées sont dans `CLAUDE.md` et `AGENTS.md`.

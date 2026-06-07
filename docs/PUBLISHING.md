@@ -2,7 +2,21 @@
 
 Guide pas à pas, de zéro à l'app en ligne. Élan utilise le workflow **managed
 Expo + EAS** (pas de dossier `android/` committé) : EAS compile, signe et peut
-soumettre l'app.
+soumettre l'app. Un build **local** (Gradle) reste possible — voir l'alternative
+à l'étape 2.
+
+```mermaid
+graph LR
+    A[Préparer le compte Play Console] --> B[Créer l'application]
+    B --> C[Build de production AAB]
+    C --> D[Test fermé 14 jours]
+    D --> E[Fiche & déclarations]
+    E --> F[Soumission Play Console]
+    F --> G[Publication]
+```
+
+Ce diagramme résume le parcours de publication. Chaque étape est détaillée
+ci-dessous.
 
 ## 0. Prérequis (une seule fois)
 
