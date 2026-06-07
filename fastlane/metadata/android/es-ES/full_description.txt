@@ -1,0 +1,29 @@
+Élan es un registro de actividad física personal y local, diseñado para ciclismo y entrenamiento de fuerza. Tus datos nunca salen de tu teléfono: sin cuenta, sin servidor, sin nube, sin anuncios.
+
+SEGUIMIENTO DE CICLISMO EN VIVO
+• Cronómetro, distancia, velocidad instantánea y máxima
+• Desnivel positivo y trazado GPS de tu ruta
+• Frecuencia cardíaca en vivo y calorías estimadas
+• Mapa de la ruta (teselas autoalojadas opcionales, o trazado vectorial sin red)
+
+ENTRENAMIENTO DE FUERZA
+• Programas personalizables y entrenamiento del día
+• Series (repeticiones × peso), volumen total levantado
+• Temporizador de descanso y 1RM estimado
+• Seguimiento del progreso, ejercicio por ejercicio
+
+SENSORES BLUETOOTH
+• Banda de frecuencia cardíaca (perfil estándar Heart Rate)
+• Sensor de cadencia/velocidad de ciclismo
+• Reconexión automática con tu último sensor
+
+TUS DATOS, TUYOS
+• Todo se almacena en una base de datos local en el dispositivo
+• Copia de seguridad opcional a TU propio servidor compatible con S3 (autoalojado): tus credenciales nunca se comparten
+• Importa archivos Strava / GPX / TCX / FIT desde tu teléfono
+• Exporta tus datos (Markdown / JSON) mediante el menú de compartir de Android
+
+PRIVACIDAD
+Élan no contiene rastreadores ni analíticas, y no envía ningún dato al editor. El acceso a la red es estrictamente opcional y lo configuras tú.
+
+Nota: las estimaciones de calorías usan el método MET. Son aproximaciones, no una medición médica.

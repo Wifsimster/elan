@@ -12,7 +12,10 @@ fastlane/metadata/android/<locale>/
   full_description.txt   # Description complète (max 4000 caractères)
 ```
 
-Locales fournies : `fr-FR`, `en-US`.
+Locales fournies : `fr-FR`, `en-US`, `es-ES`, `hi-IN`, `pt-BR`.
+
+> Les traductions es/hi/pt sont fournies pour élargir la portée ; une relecture
+> par un locuteur natif est recommandée avant la publication.
 
 ## Assets graphiques encore à produire
 
