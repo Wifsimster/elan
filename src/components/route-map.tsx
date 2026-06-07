@@ -8,7 +8,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Polyline } from 'react-native-svg';
+import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 
 import { MapLibreRoute } from '@/components/maplibre-route';
 import { Radius } from '@/constants/theme';
@@ -20,6 +20,23 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 8;
+
+/** Arrondit une distance à une valeur « ronde » (1/2/5 ×10ⁿ) pour l'échelle. */
+function niceMeters(m: number): number {
+  if (!(m > 0)) return 0;
+  const pow = Math.pow(10, Math.floor(Math.log10(m)));
+  const f = m / pow;
+  return (f >= 5 ? 5 : f >= 2 ? 2 : 1) * pow;
+}
+
+/** Libellé court d'une distance ronde : « 500 m », « 1 km », « 2,5 km ». */
+function scaleLabel(m: number): string {
+  if (m >= 1000) {
+    const km = m / 1000;
+    return `${(Number.isInteger(km) ? km : km.toFixed(1)).toString().replace('.', ',')} km`;
+  }
+  return `${Math.round(m)} m`;
+}
 
 type Props = {
   points: GeoPoint[];
@@ -115,8 +132,55 @@ function SvgRoute({ points, height = 200, color, interactive, live, scrollRef, f
   const [sx, sy] = coords[0];
   const [ex, ey] = coords[coords.length - 1];
 
+  // Décor « carte » (grille, échelle, nord) — affiché hors mode live ; en live
+  // on garde l'écran épuré (sécurité à vélo).
+  const mpp = proj.metersPerUnit;
+  const niceM = !live && mpp > 0 ? niceMeters(W * 0.28 * mpp) : 0;
+  const barUnits = niceM > 0 ? niceM / mpp : 0;
+  const nx = W - 46; // axe de la rose des vents (coin haut-droit)
+
   const svg = (
     <Svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`}>
+      {/* Grille discrète : repère visuel façon carte, sous le tracé. */}
+      {!live
+        ? [1, 2, 3, 4, 5].map((i) => (
+            <Line
+              key={`grid-v-${i}`}
+              x1={(W / 6) * i}
+              y1={0}
+              x2={(W / 6) * i}
+              y2={H}
+              stroke={theme.border}
+              strokeWidth={2}
+              strokeOpacity={0.5}
+            />
+          ))
+        : null}
+      {!live
+        ? [1, 2, 3, 4, 5].map((i) => (
+            <Line
+              key={`grid-h-${i}`}
+              x1={0}
+              y1={(H / 6) * i}
+              x2={W}
+              y2={(H / 6) * i}
+              stroke={theme.border}
+              strokeWidth={2}
+              strokeOpacity={0.5}
+            />
+          ))
+        : null}
+
+      {/* Halo sous le tracé : profondeur + lisibilité au-dessus de la grille. */}
+      <Polyline
+        points={pointsStr}
+        fill="none"
+        stroke={stroke}
+        strokeOpacity={0.16}
+        strokeWidth={22}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
       <Polyline
         points={pointsStr}
         fill="none"
@@ -136,6 +200,56 @@ function SvgRoute({ points, height = 200, color, interactive, live, scrollRef, f
         // Arrivée : anneau (forme distincte du départ).
         <Circle cx={ex} cy={ey} r={13} fill="none" stroke={theme.heart} strokeWidth={6} />
       )}
+
+      {/* Échelle de distance (bas-gauche) : repère métrique pour le tracé. */}
+      {!live && barUnits > 0 ? (
+        <>
+          <SvgText
+            x={36}
+            y={H - 50}
+            fill={theme.textSecondary}
+            fontSize={30}
+            fontWeight="700">
+            {scaleLabel(niceM)}
+          </SvgText>
+          <Line
+            x1={36}
+            y1={H - 34}
+            x2={36 + barUnits}
+            y2={H - 34}
+            stroke={theme.textSecondary}
+            strokeWidth={5}
+            strokeLinecap="round"
+          />
+          <Line x1={36} y1={H - 42} x2={36} y2={H - 26} stroke={theme.textSecondary} strokeWidth={5} />
+          <Line
+            x1={36 + barUnits}
+            y1={H - 42}
+            x2={36 + barUnits}
+            y2={H - 26}
+            stroke={theme.textSecondary}
+            strokeWidth={5}
+          />
+        </>
+      ) : null}
+
+      {/* Nord (haut-droit) : la projection garde toujours le nord en haut. */}
+      {!live ? (
+        <>
+          <Line x1={nx} y1={68} x2={nx} y2={32} stroke={theme.textSecondary} strokeWidth={5} strokeLinecap="round" />
+          <Polyline
+            points={`${nx - 9},46 ${nx},30 ${nx + 9},46`}
+            fill="none"
+            stroke={theme.textSecondary}
+            strokeWidth={5}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <SvgText x={nx} y={92} fill={theme.textSecondary} fontSize={30} fontWeight="700" textAnchor="middle">
+            N
+          </SvgText>
+        </>
+      ) : null}
     </Svg>
   );
 

@@ -9,6 +9,11 @@ export type Projection = {
   height: number;
   /** Projette un point géographique vers les coordonnées du viewBox SVG. */
   project: (p: GeoPoint) => readonly [number, number];
+  /**
+   * Mètres réels couverts par une unité du viewBox (isotrope : la projection
+   * conserve le ratio géographique). Sert à dessiner une échelle de distance.
+   */
+  metersPerUnit: number;
 };
 
 /**
@@ -45,5 +50,10 @@ export function createProjection(
     return [x, y] as const;
   };
 
-  return { width, height, project };
+  // `scale` est en unités viewBox par degré de latitude ; 1° de latitude ≈
+  // 111 320 m. La projection étant isotrope, le ratio vaut aussi pour la
+  // longitude. Garde-fou si `scale` dégénère (tracé quasi ponctuel).
+  const metersPerUnit = Number.isFinite(scale) && scale > 0 ? 111320 / scale : 0;
+
+  return { width, height, project, metersPerUnit };
 }
