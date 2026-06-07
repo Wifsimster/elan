@@ -20,7 +20,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { Radius, Type } from '@/constants/theme';
 import { clearAllData, getProfile, saveProfile } from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
-import { getMapStyleUrl, setMapStyleUrl } from '@/lib/map';
+import { getMapStyleUrl, OPENFREEMAP_STYLE_URL, setMapStyleUrl } from '@/lib/map';
 import {
   applyNotifications,
   DEFAULT_NOTIFICATION_CONFIG,
@@ -67,6 +67,21 @@ export default function SettingsScreen() {
   const updateMapUrl = (url: string) => {
     setMapUrl(url);
     setMapStyleUrl(url);
+  };
+
+  // Fond de carte en ligne : opt-in. Vide = hors-ligne (tracé SVG sans réseau).
+  const mapEnabled = mapUrl.trim().length > 0;
+  // Le champ « serveur perso » reste vide quand on utilise le preset OpenFreeMap.
+  const customMapUrl = mapUrl === OPENFREEMAP_STYLE_URL ? '' : mapUrl;
+
+  const toggleMap = (on: boolean) => {
+    updateMapUrl(on ? customMapUrl || OPENFREEMAP_STYLE_URL : '');
+  };
+
+  const updateCustomMapUrl = (url: string) => {
+    const trimmed = url.trim();
+    // Champ vidé : on retombe sur OpenFreeMap si la carte est activée, sinon hors-ligne.
+    updateMapUrl(trimmed === '' ? (mapEnabled ? OPENFREEMAP_STYLE_URL : '') : trimmed);
   };
 
   const patchProfile = (patch: Partial<Profile>) => {
@@ -308,22 +323,43 @@ export default function SettingsScreen() {
         ) : null}
       </Card>
 
-      {/* Carte (fond MapLibre auto-hébergé) */}
+      {/* Carte (fond MapLibre — opt-in) */}
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MaterialCommunityIcons name="map-outline" size={22} color={theme.velo} />
           <Text style={{ ...Type.sectionTitle, color: theme.text }}>Carte</Text>
         </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600', flex: 1 }}>
+            Fond de carte en ligne
+          </Text>
+          <Switch value={mapEnabled} onValueChange={toggleMap} />
+        </View>
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-          {'URL du style MapLibre servi par ton homelab. Renseignée, les sorties vélo affichent un vrai fond de carte (rues) ; sinon, un tracé sur fond uni. Les tuiles ne sont demandées qu’à ton serveur.'}
+          {mapEnabled
+            ? 'Vos sorties affichent un vrai fond de carte (rues). Les requêtes de tuiles (zone du parcours + adresse IP) transitent par le serveur ci-dessous. Désactivez pour rester 100 % hors-ligne.'
+            : 'Désactivé : le tracé s’affiche sur fond uni, 100 % hors-ligne (aucune donnée envoyée). Activez pour un vrai fond de carte via OpenFreeMap (gratuit, open source, sans compte).'}
         </Text>
-        <Field
-          label="URL du style"
-          placeholder="https://tiles.battistella.ovh/styles/basic/style.json"
-          value={mapUrl}
-          onChangeText={updateMapUrl}
-          keyboardType="url"
-        />
+        {mapEnabled ? (
+          <>
+            <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+              {customMapUrl
+                ? 'Fond : votre serveur de tuiles personnel.'
+                : 'Fond : OpenFreeMap (données OpenStreetMap). Aucune clé requise.'}
+            </Text>
+            <Field
+              label="Serveur de tuiles personnel (avancé, optionnel)"
+              placeholder="https://exemple.com/styles/basic/style.json"
+              value={customMapUrl}
+              onChangeText={updateCustomMapUrl}
+              keyboardType="url"
+            />
+            <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+              Laissez vide pour OpenFreeMap. Renseignez votre propre serveur MapLibre pour ne
+              dépendre d’aucun tiers.
+            </Text>
+          </>
+        ) : null}
       </Card>
 
       {/* Profil */}

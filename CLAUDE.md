@@ -24,7 +24,7 @@ Bluetooth (`react-native-ble-plx`) does **not** work in Expo Go — you must run
 
 ## Architecture
 
-A local-first, offline activity tracker for cycling (GPS) and weight training. **No backend, no accounts** — all data lives in a local SQLite DB. The only network access is **opt-in and user-configured**: a self-hosted S3 backup (`lib/s3.ts` + `lib/backup.ts`) and self-hosted MapLibre tiles (`lib/map.ts`); both are off until the user enters their own endpoint, and both degrade gracefully when absent. Strava import is **file-based** (GPX/TCX picked from disk), not an API sync. Keep it this way: do not add new network/cloud dependencies, telemetry, or third-party API sync without an explicit request.
+A local-first, offline activity tracker for cycling (GPS) and weight training. **No backend, no accounts** — all data lives in a local SQLite DB. The only network access is **opt-in and off by default**: a self-hosted S3 backup (`lib/s3.ts` + `lib/backup.ts`) and an online MapLibre basemap (`lib/map.ts` — OpenFreeMap by default once enabled, or a self-hosted style URL); both stay off until the user turns them on, and both degrade gracefully when absent. Strava import is **file-based** (GPX/TCX picked from disk), not an API sync. Keep it this way: do not add new network/cloud dependencies, telemetry, or third-party API sync without an explicit request.
 
 ### Layering
 
@@ -53,7 +53,7 @@ Single lazily-opened connection (`getDb()`), WAL mode, foreign keys on. Schema i
 
 ### Maps: MapLibre with an SVG fallback
 
-Route display goes through `components/route-map.tsx`, which is an orchestrator: if a MapLibre style URL is configured (`lib/map.ts` → `map_style_url` setting) and there are ≥2 points, it renders `components/maplibre-route.tsx` (`@maplibre/maplibre-react-native`, route as a GeoJSON LineString + start/end markers); otherwise it falls back to a pure-SVG polyline projected via `lib/route-projection.ts` — **no network, no API key**. Tiles are expected to be **self-hosted** (the user pastes their own style URL in Réglages). Keep the SVG fallback working when touching maps.
+Route display goes through `components/route-map.tsx`, which is an orchestrator: if a MapLibre style URL is configured (`lib/map.ts` → `map_style_url` setting) and there are ≥2 points, it renders `components/maplibre-route.tsx` (`@maplibre/maplibre-react-native`, route as a GeoJSON LineString + start/end markers); otherwise it falls back to a pure-SVG polyline projected via `lib/route-projection.ts` — **no network, no API key**. The online basemap is **opt-in and off by default** (`getMapStyleUrl()` returns `''` until enabled): in Réglages the user toggles it on (defaulting to the free, open-source, keyless **OpenFreeMap** style, `OPENFREEMAP_STYLE_URL`) or pastes their own self-hosted style URL. When a basemap is shown, `maplibre-route.tsx` must render the **mandatory OSM attribution** (`mapAttribution()`). Keep the SVG fallback working — and the off-by-default behaviour — when touching maps; do not hardcode a personal or third-party tile server as the silent default.
 
 ### Backup: opt-in self-hosted S3
 
