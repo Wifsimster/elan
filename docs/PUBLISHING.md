@@ -61,7 +61,9 @@ l'AAB → créer une liste d'e-mails de testeurs → partager le lien d'opt-in.
   es-ES, hi-IN, pt-BR) — copier/coller titre, description courte, description
   complète.
 - **Captures d'écran** : réutiliser `docs/screenshots/`.
-- **Feature graphic 1024×500** : à créer (obligatoire).
+- **Feature graphic 1024×500** : prêt → `fastlane/metadata/android/fr-FR/images/featureGraphic.png`
+  (logo Élan + palette PULSE, sans canal alpha — conforme à l'exigence Google).
+  Régénérable via `scripts/feature-graphic.sh`.
 - **Politique de confidentialité** : héberger `PRIVACY.md` à une URL publique
   (ex. `https://pro.battistella.ovh/elan/confidentialite`) et la coller dans
   Politique de confidentialité.
