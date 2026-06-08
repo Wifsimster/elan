@@ -32,6 +32,7 @@ export type CscStatus =
   | 'scanning'
   | 'connecting'
   | 'connected'
+  | 'reconnecting'
   | 'error';
 
 export type CscDevice = { id: string; name: string };
@@ -80,6 +81,8 @@ const DEFAULT_WHEEL_MM = 2105; // 700×25c, valeur par défaut courante
 const TIME_UNIT = 1024;
 /** Au-delà, on considère le capteur silencieux et on retombe à zéro. */
 const STALE_MS = 3000;
+/** Reconnexion auto : nombre max de tentatives par capteur après coupure involontaire. */
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 const delta = (curr: number, prev: number, mod: number) => (curr - prev + mod) % mod;
 
@@ -101,6 +104,11 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
   const listenersRef = useRef<Set<(s: CscSample) => void>>(new Set());
   const lastCadenceRef = useRef<number | null>(null);
   const lastSpeedRef = useRef<number | null>(null);
+  // Reconnexion auto par capteur (coupure involontaire d'un des deux périphériques).
+  const intentionalDisconnectRef = useRef<Set<string>>(new Set());
+  const reconnectTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const reconnectAttemptsRef = useRef<Map<string, number>>(new Map());
+  const connectRef = useRef<((deviceId: string) => Promise<void>) | null>(null);
 
   const subscribe = useCallback((listener: (sample: CscSample) => void) => {
     listenersRef.current.add(listener);
@@ -263,6 +271,15 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
         : [...connRef.current.entries()];
 
       for (const [id, conn] of targets) {
+        // Déconnexion volontaire : désarme la reconnexion auto de ce capteur
+        // (marqué AVANT cancelConnection, car onDisconnected suit aussitôt).
+        intentionalDisconnectRef.current.add(id);
+        const timer = reconnectTimersRef.current.get(id);
+        if (timer) {
+          clearTimeout(timer);
+          reconnectTimersRef.current.delete(id);
+        }
+        reconnectAttemptsRef.current.delete(id);
         conn.sub.remove();
         connRef.current.delete(id);
         lastSampleRef.current.delete(id);
@@ -290,6 +307,14 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
       if (!SUPPORTED) return;
       if (connRef.current.has(deviceId)) return;
       setError(null);
+      // Tentative volontaire : réarme la reconnexion auto et annule une tentative
+      // différée pour ce capteur.
+      intentionalDisconnectRef.current.delete(deviceId);
+      const pending = reconnectTimersRef.current.get(deviceId);
+      if (pending) {
+        clearTimeout(pending);
+        reconnectTimersRef.current.delete(deviceId);
+      }
       stopScan();
       setStatus('connecting');
       try {
@@ -320,10 +345,28 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
             lastCadenceRef.current = null;
             lastSpeedRef.current = null;
           }
-          syncDevices();
+          // Coupure involontaire : back-off exponentiel borné, propre à ce capteur.
+          const attempts = reconnectAttemptsRef.current.get(dev.id) ?? 0;
+          if (
+            !intentionalDisconnectRef.current.has(dev.id) &&
+            attempts < MAX_RECONNECT_ATTEMPTS
+          ) {
+            reconnectAttemptsRef.current.set(dev.id, attempts + 1);
+            const delay = Math.min(1000 * 2 ** attempts, 15000);
+            const timer = setTimeout(() => {
+              reconnectTimersRef.current.delete(dev.id);
+              connectRef.current?.(dev.id);
+            }, delay);
+            reconnectTimersRef.current.set(dev.id, timer);
+            if (connRef.current.size === 0) setStatus('reconnecting');
+            else syncDevices();
+          } else {
+            syncDevices();
+          }
         });
 
         connRef.current.set(dev.id, { device: dev, sub });
+        reconnectAttemptsRef.current.delete(dev.id); // connexion établie
         syncDevices();
         await persistDevices();
       } catch (e) {
@@ -338,6 +381,19 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
     circMmRef.current = mm;
     setWheelMm(mm);
     setSetting(WHEEL_MM_KEY, String(mm));
+  }, []);
+
+  // Réf vers le dernier `connect` pour la reconnexion différée.
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
+  // Nettoyage : annule toutes les reconnexions en attente au démontage.
+  useEffect(() => {
+    const timers = reconnectTimersRef.current;
+    return () => {
+      for (const t of timers.values()) clearTimeout(t);
+    };
   }, []);
 
   // Chargement initial : circonférence + reconnexion aux capteurs mémorisés.

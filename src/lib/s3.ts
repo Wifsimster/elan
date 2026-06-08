@@ -43,8 +43,11 @@ function uriEncode(str: string, encodeSlash = true): string {
 
 function parseEndpoint(endpoint: string): { origin: string; host: string } {
   const ep = endpoint.trim().replace(/\/+$/, '');
-  const m = ep.match(/^(https?:\/\/([^/]+))/i);
-  if (!m) throw new Error('Endpoint S3 invalide (attendu http(s)://hôte).');
+  // HTTPS obligatoire : une sauvegarde (clé secrète S3 + base entière) ne doit
+  // jamais transiter en clair. http:// est refusé volontairement — et de toute
+  // façon bloqué par la plateforme en release (cleartext interdit).
+  const m = ep.match(/^(https:\/\/([^/]+))/i);
+  if (!m) throw new Error('Endpoint S3 invalide : HTTPS requis (attendu https://hôte).');
   return { origin: m[1], host: m[2] };
 }
 

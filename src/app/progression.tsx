@@ -18,7 +18,8 @@ export default function ProgressionScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [items, setItems] = useState<ExerciseSummary[]>([]);
+  // null = chargement en cours (évite un flash d'état vide avant la 1re requête).
+  const [items, setItems] = useState<ExerciseSummary[] | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -39,7 +40,7 @@ export default function ProgressionScreen() {
         Suivi des charges, exercice par exercice. Touche un exercice pour voir sa courbe.
       </Text>
 
-      {items.length === 0 ? (
+      {items === null ? null : items.length === 0 ? (
         <EmptyState
           icon="chart-line"
           tint={theme.muscu}

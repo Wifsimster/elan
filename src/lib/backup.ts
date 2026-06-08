@@ -1,6 +1,14 @@
 // Sauvegarde des données vers un stockage S3-compatible auto-hébergé (homelab).
 // Sérialise toute la base en un seul objet JSON (écrasé à chaque sauvegarde).
-import { exportAll, getSetting, importAll, setSetting, type DbSnapshot } from '@/lib/db';
+import {
+  exportAll,
+  getSchemaVersion,
+  getSetting,
+  importAll,
+  SCHEMA_VERSION,
+  setSetting,
+  type DbSnapshot,
+} from '@/lib/db';
 import { getObject, putObject, type S3Config } from '@/lib/s3';
 import { nowMs } from '@/lib/time';
 
@@ -19,21 +27,26 @@ export type BackupSnapshot = {
   format: number;
   app: 'suivi-sport';
   exportedAt: number;
+  /** Version du schéma SQLite à l'export (absente = sauvegarde héritée). */
+  schema?: number;
   data: DbSnapshot;
 };
 
 export type BackupLast = { at: number; ok: boolean; error?: string };
 
 const DEFAULT_CONFIG: BackupConfig = {
-  // Pré-rempli pour le homelab SeaweedFS (s3.battistella.ovh). Les clés d'accès
-  // restent vides : à saisir une fois sur l'appareil (jamais commitées — dépôt public).
-  enabled: true,
-  endpoint: 'https://s3.battistella.ovh',
+  // Sauvegarde désactivée et non configurée par défaut : c'est une fonction
+  // opt-in « votre propre serveur ». Aucune valeur personnelle n'est pré-remplie
+  // (les champs vides affichent les placeholders de l'écran Réglages) ; rien ne
+  // part sur le réseau tant que l'utilisateur n'a pas saisi ses identifiants
+  // (runBackup/autoBackup sont gardés par isConfigComplete()).
+  enabled: false,
+  endpoint: '',
   region: 'us-east-1',
-  bucket: 'elan',
+  bucket: '',
   accessKeyId: '',
   secretAccessKey: '',
-  objectKey: 'elan-backup.json',
+  objectKey: '',
 };
 
 export async function getBackupConfig(): Promise<BackupConfig> {
@@ -80,6 +93,7 @@ export async function runBackup(config?: BackupConfig): Promise<BackupLast> {
     format: BACKUP_FORMAT,
     app: 'suivi-sport',
     exportedAt: nowMs(),
+    schema: SCHEMA_VERSION,
     data: await exportAll(),
   };
 
@@ -135,6 +149,16 @@ export async function restoreBackup(config?: BackupConfig): Promise<number> {
   if ((parsed.format ?? 1) > BACKUP_FORMAT) {
     throw new Error(
       `Sauvegarde créée par une version plus récente (format ${parsed.format}). Mettez l'application à jour.`,
+    );
+  }
+  // Garde-fou schéma : une sauvegarde d'un schéma SQLite plus récent peut
+  // contenir des colonnes/tables que cette version ne sait pas restaurer →
+  // perte silencieuse. On la refuse. (Champ absent = sauvegarde héritée : on
+  // laisse passer, son schéma est forcément ≤ courant.)
+  const currentSchema = await getSchemaVersion();
+  if ((parsed.schema ?? currentSchema) > currentSchema) {
+    throw new Error(
+      `Sauvegarde créée par une version plus récente (schéma ${parsed.schema}). Mettez l'application à jour.`,
     );
   }
 

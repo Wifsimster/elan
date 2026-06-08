@@ -43,24 +43,52 @@ const RELEASE_BUILDTYPE_SIGNED = `        release {
             // Upload key si dispo (build Play Store), sinon debug (sideload local).
             signingConfig project.hasProperty('ELAN_UPLOAD_STORE_FILE') ? signingConfigs.release : signingConfigs.debug`;
 
+// Garde-fou : un AAB destiné au Play Store (`bundleRelease`) DOIT être signé avec
+// la clé d'upload. Sans les propriétés ELAN_UPLOAD_*, on échoue le build au lieu
+// de produire un artefact signé avec la clé debug publique (re-signable, rejeté
+// par Play). Les builds APK de sideload (`assembleRelease`) gardent le repli debug.
+const RELEASE_GUARD_MARKER = 'ELAN_BUNDLE_RELEASE_UPLOAD_KEY_GUARD';
+const RELEASE_GUARD_BLOCK = `
+// ${RELEASE_GUARD_MARKER} — garde-fou cle d'upload Play Store (bundleRelease).
+gradle.taskGraph.whenReady { graph ->
+    def isPlayBundle = graph.allTasks.any { it.path == ':app:bundleRelease' }
+    if (isPlayBundle && !project.hasProperty('ELAN_UPLOAD_STORE_FILE')) {
+        throw new GradleException(
+            "bundleRelease exige la cle d'upload Play Store. Definis ELAN_UPLOAD_STORE_FILE, " +
+            "ELAN_UPLOAD_KEY_ALIAS, ELAN_UPLOAD_STORE_PASSWORD et ELAN_UPLOAD_KEY_PASSWORD " +
+            "dans ~/.gradle/gradle.properties (cf. plugins/withReleaseSigning.js)."
+        )
+    }
+}
+`;
+
 function applyReleaseSigning(contents) {
-  // Idempotent : déjà appliqué (prebuild ne réexécute qu'une fois, mais on protège).
-  if (contents.includes('ELAN_UPLOAD_STORE_FILE')) {
-    return contents;
+  let out = contents;
+
+  // Bloc signature — idempotent via le marqueur ELAN_UPLOAD_STORE_FILE.
+  if (!out.includes('ELAN_UPLOAD_STORE_FILE')) {
+    if (!out.includes(DEBUG_SIGNING_BLOCK)) {
+      throw new Error(
+        "withReleaseSigning : bloc signingConfigs.debug introuvable — template Expo modifié ?"
+      );
+    }
+    if (!out.includes(RELEASE_BUILDTYPE_DEBUG)) {
+      throw new Error(
+        "withReleaseSigning : bloc buildTypes.release introuvable — template Expo modifié ?"
+      );
+    }
+    out = out
+      .replace(DEBUG_SIGNING_BLOCK, DEBUG_SIGNING_BLOCK + '\n' + RELEASE_SIGNING_BLOCK)
+      .replace(RELEASE_BUILDTYPE_DEBUG, RELEASE_BUILDTYPE_SIGNED);
   }
-  if (!contents.includes(DEBUG_SIGNING_BLOCK)) {
-    throw new Error(
-      "withReleaseSigning : bloc signingConfigs.debug introuvable — template Expo modifié ?"
-    );
+
+  // Garde-fou bundleRelease — idempotent via son propre marqueur (indépendant du
+  // bloc signature, pour qu'il s'ajoute aussi à un build.gradle déjà migré).
+  if (!out.includes(RELEASE_GUARD_MARKER)) {
+    out = out + '\n' + RELEASE_GUARD_BLOCK;
   }
-  if (!contents.includes(RELEASE_BUILDTYPE_DEBUG)) {
-    throw new Error(
-      "withReleaseSigning : bloc buildTypes.release introuvable — template Expo modifié ?"
-    );
-  }
-  return contents
-    .replace(DEBUG_SIGNING_BLOCK, DEBUG_SIGNING_BLOCK + '\n' + RELEASE_SIGNING_BLOCK)
-    .replace(RELEASE_BUILDTYPE_DEBUG, RELEASE_BUILDTYPE_SIGNED);
+
+  return out;
 }
 
 const withReleaseSigning = (config) => {

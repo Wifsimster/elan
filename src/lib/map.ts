@@ -25,11 +25,31 @@ export const OPENFREEMAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liber
  * est désactivé (défaut). Vide → le tracé bascule sur le rendu SVG sans réseau.
  */
 export async function getMapStyleUrl(): Promise<string> {
-  return (await getSetting(KEY)) ?? '';
+  // Re-valide à la lecture : une restauration de sauvegarde (importAll) ré-applique
+  // chaque réglage sans contrôle, donc une valeur falsifiée/héritée (http://, hôte
+  // arbitraire) pourrait contourner la validation d'écriture. On retombe alors sur
+  // le rendu SVG hors-ligne plutôt que d'aller chercher des tuiles en clair.
+  const url = (await getSetting(KEY)) ?? '';
+  return isValidMapStyleUrl(url) ? url : '';
+}
+
+/**
+ * Vrai si l'URL de style est acceptable : vide (carte désactivée) ou HTTPS.
+ * Le HTTP en clair est refusé — sinon les requêtes de tuiles (zone du parcours
+ * + IP de l'appareil) partiraient en clair ; et un fond http « marcherait » en
+ * debug mais échouerait silencieusement en release (cleartext bloqué).
+ */
+export function isValidMapStyleUrl(url: string): boolean {
+  const u = url.trim();
+  return u === '' || /^https:\/\//i.test(u);
 }
 
 export async function setMapStyleUrl(url: string): Promise<void> {
-  await setSetting(KEY, url.trim());
+  const trimmed = url.trim();
+  if (!isValidMapStyleUrl(trimmed)) {
+    throw new Error('URL de style invalide : HTTPS requis.');
+  }
+  await setSetting(KEY, trimmed);
 }
 
 /**

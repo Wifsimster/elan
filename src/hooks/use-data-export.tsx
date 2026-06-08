@@ -31,15 +31,21 @@ export function useDataExport() {
       file.create();
       file.write(content);
 
-      if (!(await Sharing.isAvailableAsync())) {
-        setError("Le partage n'est pas disponible sur cet appareil.");
-        return;
+      try {
+        if (!(await Sharing.isAvailableAsync())) {
+          setError("Le partage n'est pas disponible sur cet appareil.");
+          return;
+        }
+        await Sharing.shareAsync(file.uri, {
+          mimeType: spec.mimeType,
+          UTI: spec.uti,
+          dialogTitle: 'Exporter mes données',
+        });
+      } finally {
+        // L'export contient l'historique GPS complet : on ne le laisse pas
+        // traîner dans le cache après le partage.
+        if (file.exists) file.delete();
       }
-      await Sharing.shareAsync(file.uri, {
-        mimeType: spec.mimeType,
-        UTI: spec.uti,
-        dialogTitle: 'Exporter mes données',
-      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Export impossible.');
     } finally {

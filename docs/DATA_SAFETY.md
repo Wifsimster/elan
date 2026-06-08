@@ -31,7 +31,7 @@ faire sortir des données de l'appareil :
 |---|---|
 | Votre application collecte-t-elle ou partage-t-elle des types de données utilisateur requis ? | **Oui** (par prudence, à cause de la sauvegarde opt-in) |
 | Toutes les données collectées sont-elles **chiffrées en transit** ? | **Oui** (la sauvegarde S3 utilise HTTPS) |
-| Fournissez-vous un moyen de **demander la suppression** des données ? | **Oui** (suppression dans l'app + désinstallation efface tout en local) |
+| Fournissez-vous un moyen de **demander la suppression** des données ? | **Oui** (Réglages → « Effacer toutes les séances » ou « Tout réinitialiser » qui efface aussi profil et réglages ; la désinstallation efface également tout en local) |
 
 ## Types de données à déclarer
 

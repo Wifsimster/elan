@@ -46,6 +46,8 @@ export function useGpsTracker() {
   const pointsRef = useRef<LivePoint[]>([]);
   const livePathRef = useRef<LivePoint[]>([]);
   const lastLiveRef = useRef<LivePoint | null>(null);
+  // Horodatage de la dernière émission du curseur de tête (throttle du rendu carte).
+  const lastLiveEmitRef = useRef(0);
   const lastRef = useRef<LivePoint | null>(null);
   const lastAltRef = useRef<number | null>(null);
   const pausedRef = useRef(false);
@@ -106,8 +108,13 @@ export function useGpsTracker() {
     if (lastLive == null || haversineMeters(lastLive, point) >= LIVE_DECIMATE_M) {
       livePathRef.current = [...livePathRef.current, point];
       lastLiveRef.current = point;
+      lastLiveEmitRef.current = point.ts;
       setLivePath(livePathRef.current);
-    } else {
+    } else if (point.ts - lastLiveEmitRef.current >= 2500) {
+      // Curseur de tête provisoire : la ligne figée (branche d'ancrage) reste
+      // exacte ; on throttle le re-rendu du dernier segment « vivant » à ~1/2,5 s
+      // pour éviter une recopie O(n) du tracé à chaque fix sur une longue sortie.
+      lastLiveEmitRef.current = point.ts;
       setLivePath([...livePathRef.current, point]);
     }
 
@@ -132,6 +139,7 @@ export function useGpsTracker() {
     pointsRef.current = [];
     livePathRef.current = [];
     lastLiveRef.current = null;
+    lastLiveEmitRef.current = 0;
     lastRef.current = null;
     lastAltRef.current = null;
     pausedRef.current = false;
@@ -141,7 +149,10 @@ export function useGpsTracker() {
 
     subRef.current = await Location.watchPositionAsync(
       {
-        accuracy: Location.Accuracy.BestForNavigation,
+        // `High` (~10 m) reste sous les seuils de distance/vitesse (2 m / 8 m) et
+        // alimente la même précision de tracé que `BestForNavigation`, tout en
+        // épargnant le palier GNSS le plus gourmand sur les sorties de plusieurs heures.
+        accuracy: Location.Accuracy.High,
         distanceInterval: 5,
         timeInterval: 1000,
       },
