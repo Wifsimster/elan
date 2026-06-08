@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.6.0](https://github.com/Wifsimster/tracker-activite/compare/v1.5.0...v1.6.0) (2026-06-08)
+
+
+### ✨ Fonctionnalités
+
+* **android:** feature graphic Play Store + signature de release locale durable ([#37](https://github.com/Wifsimster/tracker-activite/issues/37)) ([639e9fc](https://github.com/Wifsimster/tracker-activite/commit/639e9fc127c7d7ad567255545f857ae32880ad35))
+* **map:** online basemap opt-in (OpenFreeMap) + offline SVG polish + docs ([#38](https://github.com/Wifsimster/tracker-activite/issues/38)) ([9fe07f0](https://github.com/Wifsimster/tracker-activite/commit/9fe07f068487182eb0e97efee051b0d635f40bfa))
+* **ui:** handle landscape orientation across all interfaces ([#40](https://github.com/Wifsimster/tracker-activite/issues/40)) ([020a6e7](https://github.com/Wifsimster/tracker-activite/commit/020a6e7b6734ecf84f515bdecaa17ff19636653d))
+* **ui:** UX optimization pass (a11y, semantics, hierarchy, onboarding) ([#34](https://github.com/Wifsimster/tracker-activite/issues/34)) ([c15238e](https://github.com/Wifsimster/tracker-activite/commit/c15238e57b51105a1423b548a0c4211ce562c446))
+
 ## [1.5.0](https://github.com/Wifsimster/tracker-activite/compare/v1.4.0...v1.5.0) (2026-06-06)
 
 
