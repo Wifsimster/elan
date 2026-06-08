@@ -14,6 +14,7 @@ import { exerciseHistory, type ExercisePoint } from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
 import { exerciseByName } from '@/lib/program';
 import { epley1RM } from '@/lib/strength';
+import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
@@ -21,6 +22,7 @@ const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).rep
 export default function ExerciseScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const contentStyle = useScreenContentStyle();
   const { name } = useLocalSearchParams<{ name: string }>();
   const exercise = typeof name === 'string' ? name : '';
 
@@ -57,9 +59,9 @@ export default function ExerciseScreen() {
     <ScrollView
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={{
+        ...contentStyle,
         paddingTop: 12,
         paddingBottom: insets.bottom + 32,
-        paddingHorizontal: 16,
         gap: 14,
       }}>
       <Text style={{ ...Type.title, color: theme.text }}>{exercise}</Text>

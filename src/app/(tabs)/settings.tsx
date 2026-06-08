@@ -44,12 +44,14 @@ import { useBackup } from '@/hooks/use-backup';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useDataExport } from '@/hooks/use-data-export';
 import { useHeartRate } from '@/hooks/use-heart-rate';
+import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useStravaImport } from '@/hooks/use-strava-import';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function SettingsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const contentStyle = useScreenContentStyle();
   const hr = useHeartRate();
   const csc = useCadenceSpeed();
   const strava = useStravaImport();
@@ -181,9 +183,9 @@ export default function SettingsScreen() {
     <ScrollView
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={{
+        ...contentStyle,
         paddingTop: insets.top + 12,
         paddingBottom: 40,
-        paddingHorizontal: 16,
         gap: 16,
       }}>
       <Text style={{ ...Type.title, color: theme.text }}>Réglages</Text>

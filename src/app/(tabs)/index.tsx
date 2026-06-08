@@ -40,6 +40,7 @@ import {
   formatRelativeDays,
 } from '@/lib/format';
 import type { PeriodStats, Session } from '@/lib/types';
+import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
 function startOfWeek(): number {
@@ -64,6 +65,7 @@ function buildTrend(current: number, previous: number, fmt: (n: number) => strin
 export default function HomeScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const contentStyle = useScreenContentStyle();
   const router = useRouter();
 
   const [stats, setStats] = useState<PeriodStats | null>(null);
@@ -149,9 +151,9 @@ export default function HomeScreen() {
       <ScrollView
         style={{ backgroundColor: theme.background }}
         contentContainerStyle={{
+          ...contentStyle,
           paddingTop: insets.top + 12,
           paddingBottom: 32,
-          paddingHorizontal: 16,
           gap: 16,
         }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

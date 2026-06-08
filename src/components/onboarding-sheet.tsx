@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Radius, Type } from '@/constants/theme';
@@ -22,18 +23,25 @@ type Props = {
  */
 export function OnboardingSheet({ visible, initialWeightKg, initialMaxHr, onDone }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [weightKg, setWeightKg] = useState(initialWeightKg);
   const [maxHr, setMaxHr] = useState(initialMaxHr);
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: '#000000AA',
+      {/* ScrollView : centré quand le contenu tient, défilable sinon (paysage
+          court). Marges latérales de sécurité pour l'encoche en paysage. */}
+      <ScrollView
+        style={{ flex: 1, backgroundColor: '#000000AA' }}
+        contentContainerStyle={{
+          flexGrow: 1,
           justifyContent: 'center',
-          padding: 24,
-        }}>
+          paddingVertical: insets.top + 24,
+          paddingLeft: insets.left + 24,
+          paddingRight: insets.right + 24,
+        }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
         <View
           style={{
             backgroundColor: theme.backgroundElement,
@@ -41,6 +49,9 @@ export function OnboardingSheet({ visible, initialWeightKg, initialMaxHr, onDone
             borderCurve: 'continuous',
             padding: 24,
             gap: 16,
+            width: '100%',
+            maxWidth: 480,
+            alignSelf: 'center',
           }}>
           <View
             style={{
@@ -84,7 +95,7 @@ export function OnboardingSheet({ visible, initialWeightKg, initialMaxHr, onDone
 
           <Button title="C'est parti" icon="arrow-right" onPress={() => onDone({ weightKg, maxHr })} />
         </View>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }
