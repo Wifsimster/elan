@@ -10,6 +10,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { Radius, Type } from '@/constants/theme';
 import { listMuscuExercises, type ExerciseSummary } from '@/lib/db';
 import { formatDateShort } from '@/lib/format';
+import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
@@ -17,6 +18,7 @@ const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).rep
 export default function ProgressionScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const contentStyle = useScreenContentStyle();
   const router = useRouter();
   // null = chargement en cours (évite un flash d'état vide avant la 1re requête).
   const [items, setItems] = useState<ExerciseSummary[] | null>(null);
@@ -31,9 +33,9 @@ export default function ProgressionScreen() {
     <ScrollView
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={{
+        ...contentStyle,
         paddingTop: 12,
         paddingBottom: insets.bottom + 32,
-        paddingHorizontal: 16,
         gap: 12,
       }}>
       <Text style={{ ...Type.label, color: theme.textSecondary }}>

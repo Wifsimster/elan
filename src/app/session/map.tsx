@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Text, View } from 'react-native';
+import { ActivityIndicator, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PressableScale } from '@/components/pressable-scale';
@@ -21,6 +21,8 @@ export default function SessionMapScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // Réactif à la rotation (Dimensions.get est figé au premier rendu).
+  const { height: windowHeight } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
   const sessionId = Number(id);
 
@@ -51,7 +53,7 @@ export default function SessionMapScreen() {
           color={color}
           interactive
           fill
-          height={Dimensions.get('window').height}
+          height={windowHeight}
         />
       ) : (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -69,7 +71,7 @@ export default function SessionMapScreen() {
         style={{
           position: 'absolute',
           top: insets.top + 8,
-          left: 16,
+          left: insets.left + 16,
           width: 44,
           height: 44,
           borderRadius: Radius.pill,

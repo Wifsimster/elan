@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -44,6 +44,9 @@ const DISMISS_THRESHOLD = 120;
 export function ExerciseInfoSheet({ exercise, onClose }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  // Borne le défilement à la hauteur dispo : en paysage l'écran est court, un
+  // maxHeight fixe ferait déborder la fiche au-delà du voile.
+  const { height: windowHeight } = useWindowDimensions();
   const translateY = useSharedValue(0);
 
   const visible = exercise != null;
@@ -116,7 +119,7 @@ export function ExerciseInfoSheet({ exercise, onClose }: Props) {
               </View>
 
               <ScrollView
-                style={{ maxHeight: 420 }}
+                style={{ maxHeight: Math.min(420, windowHeight * 0.5) }}
                 contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}
                 showsVerticalScrollIndicator={false}>
                 <Text style={{ ...Type.headline, color: theme.text }}>{exercise.name}</Text>

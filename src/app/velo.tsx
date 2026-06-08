@@ -24,6 +24,7 @@ import { nowMs } from '@/lib/time';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useGpsTracker } from '@/hooks/use-gps-tracker';
 import { useHeartRate } from '@/hooks/use-heart-rate';
+import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useStopwatch } from '@/hooks/use-stopwatch';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -36,6 +37,7 @@ export default function VeloScreen() {
   useKeepAwake();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const contentStyle = useScreenContentStyle();
   const router = useRouter();
 
   const gps = useGpsTracker();
@@ -272,9 +274,9 @@ export default function VeloScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView
         contentContainerStyle={{
+          ...contentStyle,
           paddingTop: insets.top + 8,
           paddingBottom: insets.bottom + 120,
-          paddingHorizontal: 16,
           gap: 16,
         }}>
         {/* En-tête */}
@@ -387,7 +389,8 @@ export default function VeloScreen() {
           left: 0,
           right: 0,
           bottom: 0,
-          paddingHorizontal: 16,
+          paddingLeft: insets.left + 16,
+          paddingRight: insets.right + 16,
           paddingTop: 12,
           paddingBottom: insets.bottom + 12,
           backgroundColor: theme.backgroundElement,

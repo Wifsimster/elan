@@ -37,12 +37,14 @@ import {
   speedParts,
 } from '@/lib/format';
 import type { MuscuSet, Session, TrackPoint } from '@/lib/types';
+import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useSessionShare } from '@/hooks/use-session-share';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function SessionDetailScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const contentStyle = useScreenContentStyle();
   const { id } = useLocalSearchParams<{ id: string }>();
   const sessionId = Number(id);
 
@@ -166,7 +168,7 @@ export default function SessionDetailScreen() {
         ref={scrollRef}
         style={{ backgroundColor: theme.background }}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
+        contentContainerStyle={{ ...contentStyle, paddingTop: 16, gap: 16, paddingBottom: 40 }}>
         {/* En-tête */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View

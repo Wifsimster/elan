@@ -35,6 +35,7 @@ import { clearMuscuDraft, loadMuscuDraft, saveMuscuDraft } from '@/lib/muscu-dra
 import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
 import { nowMs } from '@/lib/time';
 import { useHeartRate } from '@/hooks/use-heart-rate';
+import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useStopwatch } from '@/hooks/use-stopwatch';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -80,6 +81,7 @@ export default function MuscuScreen() {
   useKeepAwake();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const contentStyle = useScreenContentStyle();
   const router = useRouter();
 
   const watch = useStopwatch();
@@ -446,9 +448,9 @@ export default function MuscuScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
+          ...contentStyle,
           paddingTop: insets.top + 8,
           paddingBottom: insets.bottom + 120,
-          paddingHorizontal: 16,
           gap: 14,
         }}>
         {/* En-tête */}
@@ -686,7 +688,8 @@ export default function MuscuScreen() {
         <RestTimer key={restEndsAt ?? 'idle'} endsAt={restEndsAt} onChange={handleRestChange} />
         <View
           style={{
-            paddingHorizontal: 16,
+            paddingLeft: insets.left + 16,
+            paddingRight: insets.right + 16,
             paddingTop: 12,
             paddingBottom: insets.bottom + 12,
             backgroundColor: theme.backgroundElement,

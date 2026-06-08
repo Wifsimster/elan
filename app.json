@@ -3,7 +3,7 @@
     "name": "Élan",
     "slug": "tracker-activite",
     "version": "1.5.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "elan",
     "userInterfaceStyle": "automatic",

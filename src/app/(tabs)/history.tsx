@@ -12,6 +12,7 @@ import { SessionRow } from '@/components/session-row';
 import { Radius, Type } from '@/constants/theme';
 import { listSessions } from '@/lib/db';
 import type { ActivityType, Session } from '@/lib/types';
+import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
 type TypeFilter = 'all' | ActivityType;
@@ -35,6 +36,7 @@ const PAGE_SIZE = 50;
 export default function HistoryScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const contentStyle = useScreenContentStyle();
   const router = useRouter();
 
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -109,9 +111,9 @@ export default function HistoryScreen() {
     <FlatList
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={{
+        ...contentStyle,
         paddingTop: insets.top + 12,
         paddingBottom: 32,
-        paddingHorizontal: 16,
         gap: 10,
       }}
       data={sessions}
