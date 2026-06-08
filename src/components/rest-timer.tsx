@@ -92,13 +92,26 @@ export function RestTimer({ endsAt, onChange }: Props) {
         </Text>
       </View>
 
-      <PressableScale onPress={() => adjust(-15)} haptic="selection" style={pill(theme)}>
+      <PressableScale
+        onPress={() => adjust(-15)}
+        haptic="selection"
+        accessibilityLabel="Réduire le repos de 15 secondes"
+        style={pill(theme)}>
         <Text style={{ color: theme.text, fontWeight: '800', fontSize: 12 }}>−15</Text>
       </PressableScale>
-      <PressableScale onPress={() => adjust(15)} haptic="selection" style={pill(theme)}>
+      <PressableScale
+        onPress={() => adjust(15)}
+        haptic="selection"
+        accessibilityLabel="Allonger le repos de 15 secondes"
+        style={pill(theme)}>
         <Text style={{ color: theme.text, fontWeight: '800', fontSize: 12 }}>+15</Text>
       </PressableScale>
-      <PressableScale onPress={() => onChange(null)} haptic="selection" scaleTo={0.85} hitSlop={8}>
+      <PressableScale
+        onPress={() => onChange(null)}
+        haptic="selection"
+        scaleTo={0.85}
+        hitSlop={8}
+        accessibilityLabel="Fermer le minuteur de repos">
         <MaterialCommunityIcons name="close-circle" size={26} color={theme.textSecondary} />
       </PressableScale>
     </View>

@@ -12,6 +12,14 @@ import type {
 
 const DB_NAME = 'suivi-sport.db';
 
+/**
+ * Version courante du schéma SQLite — doit suivre la dernière migration de
+ * `migrate()` ci-dessous (bump à chaque nouveau bloc `if (version < N)`).
+ * Sert à estampiller les sauvegardes pour refuser une restauration issue d'une
+ * version plus récente (cf. lib/backup.ts).
+ */
+export const SCHEMA_VERSION = 3;
+
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 /** Ouvre (une seule fois) la base et applique les migrations. */
@@ -103,6 +111,13 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     `);
     await db.execAsync('PRAGMA user_version = 3;');
   }
+}
+
+/** Version du schéma effectivement appliquée à la base (PRAGMA user_version). */
+export async function getSchemaVersion(): Promise<number> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;');
+  return row?.user_version ?? 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -635,6 +650,23 @@ export async function sessionRecords(s: Session): Promise<SessionRecord[]> {
 export async function clearAllData(): Promise<void> {
   const db = await getDb();
   await db.execAsync('DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions;');
+}
+
+/**
+ * Réinitialisation complète : séances, points, séries ET réglages (profil,
+ * FC max, capteurs appairés, planning, fond de carte…). Ne conserve que les
+ * clés propres à l'appareil exclues des sauvegardes (identifiants S3, statut)
+ * pour ne pas casser la configuration de sauvegarde locale. Permet d'honorer la
+ * promesse « suppression de toutes les données » du formulaire Sécurité Play.
+ */
+export async function clearAllDataIncludingSettings(): Promise<void> {
+  const db = await getDb();
+  const keep = [...BACKUP_EXCLUDED_KEYS];
+  const placeholders = keep.map(() => '?').join(', ');
+  await db.withTransactionAsync(async () => {
+    await db.execAsync('DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions;');
+    await db.runAsync(`DELETE FROM settings WHERE key NOT IN (${placeholders});`, ...keep);
+  });
 }
 
 // ---------------------------------------------------------------------------

@@ -55,6 +55,9 @@ export default function VeloScreen() {
   const startedAtRef = useRef<number>(0);
   const hrSamplesRef = useRef<HrSample[]>([]);
   const cadenceSamplesRef = useRef<CadenceSample[]>([]);
+  // Résultat figé de gps.stop() : un réessai après un échec d'enregistrement ne
+  // doit pas re-stopper le GPS ni risquer de repartir d'un tracé vidé.
+  const savedResultRef = useRef<ReturnType<typeof gps.stop> | null>(null);
 
   const hasCadenceSensor = cscDevices.length > 0 || cadenceRpm != null;
   const hasSpeedSensor = sensorSpeedKmh != null;
@@ -77,14 +80,24 @@ export default function VeloScreen() {
   // FC↔point GPS.
   useEffect(() => {
     return subscribeHr(({ ts, hr }) => {
-      if (phaseRef.current === 'active') hrSamplesRef.current.push({ ts, hr });
+      if (phaseRef.current !== 'active') return;
+      // Sur un palier (FC identique), un seul échantillon par seconde : borne le
+      // buffer sur les longues sorties sans toucher moyenne/max/attachement GPS.
+      const buf = hrSamplesRef.current;
+      const last = buf[buf.length - 1];
+      if (last && last.hr === hr && ts - last.ts < 1000) return;
+      buf.push({ ts, hr });
     });
   }, [subscribeHr]);
 
   useEffect(() => {
     return subscribeCsc(({ ts, cadenceRpm: rpm }) => {
       if (rpm == null) return;
-      if (phaseRef.current === 'active') cadenceSamplesRef.current.push({ ts, cadence: rpm });
+      if (phaseRef.current !== 'active') return;
+      const buf = cadenceSamplesRef.current;
+      const last = buf[buf.length - 1];
+      if (last && last.cadence === rpm && ts - last.ts < 1000) return;
+      buf.push({ ts, cadence: rpm });
     });
   }, [subscribeCsc]);
 
@@ -144,7 +157,9 @@ export default function VeloScreen() {
 
   const save = async () => {
     setPhase('saving');
-    const result = gps.stop();
+    // Figé au premier appel : un réessai réutilise le même tracé/agrégats.
+    const result = savedResultRef.current ?? gps.stop();
+    savedResultRef.current = result;
     watch.pause();
     const durationSec = watch.elapsedSec;
     const { avgHr, maxHr } = computeHr();
@@ -161,37 +176,47 @@ export default function VeloScreen() {
       maxHr: profileMaxHr,
     });
 
-    const id = await createSession('velo', startedAtRef.current);
-    await updateSession(id, {
-      endedAt: nowMs(),
-      durationSec,
-      distanceM: result.distanceM,
-      avgSpeedKmh,
-      maxSpeedKmh: result.maxSpeedKmh,
-      elevationGainM: result.elevationGainM,
-      avgHr,
-      maxHr,
-      avgCadence,
-      maxCadence,
-      calories,
-    });
+    try {
+      const id = await createSession('velo', startedAtRef.current);
+      await updateSession(id, {
+        endedAt: nowMs(),
+        durationSec,
+        distanceM: result.distanceM,
+        avgSpeedKmh,
+        maxSpeedKmh: result.maxSpeedKmh,
+        elevationGainM: result.elevationGainM,
+        avgHr,
+        maxHr,
+        avgCadence,
+        maxCadence,
+        calories,
+      });
 
-    // Attache la FC et la cadence les plus proches à chaque point GPS.
-    const samples = hrSamplesRef.current;
-    const cadenceSamples = cadenceSamplesRef.current;
-    const points = result.points.map((p) => ({
-      ts: p.ts,
-      lat: p.lat,
-      lon: p.lon,
-      altitude: p.altitude,
-      speedKmh: p.speedKmh,
-      hr: nearestHr(samples, p.ts),
-      cadence: nearestSample(cadenceSamples, p.ts, (s) => s.cadence),
-    }));
-    await insertTrackPoints(id, points);
+      // Attache la FC et la cadence les plus proches à chaque point GPS.
+      const samples = hrSamplesRef.current;
+      const cadenceSamples = cadenceSamplesRef.current;
+      const points = result.points.map((p) => ({
+        ts: p.ts,
+        lat: p.lat,
+        lon: p.lon,
+        altitude: p.altitude,
+        speedKmh: p.speedKmh,
+        hr: nearestHr(samples, p.ts),
+        cadence: nearestSample(cadenceSamples, p.ts, (s) => s.cadence),
+      }));
+      await insertTrackPoints(id, points);
 
-    autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
-    router.replace({ pathname: '/session/[id]', params: { id } });
+      autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
+      router.replace({ pathname: '/session/[id]', params: { id } });
+    } catch {
+      // L'écriture a échoué : on ne reste pas bloqué sur « saving ». On revient
+      // en pause pour que l'utilisateur puisse réessayer sans perdre la sortie.
+      setPhase('paused');
+      Alert.alert(
+        "Échec de l'enregistrement",
+        "La sortie n'a pas pu être enregistrée. Réessayez.",
+      );
+    }
   };
 
   const discard = () => {
@@ -254,7 +279,12 @@ export default function VeloScreen() {
         }}>
         {/* En-tête */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <PressableScale onPress={discard} haptic="selection" scaleTo={0.88} hitSlop={12}>
+          <PressableScale
+            onPress={discard}
+            haptic="selection"
+            scaleTo={0.88}
+            hitSlop={12}
+            accessibilityLabel="Quitter la sortie">
             <MaterialCommunityIcons name="close" size={26} color={theme.text} />
           </PressableScale>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

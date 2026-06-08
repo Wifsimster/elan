@@ -18,9 +18,9 @@ import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
 import { PressableScale } from '@/components/pressable-scale';
 import { Radius, Type } from '@/constants/theme';
-import { clearAllData, getProfile, saveProfile } from '@/lib/db';
+import { clearAllData, clearAllDataIncludingSettings, getProfile, saveProfile } from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
-import { getMapStyleUrl, OPENFREEMAP_STYLE_URL, setMapStyleUrl } from '@/lib/map';
+import { getMapStyleUrl, isValidMapStyleUrl, OPENFREEMAP_STYLE_URL, setMapStyleUrl } from '@/lib/map';
 import {
   applyNotifications,
   DEFAULT_NOTIFICATION_CONFIG,
@@ -66,7 +66,9 @@ export default function SettingsScreen() {
 
   const updateMapUrl = (url: string) => {
     setMapUrl(url);
-    setMapStyleUrl(url);
+    // Non-bloquant : l'appelant a déjà validé l'URL (HTTPS). Le .catch évite une
+    // rejection non gérée si une URL invalide passe malgré tout.
+    setMapStyleUrl(url).catch(() => {});
   };
 
   // Fond de carte en ligne : opt-in. Vide = hors-ligne (tracé SVG sans réseau).
@@ -80,6 +82,12 @@ export default function SettingsScreen() {
 
   const updateCustomMapUrl = (url: string) => {
     const trimmed = url.trim();
+    // Serveur de tuiles en HTTPS uniquement : un fond http fuiterait la zone du
+    // parcours + l'IP en clair, et ne fonctionnerait pas en release.
+    if (trimmed !== '' && !isValidMapStyleUrl(trimmed)) {
+      Alert.alert('URL invalide', 'Le serveur de tuiles doit être en HTTPS (https://…).');
+      return;
+    }
     // Champ vidé : on retombe sur OpenFreeMap si la carte est activée, sinon hors-ligne.
     updateMapUrl(trimmed === '' ? (mapEnabled ? OPENFREEMAP_STYLE_URL : '') : trimmed);
   };
@@ -107,11 +115,44 @@ export default function SettingsScreen() {
 
   const confirmClear = () => {
     Alert.alert(
-      'Effacer toutes les données ?',
+      'Effacer toutes les séances ?',
       'Toutes les séances enregistrées seront supprimées définitivement. Le profil et la ceinture appairée sont conservés.',
       [
         { text: 'Annuler', style: 'cancel' },
-        { text: 'Tout effacer', style: 'destructive', onPress: () => clearAllData() },
+        {
+          text: 'Tout effacer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearAllData();
+              Alert.alert('Données effacées', 'Toutes les séances ont été supprimées.');
+            } catch {
+              Alert.alert('Erreur', "L'effacement a échoué.");
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const confirmClearEverything = () => {
+    Alert.alert(
+      'Tout réinitialiser ?',
+      'Séances, profil, FC max, capteurs appairés, planning et réglages seront effacés définitivement. L’application repart de zéro.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Tout réinitialiser',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearAllDataIncludingSettings();
+              Alert.alert('Réinitialisé', 'Toutes vos données et réglages ont été effacés.');
+            } catch {
+              Alert.alert('Erreur', 'La réinitialisation a échoué.');
+            }
+          },
+        },
       ],
     );
   };
@@ -168,10 +209,18 @@ export default function SettingsScreen() {
           />
         ) : (
           <Button
-            title={hr.status === 'scanning' ? 'Recherche en cours…' : 'Rechercher une ceinture'}
+            title={
+              hr.status === 'scanning'
+                ? 'Recherche en cours…'
+                : hr.status === 'reconnecting'
+                  ? 'Reconnexion…'
+                  : 'Rechercher une ceinture'
+            }
             icon="bluetooth"
             color={theme.accent}
-            loading={hr.status === 'scanning' || hr.status === 'connecting'}
+            loading={
+              hr.status === 'scanning' || hr.status === 'connecting' || hr.status === 'reconnecting'
+            }
             onPress={hr.startScan}
           />
         )}
@@ -257,10 +306,18 @@ export default function SettingsScreen() {
         ))}
 
         <Button
-          title={csc.status === 'scanning' ? 'Recherche en cours…' : 'Rechercher un capteur'}
+          title={
+            csc.status === 'scanning'
+              ? 'Recherche en cours…'
+              : csc.status === 'reconnecting'
+                ? 'Reconnexion…'
+                : 'Rechercher un capteur'
+          }
           icon="bluetooth"
           color={theme.velo}
-          loading={csc.status === 'scanning' || csc.status === 'connecting'}
+          loading={
+            csc.status === 'scanning' || csc.status === 'connecting' || csc.status === 'reconnecting'
+          }
           onPress={csc.startScan}
         />
 
@@ -416,6 +473,16 @@ export default function SettingsScreen() {
           variant="danger"
           onPress={confirmClear}
         />
+        <Button
+          title="Tout réinitialiser (profil + réglages)"
+          icon="delete-forever-outline"
+          variant="secondary"
+          color={theme.danger}
+          onPress={confirmClearEverything}
+        />
+        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+          {'« Tout réinitialiser » efface aussi le profil, les capteurs appairés et les réglages — l’app repart comme une nouvelle installation.'}
+        </Text>
       </Card>
 
       {/* Exporter mes données (bilan IA / brut) */}
@@ -861,6 +928,7 @@ function HrStatusLine() {
   const map: Record<string, { label: string; color: string }> = {
     connected: { label: device ? `Connectée · ${device.name}` : 'Connectée', color: theme.success },
     connecting: { label: 'Connexion…', color: theme.warning },
+    reconnecting: { label: 'Reconnexion…', color: theme.warning },
     scanning: { label: 'Recherche…', color: theme.warning },
     error: { label: 'Erreur', color: theme.danger },
     idle: { label: 'Non connectée', color: theme.textSecondary },

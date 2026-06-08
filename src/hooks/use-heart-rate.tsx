@@ -30,6 +30,7 @@ export type HrStatus =
   | 'scanning'
   | 'connecting'
   | 'connected'
+  | 'reconnecting'
   | 'error';
 
 export type ScannedDevice = { id: string; name: string };
@@ -60,6 +61,8 @@ const HeartRateContext = createContext<HeartRateContextValue | null>(null);
 
 const SUPPORTED = Platform.OS === 'android' || Platform.OS === 'ios';
 const LAST_DEVICE_KEY = 'hr_device';
+/** Reconnexion auto : nombre max de tentatives après une coupure involontaire. */
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 export function HeartRateProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<HrStatus>(SUPPORTED ? 'idle' : 'unsupported');
@@ -71,6 +74,11 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
   const monitorRef = useRef<Subscription | null>(null);
   const connectedRef = useRef<Device | null>(null);
   const listenersRef = useRef<Set<(s: HrSample) => void>>(new Set());
+  // Reconnexion auto sur coupure involontaire (capteur hors de portée, etc.).
+  const userDisconnectedRef = useRef(false);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const connectRef = useRef<((deviceId: string) => Promise<void>) | null>(null);
 
   const subscribe = useCallback((listener: (sample: HrSample) => void) => {
     listenersRef.current.add(listener);
@@ -111,6 +119,13 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const disconnect = useCallback(async () => {
+    // Déconnexion volontaire : on désarme la reconnexion auto et on annule une
+    // tentative en attente AVANT cancelConnection (onDisconnected suit aussitôt).
+    userDisconnectedRef.current = true;
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
     monitorRef.current?.remove();
     monitorRef.current = null;
     const dev = connectedRef.current;
@@ -131,6 +146,13 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
     async (deviceId: string) => {
       if (!SUPPORTED) return;
       setError(null);
+      // Tentative volontaire : on réarme la reconnexion auto et on annule une
+      // tentative différée éventuellement en cours.
+      userDisconnectedRef.current = false;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       stopScan();
       setStatus('connecting');
       try {
@@ -147,8 +169,22 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
           monitorRef.current = null;
           connectedRef.current = null;
           setBpm(null);
-          setStatus('idle');
           setDevice(null);
+          // Coupure involontaire : on retente avec un back-off exponentiel borné.
+          if (
+            !userDisconnectedRef.current &&
+            reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS
+          ) {
+            const attempt = reconnectAttemptsRef.current++;
+            setStatus('reconnecting');
+            const delay = Math.min(1000 * 2 ** attempt, 15000);
+            reconnectTimerRef.current = setTimeout(() => {
+              reconnectTimerRef.current = null;
+              connectRef.current?.(deviceId);
+            }, delay);
+          } else {
+            setStatus('idle');
+          }
         });
 
         monitorRef.current = dev.monitorCharacteristicForService(
@@ -169,6 +205,7 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
         const info: ScannedDevice = { id: dev.id, name: dev.name ?? 'Ceinture cardiaque' };
         setDevice(info);
         setStatus('connected');
+        reconnectAttemptsRef.current = 0; // connexion établie : compteur remis à zéro
         await setSetting(LAST_DEVICE_KEY, JSON.stringify(info));
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Échec de connexion.');
@@ -178,6 +215,19 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
     },
     [stopScan],
   );
+
+  // Réf vers le dernier `connect` (appelé par la reconnexion différée, sans
+  // recréer le timer à chaque changement d'identité de connect).
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
+  // Nettoyage : annule une reconnexion en attente au démontage du provider.
+  useEffect(() => {
+    return () => {
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+    };
+  }, []);
 
   // Tentative de reconnexion à la dernière ceinture au lancement.
   useEffect(() => {

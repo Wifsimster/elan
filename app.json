@@ -7,6 +7,9 @@
     "icon": "./assets/images/icon.png",
     "scheme": "elan",
     "userInterfaceStyle": "automatic",
+    "updates": {
+      "enabled": false
+    },
     "ios": {
       "icon": "./assets/expo.icon",
       "supportsTablet": true,
@@ -74,7 +77,13 @@
       ],
       "@maplibre/maplibre-react-native",
       "expo-sharing",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#0A0C10"
+        }
+      ],
       [
         "expo-audio",
         {
@@ -83,7 +92,8 @@
           "enableBackgroundPlayback": false
         }
       ],
-      "./plugins/withReleaseSigning"
+      "./plugins/withReleaseSigning",
+      "./plugins/withAndroidSecurity"
     ],
     "experiments": {
       "typedRoutes": true,

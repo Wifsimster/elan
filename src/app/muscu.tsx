@@ -187,7 +187,13 @@ export default function MuscuScreen() {
   useEffect(() => {
     return subscribeHr(({ ts, hr }) => {
       if (pausedRef.current) return;
-      hrSamplesRef.current.push({ ts, hr });
+      // Down-sampling sur palier : un seul échantillon par seconde tant que la FC
+      // ne bouge pas. Borne le buffer (et le brouillon re-sérialisé à chaque set)
+      // sans altérer moyenne, max, ni l'attachement temporel.
+      const buf = hrSamplesRef.current;
+      const last = buf[buf.length - 1];
+      if (last && last.hr === hr && ts - last.ts < 1000) return;
+      buf.push({ ts, hr });
     });
   }, [subscribeHr]);
 
@@ -352,29 +358,41 @@ export default function MuscuScreen() {
       maxHr: maxHrRef.current,
     });
 
-    const id = await createSession('muscu', startedAtRef.current);
-    await updateSession(id, {
-      endedAt: nowMs(),
-      durationSec,
-      avgHr,
-      maxHr,
-      calories,
-      notes: `${exercises.length} exercices · ${totalSets} séries · ${Math.round(totalVolume)} kg soulevés`,
-    });
+    try {
+      const id = await createSession('muscu', startedAtRef.current);
+      await updateSession(id, {
+        endedAt: nowMs(),
+        durationSec,
+        avgHr,
+        maxHr,
+        calories,
+        notes: `${exercises.length} exercices · ${totalSets} séries · ${Math.round(totalVolume)} kg soulevés`,
+      });
 
-    const flat = exercises.flatMap((e) =>
-      e.sets.map((s, i) => ({
-        exercise: e.name,
-        setIndex: i + 1,
-        reps: s.reps,
-        weightKg: s.weightKg,
-      })),
-    );
-    await replaceMuscuSets(id, flat);
+      const flat = exercises.flatMap((e) =>
+        e.sets.map((s, i) => ({
+          exercise: e.name,
+          setIndex: i + 1,
+          reps: s.reps,
+          weightKg: s.weightKg,
+        })),
+      );
+      await replaceMuscuSets(id, flat);
 
-    await clearMuscuDraft(); // séance terminée : plus de brouillon à reprendre
-    autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
-    router.replace({ pathname: '/session/[id]', params: { id } });
+      // Le brouillon n'est effacé qu'APRÈS l'écriture réussie : si une étape
+      // ci-dessus lève, la séance reste reprenable au prochain lancement.
+      await clearMuscuDraft();
+      autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
+      router.replace({ pathname: '/session/[id]', params: { id } });
+    } catch {
+      // Échec d'écriture : on ne reste pas bloqué sur « saving ». Le brouillon est
+      // intact, l'utilisateur peut réessayer de terminer.
+      setSaving(false);
+      Alert.alert(
+        "Échec de l'enregistrement",
+        "La séance n'a pas pu être enregistrée. Réessayez.",
+      );
+    }
   };
 
   // Quitter sans terminer : met la séance en pause (brouillon sauvegardé,
@@ -435,7 +453,12 @@ export default function MuscuScreen() {
         }}>
         {/* En-tête */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <PressableScale onPress={exitSession} haptic="selection" scaleTo={0.88} hitSlop={12}>
+          <PressableScale
+            onPress={exitSession}
+            haptic="selection"
+            scaleTo={0.88}
+            hitSlop={12}
+            accessibilityLabel="Quitter la séance">
             <MaterialCommunityIcons name="close" size={26} color={theme.text} />
           </PressableScale>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -526,7 +549,8 @@ export default function MuscuScreen() {
                 <PressableScale
                   onPress={() => setInfoExercise(ex)}
                   haptic="selection"
-                  hitSlop={8}>
+                  hitSlop={8}
+                  accessibilityLabel={`Comment faire : ${ex.name}`}>
                   <MaterialCommunityIcons
                     name="information-outline"
                     size={22}
@@ -639,6 +663,7 @@ export default function MuscuScreen() {
             <PressableScale
               onPress={() => addExercise(draft)}
               haptic="light"
+              accessibilityLabel="Ajouter l'exercice"
               style={{
                 backgroundColor: theme.muscu,
                 borderRadius: Radius.sm,
@@ -711,7 +736,12 @@ function Summary({
 }) {
   return (
     <View style={{ alignItems: 'center', gap: 2 }}>
-      <Text style={{ ...Type.metric, fontSize: 20, color: color ?? theme.text }}>{value}</Text>
+      <Text
+        maxFontSizeMultiplier={1.2}
+        numberOfLines={1}
+        style={{ ...Type.metric, fontSize: 20, color: color ?? theme.text }}>
+        {value}
+      </Text>
       <Text style={{ ...Type.caption, color: theme.textSecondary }}>{label}</Text>
     </View>
   );

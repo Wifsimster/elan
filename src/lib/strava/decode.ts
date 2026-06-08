@@ -17,6 +17,15 @@ function isGzip(b: Uint8Array): boolean {
   return b.length >= 2 && b[0] === 0x1f && b[1] === 0x8b;
 }
 
+/** Taille décompressée annoncée par l'en-tête gzip (champ ISIZE : 4 octets de
+ *  fin, little-endian, modulo 2^32). Permet de refuser une « bombe » AVANT de
+ *  l'inflater en mémoire. */
+function declaredGunzipSize(b: Uint8Array): number {
+  if (b.length < 4) return 0;
+  const n = b.length;
+  return (b[n - 4] | (b[n - 3] << 8) | (b[n - 2] << 16) | (b[n - 1] << 24)) >>> 0;
+}
+
 function isFit(b: Uint8Array): boolean {
   // Signature « .FIT » aux octets 8–11 de l'en-tête.
   return (
@@ -28,7 +37,13 @@ function isFit(b: Uint8Array): boolean {
 export function decodeStravaBytes(bytes: Uint8Array): ParseResult {
   let data = bytes;
   if (isGzip(data)) {
+    // Garde-fou anti « zip bomb » : on rejette sur la taille annoncée AVANT
+    // d'allouer le buffer décompressé…
+    if (declaredGunzipSize(data) > MAX_DECOMPRESSED_BYTES) {
+      throw new Error('Fichier décompressé trop volumineux.');
+    }
     data = gunzipSync(data);
+    // …puis on revérifie la taille réelle (ISIZE n'est pas fiable à 100 %).
     if (data.length > MAX_DECOMPRESSED_BYTES) {
       throw new Error('Fichier décompressé trop volumineux.');
     }
