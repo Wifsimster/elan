@@ -94,9 +94,14 @@ const withManifestHardening = (config) =>
       const node = perms.find((p) => p.$ && p.$['android:name'] === name);
       if (node) {
         node.$['android:maxSdkVersion'] = '30';
-        node.$['tools:replace'] = node.$['tools:replace']
-          ? `${node.$['tools:replace']},android:maxSdkVersion`
-          : 'android:maxSdkVersion';
+        // Idempotent : prebuild relit le manifeste déjà modifié, on dédoublonne
+        // donc tools:replace (sinon « android:maxSdkVersion,android:maxSdkVersion »
+        // au 2e prebuild → erreur « Multiple entries with same key » du merger).
+        const raw = node.$['tools:replace']
+          ? node.$['tools:replace'].split(',').map((s) => s.trim()).filter(Boolean)
+          : [];
+        const parts = [...new Set([...raw, 'android:maxSdkVersion'])];
+        node.$['tools:replace'] = parts.join(',');
       }
     }
 
