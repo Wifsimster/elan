@@ -37,6 +37,7 @@ import {
   speedParts,
 } from '@/lib/format';
 import type { MuscuSet, Session, TrackPoint } from '@/lib/types';
+import { useGpxExport } from '@/hooks/use-gpx-export';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useSessionShare } from '@/hooks/use-session-share';
 import { useTheme } from '@/hooks/use-theme';
@@ -59,6 +60,7 @@ export default function SessionDetailScreen() {
   // `null` si aucun style n'est configuré (le partage retombe sur le tracé SVG).
   const [mapSnapshot, setMapSnapshot] = useState<RouteSnapshot | null>(null);
   const share = useSessionShare();
+  const gpx = useGpxExport();
   // Ref de la carte partageable (capturée en PNG lors du partage).
   const shareCardRef = useRef<View>(null);
   // Ref de la ScrollView : permet au pan de la carte de bloquer le défilement.
@@ -67,6 +69,10 @@ export default function SessionDetailScreen() {
   useEffect(() => {
     if (share.error) Alert.alert('Partage', share.error);
   }, [share.error]);
+
+  useEffect(() => {
+    if (gpx.error) Alert.alert('Export GPX', gpx.error);
+  }, [gpx.error]);
 
   // Pré-rend le fond de carte de la carte partageable (vélo avec tracé).
   useEffect(() => {
@@ -347,6 +353,16 @@ export default function SessionDetailScreen() {
           </Card>
         ) : null}
 
+        {session.type === 'velo' && points.length >= 2 ? (
+          <Button
+            title="Exporter en GPX (Strava)"
+            icon="cloud-upload-outline"
+            variant="secondary"
+            color={color}
+            loading={gpx.exporting}
+            onPress={() => gpx.exportRide(session)}
+          />
+        ) : null}
         <Button
           title="Partager la séance"
           icon="share-variant"
