@@ -1,5 +1,7 @@
 // Sauvegarde des données vers un stockage S3-compatible auto-hébergé (homelab).
 // Sérialise toute la base en un seul objet JSON (écrasé à chaque sauvegarde).
+import * as SecureStore from 'expo-secure-store';
+
 import {
   exportAll,
   getSchemaVersion,
@@ -14,6 +16,39 @@ import { nowMs } from '@/lib/time';
 
 const CONFIG_KEY = 'backup_s3';
 const LAST_KEY = 'backup_last';
+// Clés du stockage sécurisé (Keystore/Keychain) pour les identifiants S3 :
+// on ne laisse pas un secret durable en clair dans la base SQLite. Le reste de
+// la config (endpoint, bucket, région…) reste dans `settings` (non secret).
+const SECURE_AK_KEY = 'backup_s3_accessKeyId';
+const SECURE_SK_KEY = 'backup_s3_secretAccessKey';
+
+/** Champs secrets de la config, isolés du JSON `settings`. */
+const SECRET_FIELDS = ['accessKeyId', 'secretAccessKey'] as const;
+
+let secureAvailable: boolean | null = null;
+/**
+ * Vrai si le stockage sécurisé natif est disponible (Android/iOS). Sur web il
+ * ne l'est pas : on retombe alors sur l'ancien comportement (secrets dans le
+ * JSON), le web n'étant pas la cible sécurisée de l'app.
+ */
+async function hasSecureStore(): Promise<boolean> {
+  if (secureAvailable == null) {
+    try {
+      secureAvailable = await SecureStore.isAvailableAsync();
+    } catch {
+      secureAvailable = false;
+    }
+  }
+  return secureAvailable;
+}
+
+/** Écrit (ou efface, si vide) les identifiants S3 dans le stockage sécurisé. */
+async function persistSecrets(accessKeyId: string, secretAccessKey: string): Promise<void> {
+  if (accessKeyId) await SecureStore.setItemAsync(SECURE_AK_KEY, accessKeyId);
+  else await SecureStore.deleteItemAsync(SECURE_AK_KEY);
+  if (secretAccessKey) await SecureStore.setItemAsync(SECURE_SK_KEY, secretAccessKey);
+  else await SecureStore.deleteItemAsync(SECURE_SK_KEY);
+}
 
 /** Version du format de sauvegarde (indépendante du schéma SQLite). */
 const BACKUP_FORMAT = 1;
@@ -51,16 +86,48 @@ const DEFAULT_CONFIG: BackupConfig = {
 
 export async function getBackupConfig(): Promise<BackupConfig> {
   const raw = await getSetting(CONFIG_KEY);
-  if (!raw) return DEFAULT_CONFIG;
-  try {
-    return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_CONFIG;
+  let stored: Partial<BackupConfig> = {};
+  if (raw) {
+    try {
+      stored = JSON.parse(raw);
+    } catch {
+      stored = {};
+    }
   }
+
+  if (!(await hasSecureStore())) {
+    // Web / plateforme sans stockage sécurisé : comportement historique.
+    return { ...DEFAULT_CONFIG, ...stored };
+  }
+
+  // Migration héritée : si une ancienne version a laissé les secrets dans le
+  // JSON `settings`, on les déplace une fois pour toutes dans le stockage
+  // sécurisé puis on réécrit la config sans eux.
+  if (stored.accessKeyId || stored.secretAccessKey) {
+    await persistSecrets(stored.accessKeyId ?? '', stored.secretAccessKey ?? '');
+    stored = stripSecrets(stored);
+    await setSetting(CONFIG_KEY, JSON.stringify(stored));
+  }
+
+  const accessKeyId = (await SecureStore.getItemAsync(SECURE_AK_KEY)) ?? '';
+  const secretAccessKey = (await SecureStore.getItemAsync(SECURE_SK_KEY)) ?? '';
+  return { ...DEFAULT_CONFIG, ...stored, accessKeyId, secretAccessKey };
 }
 
 export async function saveBackupConfig(config: BackupConfig): Promise<void> {
-  await setSetting(CONFIG_KEY, JSON.stringify(config));
+  if (!(await hasSecureStore())) {
+    await setSetting(CONFIG_KEY, JSON.stringify(config));
+    return;
+  }
+  await persistSecrets(config.accessKeyId, config.secretAccessKey);
+  await setSetting(CONFIG_KEY, JSON.stringify(stripSecrets(config)));
+}
+
+/** Retire les champs secrets d'une config avant de l'écrire en clair dans `settings`. */
+function stripSecrets(config: Partial<BackupConfig>): Partial<BackupConfig> {
+  const rest = { ...config };
+  for (const f of SECRET_FIELDS) delete rest[f];
+  return rest;
 }
 
 export async function getBackupLast(): Promise<BackupLast | null> {

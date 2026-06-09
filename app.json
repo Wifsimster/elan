@@ -95,7 +95,8 @@
         }
       ],
       "./plugins/withReleaseSigning",
-      "./plugins/withAndroidSecurity"
+      "./plugins/withAndroidSecurity",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

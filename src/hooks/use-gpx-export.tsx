@@ -8,6 +8,7 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useState } from 'react';
 
 import { getTrackPoints } from '@/lib/db';
+import { getPrivacyZoneM, trimPrivacyZone } from '@/lib/privacy';
 import { buildRideGpx, rideFileName } from '@/lib/strava/export';
 import type { Session } from '@/lib/types';
 
@@ -20,11 +21,14 @@ export function useGpxExport() {
     setExporting(true);
     let file: File | null = null;
     try {
-      const points = await getTrackPoints(session.id);
-      if (points.length < 2) {
+      const all = await getTrackPoints(session.id);
+      if (all.length < 2) {
         setError('Aucun tracé GPS à exporter pour cette sortie.');
         return;
       }
+      // Zone de confidentialité : retire les points de départ / d'arrivée
+      // (souvent le domicile) avant d'écrire le fichier partagé.
+      const points = trimPrivacyZone(all, await getPrivacyZoneM());
       const gpx = buildRideGpx(session, points);
 
       file = new File(Paths.cache, rideFileName(session));
