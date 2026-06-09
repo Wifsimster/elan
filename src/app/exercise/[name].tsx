@@ -11,6 +11,7 @@ import { ExerciseIllustration } from '@/components/exercise-illustration';
 import { PressableScale } from '@/components/pressable-scale';
 import { Radius, Type } from '@/constants/theme';
 import { exerciseHistory, type ExercisePoint } from '@/lib/db';
+import { catalogByName, exerciseHowTo } from '@/lib/exercises';
 import { formatDateTime } from '@/lib/format';
 import { exerciseByName } from '@/lib/program';
 import { epley1RM } from '@/lib/strength';
@@ -18,6 +19,20 @@ import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
+
+/** Fiche d'exécution d'un exercice : champs minimaux affichés par l'écran. */
+type Guide = { imageKey?: string; icon?: string; muscles: string[]; howTo: string };
+
+/** Résout la fiche depuis les templates, puis le catalogue, sinon `undefined`. */
+function resolveGuide(name: string): Guide | undefined {
+  const tmpl = exerciseByName(name);
+  if (tmpl) return tmpl;
+  const cat = catalogByName(name);
+  if (cat) {
+    return { imageKey: cat.imageKey, icon: cat.icon, muscles: cat.muscles, howTo: exerciseHowTo(cat.id) ?? '' };
+  }
+  return undefined;
+}
 
 export default function ExerciseScreen() {
   const theme = useTheme();
@@ -27,9 +42,9 @@ export default function ExerciseScreen() {
   const exercise = typeof name === 'string' ? name : '';
 
   const [points, setPoints] = useState<ExercisePoint[] | null>(null);
-  // Fiche d'exécution si l'exercice fait partie du programme (illustration,
-  // muscles ciblés, comment faire). Absente pour les exercices en saisie libre.
-  const guide = exerciseByName(exercise);
+  // Fiche d'exécution si l'exercice est connu : d'abord les templates, sinon le
+  // catalogue (illustration, muscles, comment faire). Absente pour la saisie libre.
+  const guide = resolveGuide(exercise);
 
   useEffect(() => {
     if (exercise) exerciseHistory(exercise).then(setPoints);

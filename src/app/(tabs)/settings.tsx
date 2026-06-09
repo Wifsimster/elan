@@ -19,6 +19,7 @@ import { Chip } from '@/components/chip';
 import { PressableScale } from '@/components/pressable-scale';
 import { Radius, Type } from '@/constants/theme';
 import { clearAllData, clearAllDataIncludingSettings, getProfile, saveProfile } from '@/lib/db';
+import { GOALS, goalSpec } from '@/lib/exercises';
 import { formatDateTime } from '@/lib/format';
 import { getMapStyleUrl, isValidMapStyleUrl, OPENFREEMAP_STYLE_URL, setMapStyleUrl } from '@/lib/map';
 import {
@@ -38,7 +39,7 @@ import {
   type PlannedSession,
   type WorkoutTemplate,
 } from '@/lib/program';
-import type { Profile } from '@/lib/types';
+import type { Profile, Sex } from '@/lib/types';
 import { matchWheelSize, WHEEL_SIZES } from '@/lib/wheel-sizes';
 import { useBackup } from '@/hooks/use-backup';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
@@ -47,6 +48,13 @@ import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useStravaImport } from '@/hooks/use-strava-import';
 import { useTheme } from '@/hooks/use-theme';
+
+/** Options de sexe pour la personnalisation des charges (null = non précisé). */
+const SEX_OPTIONS: { value: Sex; label: string }[] = [
+  { value: null, label: 'Non précisé' },
+  { value: 'h', label: 'Homme' },
+  { value: 'f', label: 'Femme' },
+];
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -428,7 +436,7 @@ export default function SettingsScreen() {
           <Text style={{ ...Type.sectionTitle, color: theme.text }}>Profil</Text>
         </View>
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-          Utilisé pour estimer les calories et les zones cardio.
+          {'Utilisé pour estimer les calories et les zones cardio, et pour conseiller reps et charge dans le catalogue.'}
         </Text>
 
         <SettingStepper
@@ -441,6 +449,15 @@ export default function SettingsScreen() {
           onChange={(v) => patchProfile({ weightKg: v })}
         />
         <SettingStepper
+          label="Taille"
+          value={profile?.heightCm ?? 175}
+          unit="cm"
+          step={1}
+          min={120}
+          max={220}
+          onChange={(v) => patchProfile({ heightCm: v })}
+        />
+        <SettingStepper
           label="FC max"
           value={profile?.maxHr ?? 190}
           unit="bpm"
@@ -449,6 +466,45 @@ export default function SettingsScreen() {
           max={220}
           onChange={(v) => patchProfile({ maxHr: v })}
         />
+
+        {/* Objectif d'entraînement : pilote reps/charge conseillées */}
+        <View style={{ gap: 8, paddingTop: 4 }}>
+          <Text style={{ ...Type.label, color: theme.textSecondary }}>
+            Objectif (ce que tu cherches à faire)
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {GOALS.map((g) => (
+              <Chip
+                key={g.id}
+                label={g.label}
+                selected={(profile?.goal ?? 'hypertrophie') === g.id}
+                color={theme.muscu}
+                onPress={() => patchProfile({ goal: g.id })}
+              />
+            ))}
+          </View>
+          <Text style={{ color: theme.textMuted, fontSize: 12 }}>
+            {goalSpec(profile?.goal ?? 'hypertrophie').blurb}
+          </Text>
+        </View>
+
+        {/* Sexe : affine les charges conseillées (optionnel) */}
+        <View style={{ gap: 8 }}>
+          <Text style={{ ...Type.label, color: theme.textSecondary }}>
+            Sexe (affine les charges conseillées)
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {SEX_OPTIONS.map((o) => (
+              <Chip
+                key={o.label}
+                label={o.label}
+                selected={(profile?.sex ?? null) === o.value}
+                color={theme.accent}
+                onPress={() => patchProfile({ sex: o.value })}
+              />
+            ))}
+          </View>
+        </View>
       </Card>
 
       {/* Planning hebdomadaire personnalisable */}
