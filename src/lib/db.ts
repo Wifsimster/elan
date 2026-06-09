@@ -147,7 +147,13 @@ export async function deleteSetting(key: string): Promise<void> {
   await db.runAsync('DELETE FROM settings WHERE key = ?;', key);
 }
 
-const DEFAULT_PROFILE: Profile = { weightKg: 70, maxHr: 190 };
+const DEFAULT_PROFILE: Profile = {
+  weightKg: 70,
+  heightCm: 175,
+  maxHr: 190,
+  goal: 'hypertrophie',
+  sex: null,
+};
 
 export async function getProfile(): Promise<Profile> {
   const raw = await getSetting('profile');

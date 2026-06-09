@@ -4,28 +4,47 @@ import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { Chip } from '@/components/chip';
 import { Radius, Type } from '@/constants/theme';
+import { GOALS } from '@/lib/exercises';
+import type { TrainingGoal } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
   visible: boolean;
   initialWeightKg: number;
+  initialHeightCm: number;
   initialMaxHr: number;
+  initialGoal: TrainingGoal;
   /** Renvoie le profil saisi ; l'appelant le persiste et marque l'onboarding fait. */
-  onDone: (profile: { weightKg: number; maxHr: number }) => void;
+  onDone: (profile: {
+    weightKg: number;
+    heightCm: number;
+    maxHr: number;
+    goal: TrainingGoal;
+  }) => void;
 };
 
 /**
- * Accueil premier lancement (100 % local). Capture poids + FC max — sans eux,
- * les calories et les zones cardio tournent sur des valeurs par défaut (70 kg /
- * 190 bpm) silencieusement fausses dès la première séance. Rassure aussi sur le
- * fait que rien ne quitte l'appareil. Aucun compte, aucun réseau.
+ * Accueil premier lancement (100 % local). Capture poids, taille, FC max et
+ * objectif — sans eux, les calories, les zones cardio et les charges conseillées
+ * tournent sur des valeurs par défaut silencieusement approximatives dès la
+ * première séance. Rassure aussi sur le fait que rien ne quitte l'appareil.
  */
-export function OnboardingSheet({ visible, initialWeightKg, initialMaxHr, onDone }: Props) {
+export function OnboardingSheet({
+  visible,
+  initialWeightKg,
+  initialHeightCm,
+  initialMaxHr,
+  initialGoal,
+  onDone,
+}: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [weightKg, setWeightKg] = useState(initialWeightKg);
+  const [heightCm, setHeightCm] = useState(initialHeightCm);
   const [maxHr, setMaxHr] = useState(initialMaxHr);
+  const [goal, setGoal] = useState<TrainingGoal>(initialGoal);
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
@@ -83,17 +102,40 @@ export function OnboardingSheet({ visible, initialWeightKg, initialMaxHr, onDone
 
           <View style={{ gap: 12, paddingTop: 4 }}>
             <Text style={{ ...Type.label, color: theme.textSecondary }}>
-              Renseigne ton profil pour des calories et des zones cardio justes :
+              Renseigne ton profil pour des calories, des zones cardio et des charges conseillées
+              justes :
             </Text>
             <Stepper label="Poids" value={weightKg} unit="kg" step={1} min={30} max={200} onChange={setWeightKg} />
+            <Stepper label="Taille" value={heightCm} unit="cm" step={1} min={120} max={220} onChange={setHeightCm} />
             <Stepper label="FC max" value={maxHr} unit="bpm" step={1} min={120} max={220} onChange={setMaxHr} />
+          </View>
+
+          <View style={{ gap: 8 }}>
+            <Text style={{ ...Type.label, color: theme.textSecondary }}>
+              Ton objectif en musculation :
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {GOALS.map((g) => (
+                <Chip
+                  key={g.id}
+                  label={g.label}
+                  selected={goal === g.id}
+                  color={theme.accent}
+                  onPress={() => setGoal(g.id)}
+                />
+              ))}
+            </View>
           </View>
 
           <Text style={{ ...Type.caption, color: theme.textMuted }}>
             Modifiable à tout moment dans Réglages.
           </Text>
 
-          <Button title="C'est parti" icon="arrow-right" onPress={() => onDone({ weightKg, maxHr })} />
+          <Button
+            title="C'est parti"
+            icon="arrow-right"
+            onPress={() => onDone({ weightKg, heightCm, maxHr, goal })}
+          />
         </View>
       </ScrollView>
     </Modal>

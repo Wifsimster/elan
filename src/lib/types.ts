@@ -55,11 +55,26 @@ export type MuscuSet = {
   weightKg: number;
 };
 
-/** Profil utilisateur, pour l'estimation des calories. */
+/**
+ * Objectif d'entraînement musculation — pilote les fourchettes de répétitions,
+ * le repos et l'intensité (charge) conseillés par le moteur de recommandation.
+ */
+export type TrainingGoal = 'force' | 'hypertrophie' | 'endurance' | 'tonification' | 'perte-poids';
+
+/** Sexe biologique — affine la recommandation de charge. `null` = non précisé. */
+export type Sex = 'h' | 'f' | null;
+
+/** Profil utilisateur : calories, zones cardio et charges/reps conseillées. */
 export type Profile = {
   weightKg: number;
+  /** Taille en cm — entre dans la personnalisation des charges conseillées. */
+  heightCm: number;
   /** FC max théorique, pour les zones cardio. */
   maxHr: number;
+  /** Ce que l'utilisateur cherche à faire : oriente reps et charge conseillées. */
+  goal: TrainingGoal;
+  /** Sexe (optionnel) : ajuste la charge conseillée (haut du corps surtout). */
+  sex: Sex;
 };
 
 /** Statistiques agrégées sur une période. */

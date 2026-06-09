@@ -103,6 +103,7 @@ export default function RootLayout() {
                 />
                 <Stack.Screen name="progression" options={{ title: 'Progression' }} />
                 <Stack.Screen name="exercise/[name]" options={{ title: 'Progression' }} />
+                <Stack.Screen name="exercises" options={{ title: 'Catalogue d’exercices' }} />
               </Stack>
               <StatusBar style="auto" />
             </BackupProvider>

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   BackHandler,
+  Modal,
   ScrollView,
   Text,
   TextInput,
@@ -15,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
+import { ExerciseCatalog } from '@/components/exercise-catalog';
 import { ExerciseInfoSheet } from '@/components/exercise-info-sheet';
 import { PressableScale } from '@/components/pressable-scale';
 import { RestTimer } from '@/components/rest-timer';
@@ -30,6 +32,15 @@ import {
   setSetting,
   updateSession,
 } from '@/lib/db';
+import {
+  catalogById,
+  exerciseHowTo,
+  goalSpec,
+  recoHint,
+  recommend,
+  type CatalogExercise,
+  type RecoProfile,
+} from '@/lib/exercises';
 import { formatDuration } from '@/lib/format';
 import { clearMuscuDraft, loadMuscuDraft, saveMuscuDraft } from '@/lib/muscu-draft';
 import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
@@ -77,6 +88,35 @@ const nextId = () => `e${uid++}`;
 
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
 
+/**
+ * Construit un exercice de séance à partir d'une fiche du catalogue : reps,
+ * séries et charge pré-remplis depuis la recommandation (poids/taille/objectif),
+ * mais la dernière charge enregistrée prime si elle existe (continuité de la
+ * progression). Tout reste modifiable ensuite dans la séance.
+ */
+function buildCatalogExercise(
+  ex: CatalogExercise,
+  profile: RecoProfile,
+  lastWeight?: number,
+): Exercise {
+  const rec = recommend(profile, ex);
+  const reps = Math.round((rec.repsMin + rec.repsMax) / 2);
+  const unloaded = ex.timed || ex.loadFactor === 0;
+  const weight = unloaded ? 0 : (lastWeight ?? rec.weightKg);
+  return {
+    id: nextId(),
+    name: ex.name,
+    target: recoHint(ex, rec),
+    repUnit: rec.timed ? 'sec' : 'reps',
+    howTo: exerciseHowTo(ex.id),
+    muscles: ex.muscles,
+    icon: ex.icon,
+    imageKey: ex.imageKey,
+    lastWeight: unloaded ? undefined : lastWeight,
+    sets: Array.from({ length: rec.sets }, () => ({ reps, weightKg: weight })),
+  };
+}
+
 export default function MuscuScreen() {
   useKeepAwake();
   const theme = useTheme();
@@ -86,13 +126,21 @@ export default function MuscuScreen() {
 
   const watch = useStopwatch();
   const { bpm, subscribe: subscribeHr } = useHeartRate();
-  const { template } = useLocalSearchParams<{ template?: string }>();
+  const { template, add } = useLocalSearchParams<{ template?: string; add?: string }>();
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [paused, setPaused] = useState(false);
   const [infoExercise, setInfoExercise] = useState<Exercise | null>(null);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  // Profil réduit aux champs qui pilotent les recommandations du catalogue.
+  const [recoProfile, setRecoProfile] = useState<RecoProfile>({
+    weightKg: 70,
+    heightCm: 175,
+    sex: null,
+    goal: 'hypertrophie',
+  });
   // Repos inter-séries : horodatage de fin (null = aucun repos en cours).
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
 
@@ -146,12 +194,17 @@ export default function MuscuScreen() {
       if (cancelled) return;
       weightRef.current = p.weightKg;
       maxHrRef.current = p.maxHr;
+      const rp: RecoProfile = { weightKg: p.weightKg, heightCm: p.heightCm, sex: p.sex, goal: p.goal };
+      setRecoProfile(rp);
 
-      // Durée de repos préférée, mémorisée d'une séance à l'autre.
+      // Durée de repos préférée, mémorisée d'une séance à l'autre. À défaut, on
+      // part du repos conseillé pour l'objectif (force = long, endurance = court).
       const savedRest = Number(await getSetting('rest_seconds'));
       if (cancelled) return;
       if (Number.isFinite(savedRest) && savedRest > 0) {
         restDurationRef.current = Math.max(15, Math.min(600, savedRest));
+      } else {
+        restDurationRef.current = goalSpec(p.goal).restSec;
       }
 
       const draft = await loadMuscuDraft();
@@ -173,7 +226,19 @@ export default function MuscuScreen() {
         startedAtRef.current = nowMs();
         watch.start();
         const preset = templateById(template);
-        if (preset) loadTemplate(preset); // pré-chargement depuis la « Séance du jour »
+        if (preset) await loadTemplate(preset); // pré-chargement depuis la « Séance du jour »
+      }
+
+      // Ajout direct d'un exercice du catalogue (depuis l'écran « Catalogue »).
+      const addId = typeof add === 'string' ? add : undefined;
+      if (addId) {
+        const cat = catalogById(addId);
+        if (cat) {
+          const last = await lastWeightByExercise([cat.name]);
+          if (!cancelled) {
+            setExercises((prev) => [...prev, buildCatalogExercise(cat, rp, last[cat.name])]);
+          }
+        }
       }
       hydratedRef.current = true;
     })();
@@ -182,6 +247,13 @@ export default function MuscuScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Ajout d'un exercice depuis le magasin : reps/séries/charge pré-remplis
+  // depuis la recommandation, la dernière charge enregistrée prenant le relais.
+  const addCatalogExercise = async (ex: CatalogExercise) => {
+    const last = await lastWeightByExercise([ex.name]);
+    setExercises((prev) => [...prev, buildCatalogExercise(ex, recoProfile, last[ex.name])]);
+  };
 
   // Échantillonnage FC : on s'abonne aux trames BLE brutes pour ne pas perdre
   // les paliers (React déduplique les setStates identiques côté `bpm`).
@@ -642,6 +714,16 @@ export default function MuscuScreen() {
         {/* Ajout d'exercice */}
         <Card style={{ gap: 12 }}>
           <Text style={{ ...Type.subtitle, color: theme.text }}>Ajouter un exercice</Text>
+          <Button
+            title="Parcourir le catalogue"
+            icon="view-grid-outline"
+            color={theme.muscu}
+            onPress={() => setCatalogOpen(true)}
+          />
+          <Text style={{ ...Type.caption, color: theme.textSecondary, marginTop: -2 }}>
+            Plus de 40 exercices, avec reps et charge conseillés selon ton profil et ton objectif.
+          </Text>
+          <Text style={{ ...Type.caption, color: theme.textMuted }}>Ou saisis le tien :</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TextInput
               value={draft}
@@ -722,6 +804,48 @@ export default function MuscuScreen() {
       </View>
 
       <ExerciseInfoSheet exercise={infoExercise} onClose={() => setInfoExercise(null)} />
+
+      {/* Magasin d'exercices : parcourir, voir le détail, ajouter à la séance. */}
+      <Modal
+        visible={catalogOpen}
+        animationType="slide"
+        onRequestClose={() => setCatalogOpen(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: theme.background,
+            paddingTop: insets.top + 8,
+            paddingLeft: insets.left + 16,
+            paddingRight: insets.right + 16,
+            paddingBottom: insets.bottom,
+          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingBottom: 12,
+            }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <MaterialCommunityIcons name="view-grid-outline" size={22} color={theme.muscu} />
+              <Text style={{ ...Type.headline, color: theme.text }}>Catalogue</Text>
+            </View>
+            <PressableScale
+              onPress={() => setCatalogOpen(false)}
+              haptic="selection"
+              scaleTo={0.88}
+              hitSlop={12}
+              accessibilityLabel="Fermer le catalogue">
+              <MaterialCommunityIcons name="close" size={26} color={theme.text} />
+            </PressableScale>
+          </View>
+          <ExerciseCatalog
+            profile={recoProfile}
+            addedNames={exercises.map((e) => e.name)}
+            onPick={addCatalogExercise}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }

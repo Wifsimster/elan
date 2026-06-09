@@ -22,9 +22,10 @@ import {
   formatDateTime,
   formatDateShort,
 } from '@/lib/format';
+import { goalLabel } from '@/lib/exercises';
 import { TEMPLATES, WEEK_PLAN, targetHint } from '@/lib/program';
 import { nowMs } from '@/lib/time';
-import type { MuscuSet, Session } from '@/lib/types';
+import type { MuscuSet, Profile, Session } from '@/lib/types';
 
 const DAY = 86_400_000;
 const JOURS_SEMAINE = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
@@ -55,8 +56,17 @@ function groupByExercise(sets: MuscuSet[]): { exercise: string; sets: MuscuSet[]
   return order.map((exercise) => ({ exercise, sets: byEx.get(exercise)! }));
 }
 
-function profileSection(weightKg: number, maxHr: number): string {
-  return ['## Profil', '', `- Poids : ${num(weightKg)} kg`, `- FC max : ${maxHr} bpm`].join('\n');
+function profileSection(profile: Profile): string {
+  const sexLabel = profile.sex === 'h' ? 'homme' : profile.sex === 'f' ? 'femme' : 'non précisé';
+  return [
+    '## Profil',
+    '',
+    `- Poids : ${num(profile.weightKg)} kg`,
+    `- Taille : ${profile.heightCm} cm`,
+    `- FC max : ${profile.maxHr} bpm`,
+    `- Objectif : ${goalLabel(profile.goal)}`,
+    `- Sexe : ${sexLabel}`,
+  ].join('\n');
 }
 
 function programSection(): string {
@@ -228,7 +238,7 @@ export async function buildCoachMarkdown(): Promise<string> {
 
   return [
     header,
-    profileSection(profile.weightKg, profile.maxHr),
+    profileSection(profile),
     programSection(),
     await statsSection(),
     progressionSection(history),

@@ -39,7 +39,7 @@ import {
   formatDateTime,
   formatRelativeDays,
 } from '@/lib/format';
-import type { PeriodStats, Session } from '@/lib/types';
+import type { PeriodStats, Profile, Session } from '@/lib/types';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -74,8 +74,8 @@ export default function HomeScreen() {
   const [recent, setRecent] = useState<Session[]>([]);
   const [resumable, setResumable] = useState(false);
   // Accueil premier lancement : capture le profil (sinon calories/zones cardio
-  // tournent sur les valeurs par défaut 70 kg / 190 bpm, fausses en silence).
-  const [onboarding, setOnboarding] = useState<{ weightKg: number; maxHr: number } | null>(null);
+  // et charges conseillées tournent sur les valeurs par défaut, fausses en silence).
+  const [onboarding, setOnboarding] = useState<Profile | null>(null);
 
   const load = useCallback(async () => {
     const weekStart = startOfWeek();
@@ -121,7 +121,7 @@ export default function HomeScreen() {
       const done = await getSetting('onboarding_done');
       if (cancelled || done) return;
       const p = await getProfile();
-      if (!cancelled) setOnboarding({ weightKg: p.weightKg, maxHr: p.maxHr });
+      if (!cancelled) setOnboarding(p);
     })();
     return () => {
       cancelled = true;
@@ -129,13 +129,16 @@ export default function HomeScreen() {
   }, []);
 
   const finishOnboarding = useCallback(
-    async (profile: { weightKg: number; maxHr: number }) => {
-      await saveProfile(profile);
+    async (entered: { weightKg: number; heightCm: number; maxHr: number; goal: Profile['goal'] }) => {
+      // Fusionne avec le profil courant pour conserver les champs non saisis ici
+      // (le sexe, par ex., reste réglable dans Réglages).
+      const base = onboarding ?? (await getProfile());
+      await saveProfile({ ...base, ...entered });
       await setSetting('onboarding_done', '1');
       setOnboarding(null);
       load();
     },
-    [load],
+    [load, onboarding],
   );
 
   return (
@@ -144,7 +147,9 @@ export default function HomeScreen() {
         <OnboardingSheet
           visible
           initialWeightKg={onboarding.weightKg}
+          initialHeightCm={onboarding.heightCm}
           initialMaxHr={onboarding.maxHr}
+          initialGoal={onboarding.goal}
           onDone={finishOnboarding}
         />
       ) : null}
@@ -182,6 +187,33 @@ export default function HomeScreen() {
           />
         </View>
       </View>
+
+      {/* Catalogue d'exercices : découverte + charges conseillées */}
+      <Link href="/exercises" asChild>
+        <PressableScale>
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 }}>
+            <View
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: Radius.sm,
+                borderCurve: 'continuous',
+                backgroundColor: theme.muscu + '22',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <MaterialCommunityIcons name="view-grid-outline" size={24} color={theme.muscu} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ ...Type.subtitle, color: theme.text }}>Catalogue d’exercices</Text>
+              <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+                Parcourir, voir les détails et les charges conseillées.
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textMuted} />
+          </Card>
+        </PressableScale>
+      </Link>
 
       {/* Résumé de la semaine */}
       <Card>
