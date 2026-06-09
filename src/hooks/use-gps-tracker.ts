@@ -1,17 +1,18 @@
-// Suivi GPS d'une sortie vélo (premier plan).
-// Calcule distance, vitesse instantanée/max et dénivelé positif.
+// Suivi GPS d'une sortie vélo.
+// Les positions arrivent via un service de premier plan Android (lib/gps-task),
+// qui continue d'enregistrer écran éteint / app en arrière-plan — c'est ce qui
+// manquait et trouait les tracés. Chaque fix passe par lib/gps-filter
+// (porte de précision, rejet d'aberrations, Kalman, hystérésis d'altitude)
+// avant d'alimenter distance, vitesse et dénivelé.
 import { useCallback, useRef, useState } from 'react';
 import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 
 import { haversineMeters } from '@/lib/geo';
+import { GpsConsolidator, type ConsolidatedPoint } from '@/lib/gps-filter';
+import { setGpsTaskListener, startGpsUpdates, stopGpsUpdates } from '@/lib/gps-task';
 
-export type LivePoint = {
-  ts: number;
-  lat: number;
-  lon: number;
-  altitude: number | null;
-  speedKmh: number | null;
-};
+export type LivePoint = ConsolidatedPoint;
 
 export type GpsStatus = 'idle' | 'requesting' | 'denied' | 'tracking';
 
@@ -43,63 +44,52 @@ export function useGpsTracker() {
   const [livePath, setLivePath] = useState<LivePoint[]>([]);
 
   const subRef = useRef<Location.LocationSubscription | null>(null);
+  // Suivi actif via le service d'arrière-plan (sinon repli watchPositionAsync).
+  const usingTaskRef = useRef(false);
+  const consolidatorRef = useRef<GpsConsolidator | null>(null);
   const pointsRef = useRef<LivePoint[]>([]);
   const livePathRef = useRef<LivePoint[]>([]);
   const lastLiveRef = useRef<LivePoint | null>(null);
   // Horodatage de la dernière émission du curseur de tête (throttle du rendu carte).
   const lastLiveEmitRef = useRef(0);
-  const lastRef = useRef<LivePoint | null>(null);
-  const lastAltRef = useRef<number | null>(null);
   const pausedRef = useRef(false);
   const accRef = useRef<GpsState>(INITIAL);
 
   const handleFix = useCallback((loc: Location.LocationObject) => {
-    const { latitude, longitude, altitude, speed, accuracy } = loc.coords;
-    // On ignore les points trop imprécis pour éviter de gonfler la distance.
-    if (accuracy != null && accuracy > 30) {
-      accRef.current = { ...accRef.current, accuracyM: accuracy };
-      setState({ ...accRef.current });
-      return;
-    }
+    const { latitude, longitude, altitude, altitudeAccuracy, speed, accuracy } = loc.coords;
+    const consolidator = consolidatorRef.current;
+    if (!consolidator) return;
 
-    const point: LivePoint = {
+    const result = consolidator.process({
       ts: loc.timestamp,
       lat: latitude,
       lon: longitude,
       altitude: altitude ?? null,
-      speedKmh: speed != null && speed >= 0 ? speed * 3.6 : null,
-    };
+      accuracy: accuracy ?? null,
+      altitudeAccuracy: altitudeAccuracy ?? null,
+      speed: speed != null && speed >= 0 ? speed : null,
+    });
 
-    if (pausedRef.current) {
-      lastRef.current = point;
-      lastAltRef.current = altitude ?? lastAltRef.current;
+    if (result.point == null) {
+      // Fix rejeté (imprécis ou aberrant) : on n'actualise que l'indicateur de précision.
+      accRef.current = { ...accRef.current, accuracyM: accuracy ?? null };
+      setState({ ...accRef.current });
       return;
     }
 
-    const prev = lastRef.current;
+    // En pause : le filtre reste alimenté (pas de saut à la reprise) mais on ne
+    // cumule ni distance ni dénivelé et on n'enregistre pas le point.
+    if (pausedRef.current) return;
+
+    const point = result.point;
     let { distanceM, maxSpeedKmh, elevationGainM } = accRef.current;
-
-    if (prev) {
-      const d = haversineMeters(prev, point);
-      if (d >= 2) distanceM += d; // seuil anti-dérive GPS à l'arrêt
-    }
-
-    // Dénivelé positif (lissé pour réduire le bruit altimétrique).
-    if (altitude != null) {
-      const lastAlt = lastAltRef.current;
-      if (lastAlt != null && altitude - lastAlt > 1) {
-        elevationGainM += altitude - lastAlt;
-      }
-      if (lastAlt == null || Math.abs(altitude - lastAlt) > 1) {
-        lastAltRef.current = altitude;
-      }
-    }
+    distanceM += result.deltaDistanceM;
+    elevationGainM += result.deltaElevationGainM;
 
     const instSpeed = point.speedKmh ?? 0;
     if (instSpeed > maxSpeedKmh) maxSpeedKmh = instSpeed;
 
     pointsRef.current.push(point);
-    lastRef.current = point;
 
     // Alimente le tracé live décimé : on fige un point d'ancrage dès qu'il s'est
     // assez éloigné du précédent (le départ reste donc immuable). La position
@@ -136,40 +126,55 @@ export function useGpsTracker() {
       setStatus('denied');
       return false;
     }
+    consolidatorRef.current = new GpsConsolidator();
     pointsRef.current = [];
     livePathRef.current = [];
     lastLiveRef.current = null;
     lastLiveEmitRef.current = 0;
-    lastRef.current = null;
-    lastAltRef.current = null;
     pausedRef.current = false;
     accRef.current = INITIAL;
     setState(INITIAL);
     setLivePath([]);
 
-    subRef.current = await Location.watchPositionAsync(
-      {
-        // `High` (~10 m) reste sous les seuils de distance/vitesse (2 m / 8 m) et
-        // alimente la même précision de tracé que `BestForNavigation`, tout en
-        // épargnant le palier GNSS le plus gourmand sur les sorties de plusieurs heures.
-        accuracy: Location.Accuracy.High,
-        distanceInterval: 5,
-        timeInterval: 1000,
-      },
-      handleFix,
-    );
+    // Service de premier plan (notification persistante) : le GPS continue
+    // écran éteint, comme Strava. Repli sur watchPositionAsync si indisponible
+    // (web, service refusé par l'OS) — suivi limité au premier plan dans ce cas.
+    usingTaskRef.current = false;
+    if (Platform.OS !== 'web') {
+      try {
+        setGpsTaskListener((locations) => locations.forEach(handleFix));
+        await startGpsUpdates();
+        usingTaskRef.current = true;
+      } catch {
+        setGpsTaskListener(null);
+      }
+    }
+    if (!usingTaskRef.current) {
+      subRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          distanceInterval: 0,
+          timeInterval: 1000,
+        },
+        handleFix,
+      );
+    }
     setStatus('tracking');
     return true;
   }, [handleFix]);
 
   const setPaused = useCallback((paused: boolean) => {
     pausedRef.current = paused;
-    if (!paused) lastRef.current = null; // évite un saut de distance à la reprise
   }, []);
 
   const stop = useCallback(() => {
     subRef.current?.remove();
     subRef.current = null;
+    if (usingTaskRef.current) {
+      usingTaskRef.current = false;
+      setGpsTaskListener(null);
+      stopGpsUpdates(); // best-effort : coupe le service et sa notification
+    }
     setStatus('idle');
     return {
       points: pointsRef.current.slice(),
