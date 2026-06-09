@@ -72,7 +72,11 @@ export function parseHeartRate(base64Value: string | null): number | null {
   if (data.length < 2) return null;
   const flags = data[0];
   const is16bit = (flags & 0x01) === 0x01;
-  return is16bit ? data[1] | (data[2] << 8) : data[1];
+  // Une trame 16 bits annoncée mais tronquée à 2 octets ferait lire `data[2]`
+  // = undefined (→ silencieusement la valeur basse seule). On rejette plutôt
+  // que de remonter une FC fausse à partir d'une trame capteur malformée.
+  if (is16bit) return data.length < 3 ? null : data[1] | (data[2] << 8);
+  return data[1];
 }
 
 /**

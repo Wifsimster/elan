@@ -667,7 +667,7 @@ export async function clearAllData(): Promise<void> {
  */
 export async function clearAllDataIncludingSettings(): Promise<void> {
   const db = await getDb();
-  const keep = [...BACKUP_EXCLUDED_KEYS];
+  const keep = [...RESET_KEEP_KEYS];
   const placeholders = keep.map(() => '?').join(', ');
   await db.withTransactionAsync(async () => {
     await db.execAsync('DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions;');
@@ -679,8 +679,25 @@ export async function clearAllDataIncludingSettings(): Promise<void> {
 // Sauvegarde / restauration (export complet de la base)
 // ---------------------------------------------------------------------------
 
-/** Clés de réglages exclues des sauvegardes (secrets, propres à l'appareil). */
-const BACKUP_EXCLUDED_KEYS = new Set(['backup_s3', 'backup_last']);
+/**
+ * Clés de réglages exclues des sauvegardes (secrets, propres à l'appareil).
+ * `map_style_url` y figure car c'est un puits réseau sensible : une sauvegarde
+ * falsifiée pourrait y injecter un hôte HTTPS arbitraire, qui recevrait alors
+ * la zone du parcours + l'IP de l'appareil au prochain affichage de carte.
+ * L'exclure de la restauration ferme ce canal (l'utilisateur ré-active le fond
+ * de carte après une restauration) ; `map.ts` re-valide de toute façon à la
+ * lecture en défense de profondeur.
+ */
+const BACKUP_EXCLUDED_KEYS = new Set(['backup_s3', 'backup_last', 'map_style_url']);
+
+/**
+ * Réglages préservés par une réinitialisation complète (`clearAllDataIncludingSettings`) :
+ * la config de sauvegarde locale, pour ne pas la casser. À NE PAS confondre avec
+ * les clés exclues des sauvegardes : `map_style_url` est exclu des sauvegardes
+ * mais doit bien être effacé par une réinitialisation (c'est une préférence, pas
+ * une config de sauvegarde).
+ */
+const RESET_KEEP_KEYS = new Set(['backup_s3', 'backup_last']);
 
 export type DbSnapshot = {
   sessions: Session[];

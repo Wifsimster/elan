@@ -25,10 +25,11 @@ export const OPENFREEMAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liber
  * est désactivé (défaut). Vide → le tracé bascule sur le rendu SVG sans réseau.
  */
 export async function getMapStyleUrl(): Promise<string> {
-  // Re-valide à la lecture : une restauration de sauvegarde (importAll) ré-applique
-  // chaque réglage sans contrôle, donc une valeur falsifiée/héritée (http://, hôte
-  // arbitraire) pourrait contourner la validation d'écriture. On retombe alors sur
-  // le rendu SVG hors-ligne plutôt que d'aller chercher des tuiles en clair.
+  // Re-valide à la lecture (défense de profondeur). Cette clé est désormais
+  // exclue de la restauration de sauvegarde (BACKUP_EXCLUDED_KEYS) pour qu'une
+  // sauvegarde falsifiée ne puisse pas y injecter un hôte arbitraire ; on
+  // re-valide tout de même ici pour neutraliser toute valeur héritée/incorrecte
+  // (http://, etc.) en retombant sur le rendu SVG hors-ligne.
   const url = (await getSetting(KEY)) ?? '';
   return isValidMapStyleUrl(url) ? url : '';
 }
