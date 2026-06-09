@@ -29,7 +29,7 @@ A local-first, offline activity tracker for cycling (GPS) and weight training. *
 ### Layering
 
 - `src/app/` — Expo Router routes (file-based, typed routes enabled). Screens orchestrate UI + call into `lib/`.
-- `src/lib/` — framework-agnostic domain logic: `db.ts` (all SQLite access), `ble.ts` (BLE manager + Heart Rate frame parsing), `geo.ts` (haversine + route decimation), `calories.ts` (MET estimate + HR zones), `route-projection.ts` (geo→SVG screen projection), `program.ts` (built-in workout templates), `wheel-sizes.ts` (cadence→speed gear tables), `s3.ts` (pure-JS S3 client, AWS SigV4 via `js-sha256`), `backup.ts` (snapshot export/import + S3 sync), `coach-export.ts` (builds a curated Markdown training report + raw JSON export, shared via the OS share sheet — for feeding a Claude Code project), `map.ts` (MapLibre style-URL setting), `strava/` (`parse.ts` regex GPX/TCX parser + `import.ts` normalization/dedup), `format.ts`, `time.ts`, `activity.ts`, `haptics.ts`, `types.ts` (domain types).
+- `src/lib/` — framework-agnostic domain logic: `db.ts` (all SQLite access), `ble.ts` (BLE manager + Heart Rate frame parsing), `geo.ts` (haversine + route decimation), `gps-filter.ts` (GPS consolidation: accuracy gating, outlier rejection, Kalman smoothing, anchor-based distance, elevation hysteresis), `gps-task.ts` (background location task: expo-task-manager + Android foreground service), `calories.ts` (MET estimate + HR zones), `route-projection.ts` (geo→SVG screen projection), `program.ts` (built-in workout templates), `wheel-sizes.ts` (cadence→speed gear tables), `s3.ts` (pure-JS S3 client, AWS SigV4 via `js-sha256`), `backup.ts` (snapshot export/import + S3 sync), `coach-export.ts` (builds a curated Markdown training report + raw JSON export, shared via the OS share sheet — for feeding a Claude Code project), `map.ts` (MapLibre style-URL setting), `strava/` (`parse.ts` regex GPX/TCX parser + `import.ts` normalization/dedup), `format.ts`, `time.ts`, `activity.ts`, `haptics.ts`, `types.ts` (domain types).
 - `src/hooks/` — stateful React glue: `use-heart-rate.tsx` (BLE HR context), `use-cadence-speed.tsx` (BLE CSC sensor context), `use-backup.tsx` (S3 backup context), `use-data-export.tsx` (writes the coach report/JSON to cache + opens the share sheet), `use-gps-tracker.ts`, `use-stopwatch.ts`, `use-strava-import.tsx`, `use-theme.ts`, `use-color-scheme.ts`.
 - `src/components/` — reusable UI, themed via `useTheme()` + inline `StyleSheet`-style objects (see below).
 
@@ -46,6 +46,8 @@ Root Stack wraps everything in `GestureHandlerRootView` → `ThemeProvider` → 
 ### Data flow for a live session
 
 A session screen (`velo.tsx` / `muscu.tsx`) accumulates samples in memory during the workout, then on stop: `createSession()` → `updateSession()` with aggregates → bulk-insert detail rows (`insertTrackPoints` / `replaceMuscuSets`) → `router.replace()` to `session/[id]`. Sessions with `endedAt IS NULL` are "in progress" and are excluded from history/stats queries.
+
+GPS recording (`use-gps-tracker.ts`) runs through an **Android foreground service** (`lib/gps-task.ts`, persistent notification — no background-location permission needed) so fixes keep arriving with the screen off; `watchPositionAsync` is only a fallback (web / service refused). Every fix goes through `lib/gps-filter.ts` (`GpsConsolidator`) before touching distance/elevation aggregates — don't accumulate raw fixes in screens, and keep the filter free of React imports.
 
 ### SQLite (`src/lib/db.ts`)
 

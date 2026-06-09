@@ -63,7 +63,9 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Cette application utilise votre position pour mesurer la distance, la vitesse et le tracé de vos sorties vélo. Les données restent sur votre appareil."
+          "locationWhenInUsePermission": "Cette application utilise votre position pour mesurer la distance, la vitesse et le tracé de vos sorties vélo. Les données restent sur votre appareil.",
+          "isAndroidForegroundServiceEnabled": true,
+          "androidForegroundServiceIcon": "./assets/images/android-icon-monochrome.png"
         }
       ],
       "expo-sqlite",
