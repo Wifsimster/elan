@@ -238,7 +238,7 @@ export default function HistoryScreen() {
             return (
               <EmptyState
                 icon="clipboard-text-clock-outline"
-                title="Rien à afficher"
+                title={filtered ? 'Aucun résultat' : 'Votre historique est vide'}
                 subtitle={
                   filtered
                     ? 'Aucune séance ne correspond à ces filtres.'

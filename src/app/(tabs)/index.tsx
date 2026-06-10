@@ -173,18 +173,21 @@ export default function HomeScreen() {
       <TodayCard lastSessionAt={recent[0]?.startedAt ?? null} resumable={resumable} />
 
       {/* Démarrer une séance — ou reprendre la muscu en pause */}
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          <Button title="Vélo" icon="bike" size="lg" color={theme.velo} onPress={() => router.push('/velo')} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            title={resumable ? 'Reprendre' : 'Muscu'}
-            icon={resumable ? 'play' : 'dumbbell'}
-            size="lg"
-            color={theme.muscu}
-            onPress={() => router.push('/muscu')}
-          />
+      <View style={{ gap: 10 }}>
+        <Text style={{ ...Type.overline, color: theme.textSecondary }}>Démarrer une séance</Text>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Button title="Vélo" icon="bike" size="lg" color={theme.velo} onPress={() => router.push('/velo')} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              title={resumable ? 'Reprendre' : 'Muscu'}
+              icon={resumable ? 'play' : 'dumbbell'}
+              size="lg"
+              color={theme.muscu}
+              onPress={() => router.push('/muscu')}
+            />
+          </View>
         </View>
       </View>
 
@@ -294,7 +297,7 @@ export default function HomeScreen() {
         <Card>
           <EmptyState
             icon="run-fast"
-            title="Aucune séance"
+            title="Votre première séance vous attend"
             subtitle="Démarrez une sortie vélo ou une séance de muscu pour commencer."
           />
         </Card>
@@ -414,7 +417,7 @@ function TodayCard({
         </View>
       </View>
       <Button
-        title={isResumeMuscu ? 'Reprendre' : 'Démarrer'}
+        title={isResumeMuscu ? 'Reprendre' : 'Démarrer la séance'}
         icon="play"
         color={color}
         onPress={start}
