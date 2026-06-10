@@ -43,6 +43,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withAndroidSecurity",
       "expo-router",
       [
         "expo-splash-screen",
@@ -95,7 +96,6 @@
         }
       ],
       "./plugins/withReleaseSigning",
-      "./plugins/withAndroidSecurity",
       "expo-secure-store"
     ],
     "experiments": {

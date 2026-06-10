@@ -12,6 +12,10 @@
 //   3. R8 en release : minification + obfuscation + shrink des ressources. La
 //      couche native serait sinon livrée non obfusquée (le JS est déjà du
 //      bytecode Hermes). À vérifier par un build release avant publication.
+//
+// Ce plugin doit rester EN PREMIER dans app.json → plugins : les mods manifest
+// s'exécutent en ordre inverse d'enregistrement, et le dédoublonnage (point 5)
+// doit passer APRÈS react-native-ble-plx qui réinjecte ses permissions.
 
 const { withAndroidManifest, withGradleProperties } = require('@expo/config-plugins');
 
@@ -87,6 +91,27 @@ const withManifestHardening = (config) =>
       existing.$['tools:node'] = 'remove';
     } else {
       perms.push({ $: { 'android:name': SYSTEM_ALERT_WINDOW, 'tools:node': 'remove' } });
+    }
+
+    // 5. Dédoublonnage localisation : la lib react-native-ble-plx déclare des
+    //    <uses-permission-sdk-23> ACCESS_FINE/COARSE_LOCATION (le scan BLE
+    //    exigeait la localisation jusqu'à Android 11) — son config plugin en
+    //    injecte dans notre manifeste ET son AndroidManifest de lib en rajoute
+    //    au merge Gradle. L'app déclare déjà ces permissions en
+    //    <uses-permission> sans borne pour le GPS, et la Play Console rejette
+    //    l'AAB (« déclarations en double avec différentes versions »). On pose
+    //    donc tools:node="remove" sur les variantes sdk-23 : le merger les
+    //    élimine quelle que soit leur provenance, les déclarations pleines
+    //    couvrent tous les SDK.
+    const LOCATION_PERMISSIONS = [
+      'android.permission.ACCESS_COARSE_LOCATION',
+      'android.permission.ACCESS_FINE_LOCATION',
+    ];
+    manifest['uses-permission-sdk-23'] = (manifest['uses-permission-sdk-23'] || []).filter(
+      (p) => !(p.$ && LOCATION_PERMISSIONS.includes(p.$['android:name']))
+    );
+    for (const name of LOCATION_PERMISSIONS) {
+      manifest['uses-permission-sdk-23'].push({ $: { 'android:name': name, 'tools:node': 'remove' } });
     }
 
     // 4. Bornage des permissions Bluetooth héritées à maxSdkVersion=30.
