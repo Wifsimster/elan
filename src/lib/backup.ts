@@ -215,7 +215,7 @@ export async function restoreBackup(config?: BackupConfig): Promise<number> {
   // pourrait corrompre les données locales. (Champ absent = format 1 hérité.)
   if ((parsed.format ?? 1) > BACKUP_FORMAT) {
     throw new Error(
-      `Sauvegarde créée par une version plus récente (format ${parsed.format}). Mettez l'application à jour.`,
+      `Sauvegarde créée par une version plus récente (format ${parsed.format}). Mets l'application à jour.`,
     );
   }
   // Garde-fou schéma : une sauvegarde d'un schéma SQLite plus récent peut
@@ -225,7 +225,7 @@ export async function restoreBackup(config?: BackupConfig): Promise<number> {
   const currentSchema = await getSchemaVersion();
   if ((parsed.schema ?? currentSchema) > currentSchema) {
     throw new Error(
-      `Sauvegarde créée par une version plus récente (schéma ${parsed.schema}). Mettez l'application à jour.`,
+      `Sauvegarde créée par une version plus récente (schéma ${parsed.schema}). Mets l'application à jour.`,
     );
   }
 

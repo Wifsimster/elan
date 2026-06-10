@@ -165,7 +165,7 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               await clearAllDataIncludingSettings();
-              Alert.alert('Réinitialisé', 'Toutes vos données et réglages ont été effacés.');
+              Alert.alert('Réinitialisé', 'Toutes tes données et réglages ont été effacés.');
             } catch {
               Alert.alert('Erreur', 'La réinitialisation a échoué.');
             }
@@ -251,7 +251,7 @@ export default function SettingsScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <ActivityIndicator color={theme.textSecondary} />
             <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-              {"Activez votre ceinture et portez-la pour qu'elle soit détectée."}
+              {"Active ta ceinture et porte-la pour qu'elle soit détectée."}
             </Text>
           </View>
         ) : null}
@@ -291,7 +291,7 @@ export default function SettingsScreen() {
           </Text>
         </View>
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-          {'Cadence et vitesse via le profil BLE standard (iGPSPORT CAD70 / SPD70, ou équivalent). Vous pouvez en connecter deux à la fois.'}
+          {'Cadence et vitesse via le profil BLE standard (iGPSPORT CAD70 / SPD70, ou équivalent). Tu peux en connecter deux à la fois.'}
         </Text>
 
         {/* Capteurs connectés */}
@@ -347,7 +347,7 @@ export default function SettingsScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <ActivityIndicator color={theme.textSecondary} />
             <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-              {'Réveillez le capteur (faites tourner la roue ou la manivelle) pour qu\'il soit détecté.'}
+              {'Réveille le capteur (fais tourner la roue ou la manivelle) pour qu\'il soit détecté.'}
             </Text>
           </View>
         ) : null}
@@ -386,7 +386,7 @@ export default function SettingsScreen() {
               onChange={csc.setWheelCircumferenceMm}
             />
             <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
-              {'Choisissez votre pneu, ou ajustez la circonférence au mm près si vous l\'avez mesurée.'}
+              {'Choisis ton pneu, ou ajuste la circonférence au mm près si tu l\'as mesurée.'}
             </Text>
           </View>
         ) : null}
@@ -412,14 +412,14 @@ export default function SettingsScreen() {
         </View>
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
           {mapEnabled
-            ? 'Vos sorties affichent un vrai fond de carte (rues). Les requêtes de tuiles (zone du parcours + adresse IP) transitent par le serveur ci-dessous. Désactivez pour rester 100 % hors-ligne.'
-            : 'Désactivé : le tracé s’affiche sur fond uni, 100 % hors-ligne (aucune donnée envoyée). Activez pour un vrai fond de carte via OpenFreeMap (gratuit, open source, sans compte).'}
+            ? 'Tes sorties affichent un vrai fond de carte (rues). Les requêtes de tuiles (zone du parcours + adresse IP) transitent par le serveur ci-dessous. Désactive pour rester 100 % hors-ligne.'
+            : 'Désactivé : le tracé s’affiche sur fond uni, 100 % hors-ligne (aucune donnée envoyée). Active pour un vrai fond de carte via OpenFreeMap (gratuit, open source, sans compte).'}
         </Text>
         {mapEnabled ? (
           <>
             <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
               {customMapUrl
-                ? 'Fond : votre serveur de tuiles personnel.'
+                ? 'Fond : ton serveur de tuiles personnel.'
                 : 'Fond : OpenFreeMap (données OpenStreetMap). Aucune clé requise.'}
             </Text>
             <Field
@@ -430,7 +430,7 @@ export default function SettingsScreen() {
               keyboardType="url"
             />
             <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
-              Laissez vide pour OpenFreeMap. Renseignez votre propre serveur MapLibre pour ne
+              Laisse vide pour OpenFreeMap. Renseigne ton propre serveur MapLibre pour ne
               dépendre d’aucun tiers.
             </Text>
           </>
@@ -530,7 +530,7 @@ export default function SettingsScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
           <MaterialCommunityIcons name="lock-outline" size={18} color={theme.success} />
           <Text style={{ color: theme.textSecondary, fontSize: 13, flex: 1 }}>
-            {"Toutes vos données restent sur cet appareil (base SQLite locale). Rien n'est envoyé sur internet."}
+            {"Toutes tes données restent sur cet appareil (base SQLite locale). Rien n'est envoyé sur internet."}
           </Text>
         </View>
         <Button
@@ -569,7 +569,7 @@ export default function SettingsScreen() {
             Zone de confidentialité
           </Text>
           <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-            {"Masque le début et la fin de vos tracés (souvent votre domicile) dans l'export GPX (Strava), en retirant les points proches du départ et de l'arrivée."}
+            {"Masque le début et la fin de tes tracés (souvent ton domicile) dans l'export GPX (Strava), en retirant les points proches du départ et de l'arrivée."}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {PRIVACY_ZONE_OPTIONS.map((m) => (
@@ -611,12 +611,12 @@ export default function SettingsScreen() {
           <Text style={{ ...Type.sectionTitle, color: theme.text }}>Import Strava</Text>
         </View>
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-          {"Exportez depuis Strava (page de l'activité → « Exporter GPX », ou « Télécharger vos données » dans les réglages du compte), puis importez le fichier ici. Formats acceptés : GPX, TCX et FIT, y compris compressés (.gz) — comme dans l'export en masse. Tout est traité sur l'appareil."}
+          {"Exporte depuis Strava (page de l'activité → « Exporter GPX », ou « Télécharger tes données » dans les réglages du compte), puis importe le fichier ici. Formats acceptés : GPX, TCX et FIT, y compris compressés (.gz) — comme dans l'export en masse. Tout est traité sur l'appareil."}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
           <MaterialCommunityIcons name="information-outline" size={18} color={theme.textMuted} />
           <Text style={{ color: theme.textMuted, fontSize: 12, flex: 1 }}>
-            {"Pas de synchronisation automatique avec votre compte Strava : cela demanderait un serveur, incompatible avec le fonctionnement 100 % hors-ligne de l'app. La ré-importation d'un même fichier ne crée pas de doublon."}
+            {"Pas de synchronisation automatique avec ton compte Strava : cela demanderait un serveur, incompatible avec le fonctionnement 100 % hors-ligne de l'app. La ré-importation d'un même fichier ne crée pas de doublon."}
           </Text>
         </View>
 
@@ -819,7 +819,7 @@ function WeekPlanCard() {
         </Text>
       </View>
       <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-        {"Choisissez la séance prévue pour chaque jour. L'accueil propose la séance du jour selon ce planning."}
+        {"Choisis la séance prévue pour chaque jour. L'accueil propose la séance du jour selon ce planning."}
       </Text>
 
       {WEEK_DAY_LABELS.map((dayLabel, i) => (
@@ -881,7 +881,7 @@ function NotificationsCard() {
       const granted = await requestNotificationPermission();
       if (!granted) {
         setError(
-          "Permission refusée. Activez les notifications de l'app dans les réglages système pour utiliser les rappels.",
+          "Permission refusée. Active les notifications de l'app dans les réglages système pour utiliser les rappels.",
         );
         return;
       }

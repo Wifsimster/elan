@@ -410,7 +410,7 @@ export default function MuscuScreen() {
 
   const finish = () => {
     if (totalSets === 0) {
-      Alert.alert('Séance vide', 'Ajoutez au moins un exercice avant de terminer.');
+      Alert.alert('Séance vide', 'Ajoute au moins un exercice avant de terminer.');
       return;
     }
     Alert.alert('Terminer la séance ?', 'La séance sera enregistrée.', [
@@ -464,7 +464,7 @@ export default function MuscuScreen() {
       setSaving(false);
       Alert.alert(
         "Échec de l'enregistrement",
-        "La séance n'a pas pu être enregistrée. Réessayez.",
+        "La séance n'a pas pu être enregistrée. Réessaie.",
       );
     }
   };
@@ -480,7 +480,7 @@ export default function MuscuScreen() {
     }
     Alert.alert(
       'Quitter la séance ?',
-      'Mettez-la en pause pour la reprendre plus tard, ou abandonnez-la définitivement.',
+      'Mets-la en pause pour la reprendre plus tard, ou abandonne-la définitivement.',
       [
         { text: 'Continuer', style: 'cancel' },
         {

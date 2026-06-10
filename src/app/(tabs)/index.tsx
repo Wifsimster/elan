@@ -297,8 +297,8 @@ export default function HomeScreen() {
         <Card>
           <EmptyState
             icon="run-fast"
-            title="Votre première séance vous attend"
-            subtitle="Démarrez une sortie vélo ou une séance de muscu pour commencer."
+            title="Ta première séance t'attend"
+            subtitle="Démarre une sortie vélo ou une séance de muscu pour commencer."
           />
         </Card>
       ) : (

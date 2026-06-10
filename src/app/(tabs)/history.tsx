@@ -238,11 +238,11 @@ export default function HistoryScreen() {
             return (
               <EmptyState
                 icon="clipboard-text-clock-outline"
-                title={filtered ? 'Aucun résultat' : 'Votre historique est vide'}
+                title={filtered ? 'Aucun résultat' : 'Ton historique est vide'}
                 subtitle={
                   filtered
                     ? 'Aucune séance ne correspond à ces filtres.'
-                    : 'Vos séances enregistrées apparaîtront ici. Vous pouvez aussi importer votre historique Strava.'
+                    : 'Tes séances enregistrées apparaîtront ici. Tu peux aussi importer ton historique Strava.'
                 }
                 // Pas d'import quand un filtre masque les résultats : l'utilisateur
                 // a des séances, elles sont juste filtrées.

@@ -48,7 +48,7 @@ export async function startGpsUpdates(): Promise<void> {
     showsBackgroundLocationIndicator: true,
     foregroundService: {
       notificationTitle: 'Sortie vélo en cours',
-      notificationBody: 'Élan enregistre votre tracé GPS.',
+      notificationBody: 'Élan enregistre ton tracé GPS.',
       notificationColor: '#0A0C10',
       killServiceOnDestroy: true,
     },
