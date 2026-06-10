@@ -40,7 +40,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
         Une erreur est survenue
       </Text>
       <Text style={{ ...Type.body, color: theme.textSecondary, textAlign: 'center' }}>
-        {"L'application a rencontré un problème inattendu. Vos données enregistrées sont intactes."}
+        {"L'application a rencontré un problème inattendu. Tes données enregistrées sont intactes."}
       </Text>
       {__DEV__ ? (
         <Text selectable style={{ color: theme.textMuted, fontSize: 12, textAlign: 'center' }}>

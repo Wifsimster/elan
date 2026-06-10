@@ -108,7 +108,7 @@ export default function VeloScreen() {
     if (!ok) {
       Alert.alert(
         'Localisation refusée',
-        "Autorisez l'accès à la position pour mesurer votre sortie. Vous pouvez l'activer dans les réglages Android.",
+        "Autorise l'accès à la position pour mesurer ta sortie. Tu peux l'activer dans les réglages Android.",
       );
       return;
     }
@@ -216,7 +216,7 @@ export default function VeloScreen() {
       setPhase('paused');
       Alert.alert(
         "Échec de l'enregistrement",
-        "La sortie n'a pas pu être enregistrée. Réessayez.",
+        "La sortie n'a pas pu être enregistrée. Réessaie.",
       );
     }
   };
@@ -488,7 +488,7 @@ function MapPlaceholder({ status }: { status: ReturnType<typeof useGpsTracker>['
       : status === 'requesting'
         ? 'Recherche du signal GPS…'
         : status === 'denied'
-          ? 'Localisation refusée — activez le GPS pour tracer la sortie.'
+          ? 'Localisation refusée — active le GPS pour tracer la sortie.'
           : 'Tracé GPS indisponible.';
   return (
     <View

@@ -46,7 +46,7 @@ export default function ProgressionScreen() {
         <EmptyState
           icon="chart-line"
           tint={theme.muscu}
-          title="Pas encore de données"
+          title="Ta progression démarre ici"
           subtitle="Enregistre quelques séances de muscu pour suivre ta progression."
           action={{
             label: 'Démarrer une séance muscu',
