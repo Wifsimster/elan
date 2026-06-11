@@ -1,5 +1,5 @@
-import { useId } from 'react';
-import { StyleSheet, View, type ViewProps } from 'react-native';
+import { useId, useState } from 'react';
+import { StyleSheet, View, type LayoutChangeEvent, type ViewProps } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { Gradients, type GradientName } from '@/constants/theme';
@@ -30,18 +30,30 @@ export function Gradient({
   const id = `grad-${useId().replace(/:/g, '')}`;
   const stops = typeof colors === 'string' ? Gradients[colors] : colors;
 
+  // Les pourcentages SVG (`width="100%"`) ne s'étirent pas fiablement en React
+  // Native : le dégradé gardait une largeur par défaut et laissait la couleur
+  // de fond apparaître à droite. On mesure le conteneur et on passe des
+  // dimensions en pixels (même pattern que line-chart.tsx).
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const onLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
+  };
+
   return (
-    <View style={[{ overflow: 'hidden' }, style]} {...rest}>
-      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-        <Defs>
-          <LinearGradient id={id} x1={start.x} y1={start.y} x2={end.x} y2={end.y}>
-            {stops.map((c, i) => (
-              <Stop key={i} offset={stops.length === 1 ? 0 : i / (stops.length - 1)} stopColor={c} />
-            ))}
-          </LinearGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
-      </Svg>
+    <View style={[{ overflow: 'hidden' }, style]} {...rest} onLayout={onLayout}>
+      {size.width > 0 && size.height > 0 ? (
+        <Svg style={StyleSheet.absoluteFill} width={size.width} height={size.height}>
+          <Defs>
+            <LinearGradient id={id} x1={start.x} y1={start.y} x2={end.x} y2={end.y}>
+              {stops.map((c, i) => (
+                <Stop key={i} offset={stops.length === 1 ? 0 : i / (stops.length - 1)} stopColor={c} />
+              ))}
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width={size.width} height={size.height} fill={`url(#${id})`} />
+        </Svg>
+      ) : null}
       {children}
     </View>
   );
