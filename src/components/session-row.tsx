@@ -39,7 +39,7 @@ export function SessionRow({ session }: { session: Session }) {
           </View>
           <View style={{ alignItems: 'flex-end', gap: 2 }}>
             <Text style={{ color: theme.text, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
-              {formatDurationShort(session.durationSec)}
+              {formatDurationShort(session.movingTimeSec ?? session.durationSec)}
             </Text>
             {session.type === 'velo' && session.distanceM != null ? (
               <Text style={{ color: theme.textSecondary, fontSize: 13 }}>

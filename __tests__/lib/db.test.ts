@@ -81,6 +81,7 @@ const importedRow = (externalId: string): ImportedSessionRow => ({
   startedAt: 1_700_500_000_000,
   endedAt: 1_700_503_600_000,
   durationSec: 3600,
+  movingTimeSec: 3400,
   notes: 'Importé depuis Strava',
   avgHr: 140,
   maxHr: 165,

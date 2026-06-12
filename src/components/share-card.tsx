@@ -61,7 +61,8 @@ export const ShareCard = forwardRef<View, Props>(function ShareCard(
   const stats: StatItem[] = [];
   if (isVelo) {
     stats.push({ label: 'Distance', value: formatDistance(session.distanceM), color });
-    stats.push({ label: 'Durée', value: formatDuration(session.durationSec) });
+    // Temps en mouvement (hors arrêts) s'il est connu, sinon durée totale.
+    stats.push({ label: 'Durée', value: formatDuration(session.movingTimeSec ?? session.durationSec) });
     stats.push({ label: 'Vitesse moy', value: formatSpeed(session.avgSpeedKmh) });
     stats.push({ label: 'Dénivelé +', value: `${Math.round(session.elevationGainM ?? 0)} m` });
     if (session.avgHr != null) stats.push({ label: 'FC moy', value: formatHr(session.avgHr), color: theme.heart });

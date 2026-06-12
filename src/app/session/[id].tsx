@@ -134,6 +134,11 @@ export default function SessionDetailScreen() {
   const color = theme[meta.colorKey];
   const effort = sessionEffort(session, maxHr);
 
+  // Vélo : on met en avant le temps en mouvement (hors arrêts) ; le temps total
+  // n'est montré que s'il en diffère nettement (chrono laissé tourner à l'arrêt).
+  const movingSec = session.type === 'velo' ? session.movingTimeSec : null;
+  const showTotalTime = movingSec != null && session.durationSec - movingSec >= 60;
+
   // Profils de données (vélo) — calculés depuis les points GPS, 100 % local.
   const speed = session.type === 'velo' ? speedProfile(points) : [];
   const elevation = session.type === 'velo' ? elevationProfile(points) : [];
@@ -231,7 +236,19 @@ export default function SessionDetailScreen() {
         {/* Statistiques */}
         <Card>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18 }}>
-            <StatTile label="Durée" value={formatDuration(session.durationSec)} icon="clock-outline" compact />
+            {movingSec != null ? (
+              <StatTile label="En mouvement" value={formatDuration(movingSec)} icon="clock-outline" compact />
+            ) : (
+              <StatTile label="Durée" value={formatDuration(session.durationSec)} icon="clock-outline" compact />
+            )}
+            {showTotalTime ? (
+              <StatTile
+                label="Temps total"
+                value={formatDuration(session.durationSec)}
+                icon="timer-outline"
+                compact
+              />
+            ) : null}
             {session.type === 'velo' ? (
               <>
                 <StatTile
