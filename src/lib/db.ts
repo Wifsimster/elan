@@ -3,6 +3,7 @@ import * as SQLite from 'expo-sqlite';
 
 import type {
   ActivityType,
+  BodyMeasurement,
   MuscuSet,
   PeriodStats,
   Profile,
@@ -18,7 +19,7 @@ const DB_NAME = 'suivi-sport.db';
  * Sert à estampiller les sauvegardes pour refuser une restauration issue d'une
  * version plus récente (cf. lib/backup.ts).
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -110,6 +111,21 @@ async function migrate(db: SQLite.SQLiteDatabase) {
       CREATE UNIQUE INDEX idx_sessions_external ON sessions (externalId) WHERE externalId IS NOT NULL;
     `);
     await db.execAsync('PRAGMA user_version = 3;');
+  }
+
+  if (version < 4) {
+    // Journal de poids corporel : une ligne par pesée. La pesée la plus
+    // récente sert de poids de référence (calories, charges conseillées) via
+    // la synchronisation du profil dans logBodyWeight().
+    await db.execAsync(`
+      CREATE TABLE body_measurements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        measuredAt INTEGER NOT NULL,
+        weightKg REAL NOT NULL
+      );
+      CREATE INDEX idx_body_measuredAt ON body_measurements (measuredAt DESC);
+    `);
+    await db.execAsync('PRAGMA user_version = 4;');
   }
 }
 
@@ -545,6 +561,58 @@ export async function exerciseHistory(name: string): Promise<ExercisePoint[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Journal de poids corporel
+// ---------------------------------------------------------------------------
+
+/**
+ * Enregistre une pesée, puis aligne le poids du profil sur la pesée la plus
+ * récente : le profil reste l'unique source consommée par les calculs
+ * (calories des séances, charges conseillées, import Strava), le journal n'est
+ * que l'historique.
+ */
+export async function logBodyWeight(weightKg: number, measuredAt: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'INSERT INTO body_measurements (measuredAt, weightKg) VALUES (?, ?);',
+    measuredAt,
+    weightKg,
+  );
+  await syncProfileWeight();
+}
+
+export async function deleteBodyMeasurement(id: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM body_measurements WHERE id = ?;', id);
+  await syncProfileWeight();
+}
+
+/** Recale le poids du profil sur la dernière pesée restante (s'il y en a une). */
+async function syncProfileWeight(): Promise<void> {
+  const latest = await latestBodyMeasurement();
+  if (!latest) return;
+  const profile = await getProfile();
+  if (profile.weightKg !== latest.weightKg) {
+    await saveProfile({ ...profile, weightKg: latest.weightKg });
+  }
+}
+
+/** Pesées du journal, de la plus récente à la plus ancienne. */
+export async function listBodyMeasurements(limit = 1000): Promise<BodyMeasurement[]> {
+  const db = await getDb();
+  return db.getAllAsync<BodyMeasurement>(
+    'SELECT * FROM body_measurements ORDER BY measuredAt DESC, id DESC LIMIT ?;',
+    limit,
+  );
+}
+
+export async function latestBodyMeasurement(): Promise<BodyMeasurement | null> {
+  const db = await getDb();
+  return db.getFirstAsync<BodyMeasurement>(
+    'SELECT * FROM body_measurements ORDER BY measuredAt DESC, id DESC LIMIT 1;',
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Statistiques
 // ---------------------------------------------------------------------------
 
@@ -670,7 +738,9 @@ export async function clearAllDataIncludingSettings(): Promise<void> {
   const keep = [...RESET_KEEP_KEYS];
   const placeholders = keep.map(() => '?').join(', ');
   await db.withTransactionAsync(async () => {
-    await db.execAsync('DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions;');
+    await db.execAsync(
+      'DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions; DELETE FROM body_measurements;',
+    );
     await db.runAsync(`DELETE FROM settings WHERE key NOT IN (${placeholders});`, ...keep);
   });
 }
@@ -703,20 +773,23 @@ export type DbSnapshot = {
   sessions: Session[];
   trackPoints: TrackPoint[];
   muscuSets: MuscuSet[];
+  /** Absent des sauvegardes antérieures au schéma 4. */
+  bodyMeasurements?: BodyMeasurement[];
   settings: { key: string; value: string }[];
 };
 
 /** Lit l'intégralité de la base pour une sauvegarde (hors réglages secrets). */
 export async function exportAll(): Promise<DbSnapshot> {
   const db = await getDb();
-  const [sessions, trackPoints, muscuSets, allSettings] = await Promise.all([
+  const [sessions, trackPoints, muscuSets, bodyMeasurements, allSettings] = await Promise.all([
     db.getAllAsync<Session>('SELECT * FROM sessions;'),
     db.getAllAsync<TrackPoint>('SELECT * FROM track_points;'),
     db.getAllAsync<MuscuSet>('SELECT * FROM muscu_sets;'),
+    db.getAllAsync<BodyMeasurement>('SELECT * FROM body_measurements;'),
     db.getAllAsync<{ key: string; value: string }>('SELECT key, value FROM settings;'),
   ]);
   const settings = allSettings.filter((s) => !BACKUP_EXCLUDED_KEYS.has(s.key));
-  return { sessions, trackPoints, muscuSets, settings };
+  return { sessions, trackPoints, muscuSets, bodyMeasurements, settings };
 }
 
 /**
@@ -728,7 +801,9 @@ export async function importAll(snap: DbSnapshot): Promise<void> {
   const db = await getDb();
   const n = (v: unknown): SQLite.SQLiteBindValue => (v === undefined ? null : (v as SQLite.SQLiteBindValue));
   await db.withTransactionAsync(async () => {
-    await db.execAsync('DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions;');
+    await db.execAsync(
+      'DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions; DELETE FROM body_measurements;',
+    );
 
     // Statements préparés : une restauration peut comporter des dizaines de
     // milliers de points GPS, runAsync re-parse le SQL à chaque appel.
@@ -767,6 +842,21 @@ export async function importAll(snap: DbSnapshot): Promise<void> {
             n(p.id), n(p.sessionId), n(p.ts), n(p.lat), n(p.lon),
             n(p.altitude), n(p.speedKmh), n(p.hr), n(p.cadence),
           );
+        }
+      } finally {
+        await stmt.finalizeAsync();
+      }
+    }
+
+    // Sauvegardes d'avant le schéma 4 : pas de journal de poids, table vide.
+    const bodyMeasurements = snap.bodyMeasurements ?? [];
+    if (bodyMeasurements.length > 0) {
+      const stmt = await db.prepareAsync(
+        'INSERT INTO body_measurements (id, measuredAt, weightKg) VALUES (?, ?, ?);',
+      );
+      try {
+        for (const b of bodyMeasurements) {
+          await stmt.executeAsync(n(b.id), n(b.measuredAt), n(b.weightKg));
         }
       } finally {
         await stmt.finalizeAsync();

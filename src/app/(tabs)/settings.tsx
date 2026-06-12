@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -456,6 +457,34 @@ export default function SettingsScreen() {
           max={200}
           onChange={(v) => patchProfile({ weightKg: v })}
         />
+
+        {/* Journal de poids : historique des pesées + courbe (page dédiée). */}
+        <Link href="/poids" asChild>
+          <PressableScale
+            haptic="light"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              paddingVertical: 10,
+              borderTopWidth: 1,
+              borderTopColor: theme.hairline,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.hairline,
+            }}>
+            <MaterialCommunityIcons name="scale-bathroom" size={20} color={theme.accent} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ color: theme.text, fontWeight: '600', fontSize: 15 }}>
+                Journal de poids
+              </Text>
+              <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+                Note tes pesées et suis leur évolution. La dernière met à jour le profil.
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textMuted} />
+          </PressableScale>
+        </Link>
+
         <SettingStepper
           label="Taille"
           value={profile?.heightCm ?? 175}
