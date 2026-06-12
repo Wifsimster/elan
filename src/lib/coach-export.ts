@@ -8,6 +8,7 @@ import {
   exportAll,
   getMuscuSets,
   getProfile,
+  listBodyMeasurements,
   listSessions,
   statsSince,
   type ExercisePoint,
@@ -25,7 +26,7 @@ import {
 import { goalLabel } from '@/lib/exercises';
 import { TEMPLATES, WEEK_PLAN, targetHint } from '@/lib/program';
 import { nowMs } from '@/lib/time';
-import type { MuscuSet, Profile, Session } from '@/lib/types';
+import type { BodyMeasurement, MuscuSet, Profile, Session } from '@/lib/types';
 
 const DAY = 86_400_000;
 const JOURS_SEMAINE = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
@@ -67,6 +68,23 @@ function profileSection(profile: Profile): string {
     `- Objectif : ${goalLabel(profile.goal)}`,
     `- Sexe : ${sexLabel}`,
   ].join('\n');
+}
+
+/** Courbe de poids corporel — section omise tant que le journal est vide. */
+function weightSection(measurements: BodyMeasurement[]): string | null {
+  if (measurements.length === 0) return null;
+  const lines: string[] = [
+    '## Poids corporel',
+    '',
+    'Journal des pesées, du plus ancien au plus récent. La dernière pesée est le poids de référence du profil.',
+    '',
+    '| Date | Poids (kg) |',
+    '| --- | --- |',
+  ];
+  for (const m of [...measurements].reverse()) {
+    lines.push(`| ${formatDateShort(m.measuredAt)} | ${num(m.weightKg)} |`);
+  }
+  return lines.join('\n');
 }
 
 function programSection(): string {
@@ -209,7 +227,11 @@ function veloSection(sessions: Session[]): string {
  * déposer dans un projet pour qu'une IA suive la programmation et coache.
  */
 export async function buildCoachMarkdown(): Promise<string> {
-  const [profile, sessions] = await Promise.all([getProfile(), listSessions(10_000)]);
+  const [profile, sessions, measurements] = await Promise.all([
+    getProfile(),
+    listSessions(10_000),
+    listBodyMeasurements(),
+  ]);
 
   const muscuSessions = sessions.filter((s) => s.type === 'muscu');
   const veloSessions = sessions.filter((s) => s.type === 'velo');
@@ -239,12 +261,15 @@ export async function buildCoachMarkdown(): Promise<string> {
   return [
     header,
     profileSection(profile),
+    weightSection(measurements),
     programSection(),
     await statsSection(),
     progressionSection(history),
     muscuDetailSection(muscuDetail),
     veloSection(veloSessions),
-  ].join('\n\n');
+  ]
+    .filter((s): s is string => s != null)
+    .join('\n\n');
 }
 
 /**

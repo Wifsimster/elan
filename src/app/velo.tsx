@@ -12,6 +12,7 @@ import { RouteMap } from '@/components/route-map';
 import { StatTile } from '@/components/stat-tile';
 import { Elevation, Radius, Type } from '@/constants/theme';
 import { autoBackup } from '@/lib/backup';
+import { exportSessionToHealthConnect } from '@/lib/health-connect';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
@@ -186,9 +187,10 @@ export default function VeloScreen() {
     });
 
     try {
+      const endedAt = nowMs();
       const id = await createSession('velo', startedAtRef.current);
       await updateSession(id, {
-        endedAt: nowMs(),
+        endedAt,
         durationSec,
         movingTimeSec: moving > 0 ? moving : null,
         distanceM: result.distanceM,
@@ -217,6 +219,15 @@ export default function VeloScreen() {
       await insertTrackPoints(id, points);
 
       autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
+      // Miroir Health Connect (opt-in) : best-effort, ne bloque pas la navigation.
+      exportSessionToHealthConnect({
+        type: 'velo',
+        startedAt: startedAtRef.current,
+        endedAt,
+        distanceM: result.distanceM,
+        calories,
+        hrSamples: samples,
+      });
       router.replace({ pathname: '/session/[id]', params: { id } });
     } catch {
       // L'écriture a échoué : on ne reste pas bloqué sur « saving ». On revient

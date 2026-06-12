@@ -102,6 +102,7 @@ export default function RootLayout() {
                   options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }}
                 />
                 <Stack.Screen name="progression" options={{ title: 'Progression' }} />
+                <Stack.Screen name="poids" options={{ title: 'Poids' }} />
                 <Stack.Screen name="exercise/[name]" options={{ title: 'Progression' }} />
                 <Stack.Screen name="exercises" options={{ title: 'Catalogue d’exercices' }} />
               </Stack>

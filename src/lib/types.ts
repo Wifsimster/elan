@@ -51,6 +51,14 @@ export type TrackPoint = {
   cadence: number | null;
 };
 
+/** Une pesée du journal de poids corporel. */
+export type BodyMeasurement = {
+  id: number;
+  /** Date de la mesure en ms epoch. */
+  measuredAt: number;
+  weightKg: number;
+};
+
 /** Une série de musculation (un exercice peut avoir plusieurs séries). */
 export type MuscuSet = {
   id: number;
