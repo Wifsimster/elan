@@ -35,7 +35,9 @@ export function sessionEffort(session: Session, maxHr: number): Effort {
   if (session.avgHr != null && maxHr > 0) {
     level = heartRateZone(session.avgHr, maxHr) as EffortLevel;
   } else {
-    const minutes = session.durationSec / 60;
+    // Hors FC, l'effort suit la durée : on prend le temps en mouvement quand il
+    // est connu (vélo) pour qu'un long arrêt ne le surévalue pas.
+    const minutes = (session.movingTimeSec ?? session.durationSec) / 60;
     level = minutes < 30 ? 1 : minutes < 60 ? 2 : minutes < 90 ? 3 : minutes < 150 ? 4 : 5;
   }
   return { level, label: LABELS[level], colorKey: COLORS[level] };

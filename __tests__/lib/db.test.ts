@@ -55,11 +55,13 @@ import {
   createSession,
   exportAll,
   getMuscuSets,
+  getSession,
   getTrackPoints,
   importAll,
   insertImportedSession,
   insertTrackPoints,
   replaceMuscuSets,
+  sessionRecords,
   setSetting,
   updateSession,
   type DbSnapshot,
@@ -81,6 +83,7 @@ const importedRow = (externalId: string): ImportedSessionRow => ({
   startedAt: 1_700_500_000_000,
   endedAt: 1_700_503_600_000,
   durationSec: 3600,
+  movingTimeSec: 3400,
   notes: 'Importé depuis Strava',
   avgHr: 140,
   maxHr: 165,
@@ -177,5 +180,34 @@ describe('insertImportedSession — déduplication par externalId', () => {
     // Un externalId différent passe.
     const other = await insertImportedSession(importedRow('strava-def456'), []);
     expect(other).toBe('imported');
+  });
+});
+
+describe('sessionRecords — record de durée vélo sur le temps en mouvement', () => {
+  it('un chrono oublié à l’arrêt ne rafle pas le record de durée', async () => {
+    await clearAllData();
+    // Sortie A : 1 h roulée d'affilée (temps en mouvement = temps total).
+    const a = await createSession('velo', 1_800_000_000_000);
+    await updateSession(a, {
+      endedAt: 1_800_003_600_000,
+      durationSec: 3600,
+      movingTimeSec: 3600,
+      distanceM: 30_000,
+    });
+    // Sortie B : 3 h de temps total mais 10 min en mouvement (chrono oublié).
+    const b = await createSession('velo', 1_800_100_000_000);
+    await updateSession(b, {
+      endedAt: 1_800_110_800_000,
+      durationSec: 10_800,
+      movingTimeSec: 600,
+      distanceM: 4_000,
+    });
+
+    const recA = await sessionRecords((await getSession(a))!);
+    const recB = await sessionRecords((await getSession(b))!);
+    // A (1 h en mouvement) détient le record de durée ; B (10 min) ne l'a pas,
+    // malgré ses 3 h de temps total.
+    expect(recA.some((r) => r.kind === 'duration')).toBe(true);
+    expect(recB.some((r) => r.kind === 'duration')).toBe(false);
   });
 });

@@ -10,8 +10,14 @@ export type Session = {
   startedAt: number;
   /** Fin en ms epoch (null si en cours). */
   endedAt: number | null;
-  /** Durée active en secondes (hors pauses). */
+  /** Durée active en secondes (hors pauses) — temps total écran allumé/chrono. */
   durationSec: number;
+  /**
+   * Temps « en mouvement » en secondes (vélo) : durée hors arrêts, déduite des
+   * points GPS façon Strava. `null` quand il n'a pas pu être calculé (pas de
+   * tracé, musculation) — l'affichage retombe alors sur `durationSec`.
+   */
+  movingTimeSec: number | null;
   notes: string | null;
   // Cardio (commun aux deux types, si ceinture connectée)
   avgHr: number | null;

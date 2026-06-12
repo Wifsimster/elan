@@ -5,6 +5,7 @@ import { sha256 } from 'js-sha256';
 
 import { estimateCalories } from '@/lib/calories';
 import { haversineMeters } from '@/lib/geo';
+import { movingTimeSec } from '@/lib/moving-time';
 import { decodeStravaBytes } from '@/lib/strava/decode';
 import { type ParsedActivity, type ParsedPoint } from '@/lib/strava/parse';
 import type { TrackPoint } from '@/lib/types';
@@ -16,6 +17,7 @@ export type ImportedSession = {
   startedAt: number;
   endedAt: number;
   durationSec: number;
+  movingTimeSec: number | null;
   notes: string | null;
   avgHr: number | null;
   maxHr: number | null;
@@ -143,8 +145,14 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
   }
   if (distanceM == null && gps.length >= 2) distanceM = accDist;
 
+  // Temps en mouvement (hors arrêts) déduit du tracé : base de la vitesse
+  // moyenne et des calories, plus juste que le temps total quand la sortie
+  // comporte de longues pauses. À défaut de tracé, on retombe sur la durée.
+  const moving = movingTimeSec(outPoints);
+  const movingTimeSec_ = moving > 0 ? moving : null;
+  const effectiveSec = moving > 0 ? moving : durationSec;
   const avgSpeedKmh =
-    distanceM != null && durationSec > 0 ? (distanceM / durationSec) * 3.6 : null;
+    distanceM != null && effectiveSec > 0 ? (distanceM / effectiveSec) * 3.6 : null;
   // Dénivelé calculé sur `timed` (superset dont `gps` est filtré) : computeGain
   // ignore déjà les points sans altitude, donc une vraie sortie GPS est
   // inchangée, mais le dénivelé est récupéré pour les fichiers altitude-seule /
@@ -156,8 +164,8 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
   const calories =
     act.calories != null
       ? act.calories
-      : durationSec > 0
-        ? estimateCalories({ type: 'velo', weightKg, durationSec, avgSpeedKmh })
+      : effectiveSec > 0
+        ? estimateCalories({ type: 'velo', weightKg, durationSec: effectiveSec, avgSpeedKmh })
         : null;
 
   const first = gps[0];
@@ -175,6 +183,7 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
       startedAt,
       endedAt,
       durationSec,
+      movingTimeSec: movingTimeSec_,
       notes: 'Importé depuis Strava',
       avgHr,
       maxHr,

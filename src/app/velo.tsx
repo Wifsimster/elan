@@ -21,6 +21,7 @@ import {
   updateSession,
 } from '@/lib/db';
 import { cadenceParts, distanceParts, formatDuration, hrParts, speedParts } from '@/lib/format';
+import { movingTimeSec } from '@/lib/moving-time';
 import { nowMs } from '@/lib/time';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useGpsTracker } from '@/hooks/use-gps-tracker';
@@ -167,12 +168,18 @@ export default function VeloScreen() {
     const durationSec = watch.elapsedSec;
     const { avgHr, maxHr } = computeHr();
     const { avgCadence, maxCadence } = computeCadence();
+    // Temps en mouvement (hors arrêts) déduit du tracé : sert de base à la
+    // vitesse moyenne et aux calories pour qu'un arrêt prolongé (ou un chrono
+    // oublié) ne les fausse pas. À défaut de tracé exploitable, on retombe sur
+    // la durée totale.
+    const moving = movingTimeSec(result.points);
+    const effectiveSec = moving > 0 ? moving : durationSec;
     const avgSpeedKmh =
-      durationSec > 0 ? result.distanceM / 1000 / (durationSec / 3600) : 0;
+      effectiveSec > 0 ? result.distanceM / 1000 / (effectiveSec / 3600) : 0;
     const calories = estimateCalories({
       type: 'velo',
       weightKg,
-      durationSec,
+      durationSec: effectiveSec,
       avgSpeedKmh,
       elevationGainM: result.elevationGainM,
       avgHr,
@@ -185,6 +192,7 @@ export default function VeloScreen() {
       await updateSession(id, {
         endedAt,
         durationSec,
+        movingTimeSec: moving > 0 ? moving : null,
         distanceM: result.distanceM,
         avgSpeedKmh,
         maxSpeedKmh: result.maxSpeedKmh,

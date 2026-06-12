@@ -212,7 +212,7 @@ function veloSection(sessions: Session[]): string {
   for (const s of sessions) {
     const dplus = s.elevationGainM != null ? `${Math.round(s.elevationGainM)} m` : '—';
     lines.push(
-      `| ${formatDateTime(s.startedAt)} | ${formatDuration(s.durationSec)} | ${formatDistance(
+      `| ${formatDateTime(s.startedAt)} | ${formatDuration(s.movingTimeSec ?? s.durationSec)} | ${formatDistance(
         s.distanceM,
       )} | ${formatSpeed(s.avgSpeedKmh)} | ${formatSpeed(s.maxSpeedKmh)} | ${formatHr(
         s.avgHr,

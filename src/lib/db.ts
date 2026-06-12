@@ -1,6 +1,8 @@
 // Accès SQLite local. Toutes les données restent sur l'appareil.
 import * as SQLite from 'expo-sqlite';
 
+import { estimateCalories } from '@/lib/calories';
+import { movingTimeSec } from '@/lib/moving-time';
 import type {
   ActivityType,
   BodyMeasurement,
@@ -19,7 +21,7 @@ const DB_NAME = 'suivi-sport.db';
  * Sert à estampiller les sauvegardes pour refuser une restauration issue d'une
  * version plus récente (cf. lib/backup.ts).
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -127,6 +129,88 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     `);
     await db.execAsync('PRAGMA user_version = 4;');
   }
+
+  if (version < 5) {
+    // Temps « en mouvement » (vélo) : durée hors arrêts, façon Strava. On ajoute
+    // la colonne puis on la rétro-calcule depuis les points GPS des sorties déjà
+    // enregistrées — et on en dérive une vitesse moyenne « en mouvement » plus
+    // honnête que la moyenne sur le temps total (cas du chrono oublié à l'arrêt).
+    await db.execAsync('ALTER TABLE sessions ADD COLUMN movingTimeSec INTEGER;');
+
+    // Poids/FC max courants pour ré-estimer les calories des séances natives
+    // (lecture directe du réglage : appeler getProfile() rouvrirait getDb(),
+    // dont la promesse est encore en cours ici → interblocage).
+    let weightKg = DEFAULT_PROFILE.weightKg;
+    let profileMaxHr = DEFAULT_PROFILE.maxHr;
+    const profileRow = await db.getFirstAsync<{ value: string }>(
+      "SELECT value FROM settings WHERE key = 'profile';",
+    );
+    if (profileRow) {
+      try {
+        const p = JSON.parse(profileRow.value);
+        if (typeof p.weightKg === 'number') weightKg = p.weightKg;
+        if (typeof p.maxHr === 'number') profileMaxHr = p.maxHr;
+      } catch {
+        // réglage illisible : on garde les valeurs par défaut.
+      }
+    }
+
+    const velos = await db.getAllAsync<{
+      id: number;
+      distanceM: number | null;
+      elevationGainM: number | null;
+      avgHr: number | null;
+      source: string | null;
+    }>("SELECT id, distanceM, elevationGainM, avgHr, source FROM sessions WHERE type = 'velo';");
+
+    for (const s of velos) {
+      const pts = await db.getAllAsync<{ ts: number; lat: number; lon: number; speedKmh: number | null }>(
+        'SELECT ts, lat, lon, speedKmh FROM track_points WHERE sessionId = ? ORDER BY ts ASC;',
+        s.id,
+      );
+      const moving = movingTimeSec(pts);
+      if (moving <= 0) continue;
+
+      // Vitesse moyenne sur le temps en mouvement (uniquement si la distance est
+      // connue, pour ne pas écraser une valeur par un 0 trompeur).
+      const avgSpeedKmh =
+        s.distanceM != null ? s.distanceM / 1000 / (moving / 3600) : null;
+      // Calories : on ne ré-estime que les séances natives — pour un import
+      // Strava la valeur du fichier fait foi, on ne la remplace pas.
+      const calories =
+        s.source == null
+          ? estimateCalories({
+              type: 'velo',
+              weightKg,
+              durationSec: moving,
+              avgSpeedKmh,
+              elevationGainM: s.elevationGainM,
+              avgHr: s.avgHr,
+              maxHr: profileMaxHr,
+            })
+          : null;
+
+      if (avgSpeedKmh != null && calories != null) {
+        await db.runAsync(
+          'UPDATE sessions SET movingTimeSec = ?, avgSpeedKmh = ?, calories = ? WHERE id = ?;',
+          moving,
+          avgSpeedKmh,
+          calories,
+          s.id,
+        );
+      } else if (avgSpeedKmh != null) {
+        await db.runAsync(
+          'UPDATE sessions SET movingTimeSec = ?, avgSpeedKmh = ? WHERE id = ?;',
+          moving,
+          avgSpeedKmh,
+          s.id,
+        );
+      } else {
+        await db.runAsync('UPDATE sessions SET movingTimeSec = ? WHERE id = ?;', moving, s.id);
+      }
+    }
+    await db.execAsync('PRAGMA user_version = 5;');
+  }
 }
 
 /** Version du schéma effectivement appliquée à la base (PRAGMA user_version). */
@@ -205,6 +289,7 @@ export type SessionUpdate = Partial<
     Session,
     | 'endedAt'
     | 'durationSec'
+    | 'movingTimeSec'
     | 'notes'
     | 'avgHr'
     | 'maxHr'
@@ -345,6 +430,7 @@ export type ImportedSessionRow = {
   startedAt: number;
   endedAt: number;
   durationSec: number;
+  movingTimeSec: number | null;
   notes: string | null;
   avgHr: number | null;
   maxHr: number | null;
@@ -373,15 +459,16 @@ export async function insertImportedSession(
   await db.withTransactionAsync(async () => {
     const res = await db.runAsync(
       `INSERT INTO sessions
-         (type, startedAt, endedAt, durationSec, notes, avgHr, maxHr, distanceM,
+         (type, startedAt, endedAt, durationSec, movingTimeSec, notes, avgHr, maxHr, distanceM,
           avgSpeedKmh, maxSpeedKmh, elevationGainM, avgCadence, maxCadence, calories,
           source, externalId)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(externalId) WHERE externalId IS NOT NULL DO NOTHING;`,
       session.type,
       session.startedAt,
       session.endedAt,
       session.durationSec,
+      session.movingTimeSec,
       session.notes,
       session.avgHr,
       session.maxHr,
@@ -620,9 +707,11 @@ export async function latestBodyMeasurement(): Promise<BodyMeasurement | null> {
 export async function statsBetween(fromMs: number, toMs: number): Promise<PeriodStats> {
   const db = await getDb();
   const row = await db.getFirstAsync<PeriodStats>(
+    // Temps en mouvement quand il est connu (vélo), sinon durée totale (muscu) :
+    // un chrono oublié à l'arrêt ne gonfle pas le cumul d'effort.
     `SELECT
        COUNT(*) AS sessionCount,
-       COALESCE(SUM(durationSec), 0) AS totalDurationSec,
+       COALESCE(SUM(COALESCE(movingTimeSec, durationSec)), 0) AS totalDurationSec,
        COALESCE(SUM(distanceM), 0) AS totalDistanceM,
        COALESCE(SUM(calories), 0) AS totalCalories
      FROM sessions
@@ -645,7 +734,7 @@ export async function dailyDurations(days: number): Promise<{ day: string; durat
   const db = await getDb();
   return db.getAllAsync<{ day: string; durationSec: number }>(
     `SELECT date(startedAt / 1000, 'unixepoch', 'localtime') AS day,
-            COALESCE(SUM(durationSec), 0) AS durationSec
+            COALESCE(SUM(COALESCE(movingTimeSec, durationSec)), 0) AS durationSec
      FROM sessions
      WHERE endedAt IS NOT NULL
        AND startedAt >= ?
@@ -673,6 +762,22 @@ const RECORD_COLUMNS: Record<RecordKind, string> = {
 };
 
 /**
+ * Expression SQL et valeur de la séance pour une métrique de record. Pour le
+ * vélo, le record de durée se mesure sur le temps en mouvement (hors arrêts)
+ * quand il est connu : une sortie dont le chrono a tourné à l'arrêt ne peut pas
+ * s'octroyer un faux record de durée. La musculation (sans GPS) garde la durée
+ * totale. L'expression vient d'une liste blanche fermée — jamais d'entrée
+ * utilisateur, sûre à interpoler.
+ */
+function recordColumn(kind: RecordKind, s: Session): { expr: string; value: number | null } {
+  if (kind === 'duration' && s.type === 'velo') {
+    return { expr: 'COALESCE(movingTimeSec, durationSec)', value: s.movingTimeSec ?? s.durationSec };
+  }
+  const col = RECORD_COLUMNS[kind];
+  return { expr: col, value: s[col as keyof Session] as number | null };
+}
+
+/**
  * Détermine, pour une séance donnée, les records qu'elle détient parmi les
  * séances du même type. Pour chaque métrique : record « all » si aucune autre
  * séance ne fait mieux, sinon record « year » si aucune ne fait mieux sur la
@@ -689,8 +794,7 @@ export async function sessionRecords(s: Session): Promise<SessionRecord[]> {
 
   const out: SessionRecord[] = [];
   for (const kind of kinds) {
-    const col = RECORD_COLUMNS[kind];
-    const value = s[col as keyof Session] as number | null;
+    const { expr: col, value } = recordColumn(kind, s);
     if (value == null || value <= 0) continue;
 
     const greaterAll = await db.getFirstAsync<{ n: number }>(
@@ -811,16 +915,16 @@ export async function importAll(snap: DbSnapshot): Promise<void> {
     if (sessions.length > 0) {
       const stmt = await db.prepareAsync(
         `INSERT INTO sessions
-           (id, type, startedAt, endedAt, durationSec, notes, avgHr, maxHr,
+           (id, type, startedAt, endedAt, durationSec, movingTimeSec, notes, avgHr, maxHr,
             distanceM, avgSpeedKmh, maxSpeedKmh, elevationGainM, avgCadence, maxCadence, calories,
             source, externalId)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
       );
       try {
         for (const s of sessions) {
           await stmt.executeAsync(
-            n(s.id), n(s.type), n(s.startedAt), n(s.endedAt), n(s.durationSec), n(s.notes),
-            n(s.avgHr), n(s.maxHr), n(s.distanceM), n(s.avgSpeedKmh), n(s.maxSpeedKmh),
+            n(s.id), n(s.type), n(s.startedAt), n(s.endedAt), n(s.durationSec), n(s.movingTimeSec),
+            n(s.notes), n(s.avgHr), n(s.maxHr), n(s.distanceM), n(s.avgSpeedKmh), n(s.maxSpeedKmh),
             n(s.elevationGainM), n(s.avgCadence), n(s.maxCadence), n(s.calories),
             n(s.source), n(s.externalId),
           );
