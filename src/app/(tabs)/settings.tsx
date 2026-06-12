@@ -22,6 +22,12 @@ import { Radius, Type } from '@/constants/theme';
 import { clearAllData, clearAllDataIncludingSettings, getProfile, saveProfile } from '@/lib/db';
 import { GOALS, goalSpec } from '@/lib/exercises';
 import { formatDateTime } from '@/lib/format';
+import {
+  disableHealthConnect,
+  enableHealthConnect,
+  getHealthConnectEnabled,
+  isHealthConnectSupported,
+} from '@/lib/health-connect';
 import { getMapStyleUrl, isValidMapStyleUrl, OPENFREEMAP_STYLE_URL, setMapStyleUrl } from '@/lib/map';
 import {
   applyNotifications,
@@ -71,12 +77,44 @@ export default function SettingsScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [mapUrl, setMapUrl] = useState('');
   const [privacyZoneM, setPrivacyZone] = useState(0);
+  const [healthEnabled, setHealthEnabled] = useState(false);
+  const [healthBusy, setHealthBusy] = useState(false);
 
   useEffect(() => {
     getProfile().then(setProfile);
     getMapStyleUrl().then(setMapUrl);
     getPrivacyZoneM().then(setPrivacyZone);
+    getHealthConnectEnabled().then(setHealthEnabled);
   }, []);
+
+  // Health Connect : opt-in. Les permissions système ne sont demandées qu'à
+  // l'activation du toggle — jamais au lancement de l'app.
+  const toggleHealthConnect = async (on: boolean) => {
+    if (!on) {
+      setHealthEnabled(false);
+      disableHealthConnect().catch(() => {});
+      return;
+    }
+    setHealthBusy(true);
+    try {
+      const res = await enableHealthConnect();
+      if (res === 'granted') {
+        setHealthEnabled(true);
+      } else if (res === 'denied') {
+        Alert.alert(
+          'Permissions refusées',
+          "Élan n'a pas reçu les permissions d'écriture. Tu peux les accorder dans l'app Health Connect, puis réactiver l'export ici.",
+        );
+      } else {
+        Alert.alert(
+          'Health Connect indisponible',
+          "Health Connect n'est pas disponible sur cet appareil. Il fait partie d'Android 14+, et s'installe depuis le Play Store sur Android 8 à 13.",
+        );
+      }
+    } finally {
+      setHealthBusy(false);
+    }
+  };
 
   const updatePrivacyZone = (meters: number) => {
     setPrivacyZone(meters);
@@ -437,6 +475,31 @@ export default function SettingsScreen() {
           </>
         ) : null}
       </Card>
+
+      {/* Health Connect (Android uniquement — la carte disparaît ailleurs) */}
+      {isHealthConnectSupported() ? (
+        <Card style={{ gap: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <MaterialCommunityIcons name="heart-plus-outline" size={22} color={theme.accent} />
+            <Text style={{ ...Type.sectionTitle, color: theme.text }}>Health Connect</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600', flex: 1 }}>
+              Exporter les séances
+            </Text>
+            <Switch
+              value={healthEnabled}
+              onValueChange={toggleHealthConnect}
+              disabled={healthBusy}
+            />
+          </View>
+          <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+            {healthEnabled
+              ? 'Chaque séance terminée (type, durée, distance, calories, fréquence cardiaque) est copiée dans Health Connect, la base santé locale d’Android. Tout reste sur l’appareil, aucun cloud.'
+              : 'Désactivé : tes séances restent uniquement dans Élan. Active pour les partager avec tes autres apps santé via Health Connect — stockage local Android, sans cloud ni compte.'}
+          </Text>
+        </Card>
+      ) : null}
 
       {/* Profil */}
       <Card style={{ gap: 14 }}>

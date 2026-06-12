@@ -22,6 +22,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { RestTimer } from '@/components/rest-timer';
 import { Elevation, Radius, Type } from '@/constants/theme';
 import { autoBackup } from '@/lib/backup';
+import { exportSessionToHealthConnect } from '@/lib/health-connect';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
@@ -433,9 +434,10 @@ export default function MuscuScreen() {
     });
 
     try {
+      const endedAt = nowMs();
       const id = await createSession('muscu', startedAtRef.current);
       await updateSession(id, {
-        endedAt: nowMs(),
+        endedAt,
         durationSec,
         avgHr,
         maxHr,
@@ -457,6 +459,14 @@ export default function MuscuScreen() {
       // ci-dessus lève, la séance reste reprenable au prochain lancement.
       await clearMuscuDraft();
       autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
+      // Miroir Health Connect (opt-in) : best-effort, ne bloque pas la navigation.
+      exportSessionToHealthConnect({
+        type: 'muscu',
+        startedAt: startedAtRef.current,
+        endedAt,
+        calories,
+        hrSamples: hrSamplesRef.current,
+      });
       router.replace({ pathname: '/session/[id]', params: { id } });
     } catch {
       // Échec d'écriture : on ne reste pas bloqué sur « saving ». Le brouillon est
