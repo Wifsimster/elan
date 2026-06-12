@@ -174,8 +174,12 @@ export async function exportSessionToHealthConnect(data: HealthSessionData): Pro
     if (!can('ExerciseSession')) return;
 
     const records = buildHealthRecords(data).filter((r) => can(r.recordType));
-    if (records.length === 0) return;
-    await hc.insertRecords(records);
+    // insertRecords exige des enregistrements d'un seul type par appel
+    // (« All records must have the same type ») → un appel par enregistrement,
+    // chacun en best-effort pour qu'un échec n'empêche pas les suivants.
+    for (const record of records) {
+      await hc.insertRecords([record]).catch(() => {});
+    }
   } catch {
     // Best-effort : jamais bloquant pour l'utilisateur.
   }
