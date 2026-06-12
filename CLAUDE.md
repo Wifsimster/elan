@@ -14,9 +14,10 @@ npx expo run:android   # build + run the development build on device/emulator
 npm run android        # same (expo start --android)
 npx tsc --noEmit       # type check
 npx expo lint          # lint (eslint flat config, eslint-config-expo)
+npm test               # jest (préset jest-expo) — fonctions pures de src/lib/ uniquement
 ```
 
-There is **no test suite** in this repo.
+Tests live in `__tests__/lib/` and only cover the framework-agnostic `src/lib/` layer (no components, no hooks); `expo-sqlite` is mocked over `better-sqlite3` where needed.
 
 ### Development build is mandatory
 
@@ -29,7 +30,7 @@ A local-first, offline activity tracker for cycling (GPS) and weight training. *
 ### Layering
 
 - `src/app/` — Expo Router routes (file-based, typed routes enabled). Screens orchestrate UI + call into `lib/`.
-- `src/lib/` — framework-agnostic domain logic: `db.ts` (all SQLite access), `ble.ts` (BLE manager + Heart Rate frame parsing), `geo.ts` (haversine + route decimation), `gps-filter.ts` (GPS consolidation: accuracy gating, outlier rejection, Kalman smoothing, anchor-based distance, elevation hysteresis), `gps-task.ts` (background location task: expo-task-manager + Android foreground service), `calories.ts` (MET estimate + HR zones), `route-projection.ts` (geo→SVG screen projection), `program.ts` (built-in workout templates), `wheel-sizes.ts` (cadence→speed gear tables), `s3.ts` (pure-JS S3 client, AWS SigV4 via `js-sha256`), `backup.ts` (snapshot export/import + S3 sync), `coach-export.ts` (builds a curated Markdown training report + raw JSON export, shared via the OS share sheet — for feeding a Claude Code project), `map.ts` (MapLibre style-URL setting), `strava/` (`parse.ts` regex GPX/TCX parser + `import.ts` normalization/dedup), `format.ts`, `time.ts`, `activity.ts`, `haptics.ts`, `types.ts` (domain types).
+- `src/lib/` — framework-agnostic domain logic: `db.ts` (all SQLite access), `ble.ts` (BLE manager + Heart Rate frame parsing), `geo.ts` (haversine + route decimation), `gps-filter.ts` (GPS consolidation: accuracy gating, outlier rejection, Kalman smoothing, anchor-based distance, elevation hysteresis), `gps-task.ts` (background location task: expo-task-manager + Android foreground service), `calories.ts` (MET estimate + HR zones), `route-projection.ts` (geo→SVG screen projection), `program.ts` (built-in workout templates), `wheel-sizes.ts` (cadence→speed gear tables), `s3.ts` (pure-JS S3 client, AWS SigV4 via `js-sha256`), `backup.ts` (snapshot export/import + S3 sync), `coach-export.ts` (builds a curated Markdown training report + raw JSON export, shared via the OS share sheet — for feeding a Claude Code project), `map.ts` (MapLibre style-URL setting), `health-connect.ts` (opt-in export of finished sessions to Android Health Connect — on-device, no cloud), `strava/` (`parse.ts` regex GPX/TCX parser + `import.ts` normalization/dedup), `format.ts`, `time.ts`, `activity.ts`, `haptics.ts`, `types.ts` (domain types).
 - `src/hooks/` — stateful React glue: `use-heart-rate.tsx` (BLE HR context), `use-cadence-speed.tsx` (BLE CSC sensor context), `use-backup.tsx` (S3 backup context), `use-data-export.tsx` (writes the coach report/JSON to cache + opens the share sheet), `use-gps-tracker.ts`, `use-stopwatch.ts`, `use-strava-import.tsx`, `use-theme.ts`, `use-color-scheme.ts`.
 - `src/components/` — reusable UI, themed via `useTheme()` + inline `StyleSheet`-style objects (see below).
 
@@ -60,6 +61,10 @@ Route display goes through `components/route-map.tsx`, which is an orchestrator:
 ### Backup: opt-in self-hosted S3
 
 `lib/s3.ts` is a dependency-light S3 client implementing AWS Signature V4 by hand (HMAC via `js-sha256`, no AWS SDK, path-style URLs — works with MinIO/SeaweedFS). `lib/backup.ts` wraps `db.exportAll()`/`importAll()` into a versioned snapshot (`format: 1`) and PUTs/GETs it. `BackupProvider` (`use-backup.tsx`) exposes config/status and the manual `backupNow()`/`restore()` actions used by the settings screen; `autoBackup()` is a fire-and-forget call after a session ends. Config + last-run status live in `settings` (`backup_s3`, `backup_last`) and are **excluded from the snapshot** so credentials never round-trip.
+
+### Health Connect: opt-in on-device export (Android only)
+
+`lib/health-connect.ts` mirrors finished sessions into **Android Health Connect** (the on-device health store — no network, consistent with the project rule). Off by default: the `health_connect` setting only turns on from the Réglages toggle, which is also the only place permissions are requested (`enableHealthConnect()`). After a session is saved, `velo.tsx`/`muscu.tsx` call `exportSessionToHealthConnect()` fire-and-forget (same contract as `autoBackup()`: never throws, never blocks navigation). `buildHealthRecords()` is pure and unit-tested. The native module (`react-native-health-connect`) is lazy-loaded and everything no-ops on iOS/web or when Health Connect is absent — the settings card simply disappears off-Android. Manifest bits come from the lib's own plugin (permission-rationale intent filter) plus `plugins/withHealthConnect.js` (Android 14+ `ViewPermissionUsageActivity` alias); health `WRITE_*` permissions are declared in `app.json`, and `expo-build-properties` pins `minSdkVersion` 26 (Health Connect requirement).
 
 ### Strava import (file-based)
 
