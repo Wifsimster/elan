@@ -694,6 +694,22 @@ const RECORD_COLUMNS: Record<RecordKind, string> = {
 };
 
 /**
+ * Expression SQL et valeur de la séance pour une métrique de record. Pour le
+ * vélo, le record de durée se mesure sur le temps en mouvement (hors arrêts)
+ * quand il est connu : une sortie dont le chrono a tourné à l'arrêt ne peut pas
+ * s'octroyer un faux record de durée. La musculation (sans GPS) garde la durée
+ * totale. L'expression vient d'une liste blanche fermée — jamais d'entrée
+ * utilisateur, sûre à interpoler.
+ */
+function recordColumn(kind: RecordKind, s: Session): { expr: string; value: number | null } {
+  if (kind === 'duration' && s.type === 'velo') {
+    return { expr: 'COALESCE(movingTimeSec, durationSec)', value: s.movingTimeSec ?? s.durationSec };
+  }
+  const col = RECORD_COLUMNS[kind];
+  return { expr: col, value: s[col as keyof Session] as number | null };
+}
+
+/**
  * Détermine, pour une séance donnée, les records qu'elle détient parmi les
  * séances du même type. Pour chaque métrique : record « all » si aucune autre
  * séance ne fait mieux, sinon record « year » si aucune ne fait mieux sur la
@@ -710,8 +726,7 @@ export async function sessionRecords(s: Session): Promise<SessionRecord[]> {
 
   const out: SessionRecord[] = [];
   for (const kind of kinds) {
-    const col = RECORD_COLUMNS[kind];
-    const value = s[col as keyof Session] as number | null;
+    const { expr: col, value } = recordColumn(kind, s);
     if (value == null || value <= 0) continue;
 
     const greaterAll = await db.getFirstAsync<{ n: number }>(
