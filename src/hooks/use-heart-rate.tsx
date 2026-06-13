@@ -23,6 +23,7 @@ import {
 } from '@/lib/ble';
 import { getSetting, setSetting } from '@/lib/db';
 import { nowMs } from '@/lib/time';
+import type { HrSample } from '@/lib/types';
 
 export type HrStatus =
   | 'unsupported'
@@ -35,7 +36,9 @@ export type HrStatus =
 
 export type ScannedDevice = { id: string; name: string };
 
-export type HrSample = { ts: number; hr: number };
+// Type du domaine, défini dans lib/types.ts ; ré-exporté ici par commodité pour
+// les consommateurs du contexte cardiaque.
+export type { HrSample };
 
 type HeartRateContextValue = {
   status: HrStatus;

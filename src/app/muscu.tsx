@@ -44,6 +44,8 @@ import {
 } from '@/lib/exercises';
 import { formatDuration } from '@/lib/format';
 import { clearMuscuDraft, loadMuscuDraft, saveMuscuDraft } from '@/lib/muscu-draft';
+import { pushDownsampled, summarizeHr } from '@/lib/samples';
+import type { HrSample } from '@/lib/types';
 import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
 import { nowMs } from '@/lib/time';
 import { useHeartRate } from '@/hooks/use-heart-rate';
@@ -71,7 +73,6 @@ type Exercise = {
   /** Clé d'illustration photo (paire départ → fin), affichée dans la fiche. */
   imageKey?: string;
 };
-type HrSample = { ts: number; hr: number };
 
 const COMMON = [
   'Développé couché',
@@ -260,15 +261,12 @@ export default function MuscuScreen() {
   // les paliers (React déduplique les setStates identiques côté `bpm`).
   // Les trames reçues en pause sont ignorées pour ne pas fausser la moyenne.
   useEffect(() => {
-    return subscribeHr(({ ts, hr }) => {
+    return subscribeHr((sample) => {
       if (pausedRef.current) return;
       // Down-sampling sur palier : un seul échantillon par seconde tant que la FC
       // ne bouge pas. Borne le buffer (et le brouillon re-sérialisé à chaque set)
       // sans altérer moyenne, max, ni l'attachement temporel.
-      const buf = hrSamplesRef.current;
-      const last = buf[buf.length - 1];
-      if (last && last.hr === hr && ts - last.ts < 1000) return;
-      buf.push({ ts, hr });
+      pushDownsampled(hrSamplesRef.current, sample, (s) => s.hr);
     });
   }, [subscribeHr]);
 
@@ -401,14 +399,6 @@ export default function MuscuScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exercises, paused]);
 
-  const computeHr = () => {
-    const samples = hrSamplesRef.current;
-    if (samples.length === 0) return { avgHr: null, maxHr: null };
-    const sum = samples.reduce((a, s) => a + s.hr, 0);
-    const max = samples.reduce((a, s) => Math.max(a, s.hr), 0);
-    return { avgHr: Math.round(sum / samples.length), maxHr: max };
-  };
-
   const finish = () => {
     if (totalSets === 0) {
       Alert.alert('Séance vide', 'Ajoute au moins un exercice avant de terminer.');
@@ -424,7 +414,7 @@ export default function MuscuScreen() {
     setSaving(true);
     watch.pause();
     const durationSec = watch.elapsedSec;
-    const { avgHr, maxHr } = computeHr();
+    const { avgHr, maxHr } = summarizeHr(hrSamplesRef.current);
     const calories = estimateCalories({
       type: 'muscu',
       weightKg: weightRef.current,
