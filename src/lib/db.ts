@@ -389,6 +389,39 @@ export async function deleteSession(id: number): Promise<void> {
 // Points GPS
 // ---------------------------------------------------------------------------
 
+/**
+ * Insère en lot des points GPS rattachés à une séance (l'id est auto-incrémenté).
+ * À appeler dans une transaction déjà ouverte. Une longue sortie peut compter
+ * plusieurs milliers de points : un statement préparé évite de re-parser le SQL
+ * à chaque insertion. Partagé par `insertTrackPoints` et `insertImportedSession`.
+ */
+async function insertTrackPointRows(
+  db: SQLite.SQLiteDatabase,
+  sessionId: number,
+  points: Omit<TrackPoint, 'id' | 'sessionId'>[],
+): Promise<void> {
+  if (points.length === 0) return;
+  const stmt = await db.prepareAsync(
+    'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+  );
+  try {
+    for (const p of points) {
+      await stmt.executeAsync(
+        sessionId,
+        p.ts,
+        p.lat,
+        p.lon,
+        p.altitude,
+        p.speedKmh,
+        p.hr,
+        p.cadence,
+      );
+    }
+  } finally {
+    await stmt.finalizeAsync();
+  }
+}
+
 export async function insertTrackPoints(
   sessionId: number,
   points: Omit<TrackPoint, 'id' | 'sessionId'>[],
@@ -396,27 +429,7 @@ export async function insertTrackPoints(
   if (points.length === 0) return;
   const db = await getDb();
   await db.withTransactionAsync(async () => {
-    // Une longue sortie peut représenter plusieurs milliers de points : un
-    // statement préparé évite de re-parser le SQL à chaque insertion.
-    const stmt = await db.prepareAsync(
-      'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
-    );
-    try {
-      for (const p of points) {
-        await stmt.executeAsync(
-          sessionId,
-          p.ts,
-          p.lat,
-          p.lon,
-          p.altitude,
-          p.speedKmh,
-          p.hr,
-          p.cadence,
-        );
-      }
-    } finally {
-      await stmt.finalizeAsync();
-    }
+    await insertTrackPointRows(db, sessionId, points);
   });
 }
 
@@ -486,27 +499,7 @@ export async function insertImportedSession(
       result = 'duplicate';
       return;
     }
-    const sessionId = res.lastInsertRowId;
-    if (points.length === 0) return;
-    const stmt = await db.prepareAsync(
-      'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
-    );
-    try {
-      for (const p of points) {
-        await stmt.executeAsync(
-          sessionId,
-          p.ts,
-          p.lat,
-          p.lon,
-          p.altitude,
-          p.speedKmh,
-          p.hr,
-          p.cadence,
-        );
-      }
-    } finally {
-      await stmt.finalizeAsync();
-    }
+    await insertTrackPointRows(db, res.lastInsertRowId, points);
   });
   return result;
 }
