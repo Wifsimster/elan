@@ -11,8 +11,6 @@ import { PressableScale } from '@/components/pressable-scale';
 import { RouteMap } from '@/components/route-map';
 import { StatTile } from '@/components/stat-tile';
 import { Elevation, Radius, Type } from '@/constants/theme';
-import { autoBackup } from '@/lib/backup';
-import { exportSessionToHealthConnect } from '@/lib/health-connect';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
@@ -23,6 +21,7 @@ import {
 import { cadenceParts, distanceParts, formatDuration, hrParts, speedParts } from '@/lib/format';
 import { movingTimeSec } from '@/lib/moving-time';
 import { nearestSample, pushDownsampled, summarizeCadence, summarizeHr } from '@/lib/samples';
+import { finalizeSavedSession } from '@/lib/session-finalize';
 import { nowMs } from '@/lib/time';
 import type { HrSample } from '@/lib/types';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
@@ -194,9 +193,7 @@ export default function VeloScreen() {
       }));
       await insertTrackPoints(id, points);
 
-      autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
-      // Miroir Health Connect (opt-in) : best-effort, ne bloque pas la navigation.
-      exportSessionToHealthConnect({
+      finalizeSavedSession({
         type: 'velo',
         startedAt: startedAtRef.current,
         endedAt,

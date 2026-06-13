@@ -21,8 +21,6 @@ import { ExerciseInfoSheet } from '@/components/exercise-info-sheet';
 import { PressableScale } from '@/components/pressable-scale';
 import { RestTimer } from '@/components/rest-timer';
 import { Elevation, Radius, Type } from '@/constants/theme';
-import { autoBackup } from '@/lib/backup';
-import { exportSessionToHealthConnect } from '@/lib/health-connect';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
@@ -46,6 +44,7 @@ import { formatDuration } from '@/lib/format';
 import { clearMuscuDraft, loadMuscuDraft, saveMuscuDraft } from '@/lib/muscu-draft';
 import { muscuStats, muscuSummary } from '@/lib/muscu-stats';
 import { pushDownsampled, summarizeHr } from '@/lib/samples';
+import { finalizeSavedSession } from '@/lib/session-finalize';
 import type { HrSample } from '@/lib/types';
 import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
 import { nowMs } from '@/lib/time';
@@ -445,9 +444,7 @@ export default function MuscuScreen() {
       // Le brouillon n'est effacé qu'APRÈS l'écriture réussie : si une étape
       // ci-dessus lève, la séance reste reprenable au prochain lancement.
       await clearMuscuDraft();
-      autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
-      // Miroir Health Connect (opt-in) : best-effort, ne bloque pas la navigation.
-      exportSessionToHealthConnect({
+      finalizeSavedSession({
         type: 'muscu',
         startedAt: startedAtRef.current,
         endedAt,
