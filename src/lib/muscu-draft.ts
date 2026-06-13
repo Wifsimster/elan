@@ -4,6 +4,7 @@
 // table `settings`, donc aucune migration de schéma et rien sur le réseau.
 
 import { deleteSetting, getSetting, setSetting } from '@/lib/db';
+import type { HrSample } from '@/lib/types';
 
 const SETTING_KEY = 'muscu_draft';
 
@@ -15,7 +16,7 @@ export type MuscuDraft<E = unknown> = {
   /** Temps actif écoulé en secondes au moment de la sauvegarde. */
   elapsedSec: number;
   exercises: E[];
-  hrSamples: { ts: number; hr: number }[];
+  hrSamples: HrSample[];
 };
 
 export async function saveMuscuDraft(draft: MuscuDraft): Promise<void> {

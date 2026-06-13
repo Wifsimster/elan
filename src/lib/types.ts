@@ -51,6 +51,12 @@ export type TrackPoint = {
   cadence: number | null;
 };
 
+/**
+ * Un échantillon de fréquence cardiaque horodaté (ms epoch), accumulé pendant
+ * une séance puis agrégé (cf. `lib/samples.ts`) et apparié aux points GPS.
+ */
+export type HrSample = { ts: number; hr: number };
+
 /** Une pesée du journal de poids corporel. */
 export type BodyMeasurement = {
   id: number;

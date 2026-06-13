@@ -21,8 +21,6 @@ import { ExerciseInfoSheet } from '@/components/exercise-info-sheet';
 import { PressableScale } from '@/components/pressable-scale';
 import { RestTimer } from '@/components/rest-timer';
 import { Elevation, Radius, Type } from '@/constants/theme';
-import { autoBackup } from '@/lib/backup';
-import { exportSessionToHealthConnect } from '@/lib/health-connect';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
@@ -44,6 +42,10 @@ import {
 } from '@/lib/exercises';
 import { formatDuration } from '@/lib/format';
 import { clearMuscuDraft, loadMuscuDraft, saveMuscuDraft } from '@/lib/muscu-draft';
+import { muscuStats, muscuSummary } from '@/lib/muscu-stats';
+import { pushDownsampled, summarizeHr } from '@/lib/samples';
+import { finalizeSavedSession } from '@/lib/session-finalize';
+import type { HrSample } from '@/lib/types';
 import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
 import { nowMs } from '@/lib/time';
 import { useHeartRate } from '@/hooks/use-heart-rate';
@@ -71,7 +73,6 @@ type Exercise = {
   /** Clé d'illustration photo (paire départ → fin), affichée dans la fiche. */
   imageKey?: string;
 };
-type HrSample = { ts: number; hr: number };
 
 const COMMON = [
   'Développé couché',
@@ -260,15 +261,12 @@ export default function MuscuScreen() {
   // les paliers (React déduplique les setStates identiques côté `bpm`).
   // Les trames reçues en pause sont ignorées pour ne pas fausser la moyenne.
   useEffect(() => {
-    return subscribeHr(({ ts, hr }) => {
+    return subscribeHr((sample) => {
       if (pausedRef.current) return;
       // Down-sampling sur palier : un seul échantillon par seconde tant que la FC
       // ne bouge pas. Borne le buffer (et le brouillon re-sérialisé à chaque set)
       // sans altérer moyenne, max, ni l'attachement temporel.
-      const buf = hrSamplesRef.current;
-      const last = buf[buf.length - 1];
-      if (last && last.hr === hr && ts - last.ts < 1000) return;
-      buf.push({ ts, hr });
+      pushDownsampled(hrSamplesRef.current, sample, (s) => s.hr);
     });
   }, [subscribeHr]);
 
@@ -376,12 +374,8 @@ export default function MuscuScreen() {
     }
   };
 
-  const totalSets = exercises.reduce((a, e) => a + e.sets.length, 0);
-  const doneSets = exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
-  const totalVolume = exercises.reduce(
-    (a, e) => a + e.sets.reduce((b, s) => b + s.reps * s.weightKg, 0),
-    0,
-  );
+  const stats = muscuStats(exercises);
+  const { totalSets, doneSets, totalVolume } = stats;
 
   // Sauvegarde du brouillon (séance en pause, reprenable). Best-effort, local.
   const persistDraft = () =>
@@ -401,14 +395,6 @@ export default function MuscuScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exercises, paused]);
 
-  const computeHr = () => {
-    const samples = hrSamplesRef.current;
-    if (samples.length === 0) return { avgHr: null, maxHr: null };
-    const sum = samples.reduce((a, s) => a + s.hr, 0);
-    const max = samples.reduce((a, s) => Math.max(a, s.hr), 0);
-    return { avgHr: Math.round(sum / samples.length), maxHr: max };
-  };
-
   const finish = () => {
     if (totalSets === 0) {
       Alert.alert('Séance vide', 'Ajoute au moins un exercice avant de terminer.');
@@ -424,7 +410,7 @@ export default function MuscuScreen() {
     setSaving(true);
     watch.pause();
     const durationSec = watch.elapsedSec;
-    const { avgHr, maxHr } = computeHr();
+    const { avgHr, maxHr } = summarizeHr(hrSamplesRef.current);
     const calories = estimateCalories({
       type: 'muscu',
       weightKg: weightRef.current,
@@ -442,7 +428,7 @@ export default function MuscuScreen() {
         avgHr,
         maxHr,
         calories,
-        notes: `${exercises.length} exercices · ${totalSets} séries · ${Math.round(totalVolume)} kg soulevés`,
+        notes: muscuSummary(stats),
       });
 
       const flat = exercises.flatMap((e) =>
@@ -458,9 +444,7 @@ export default function MuscuScreen() {
       // Le brouillon n'est effacé qu'APRÈS l'écriture réussie : si une étape
       // ci-dessus lève, la séance reste reprenable au prochain lancement.
       await clearMuscuDraft();
-      autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
-      // Miroir Health Connect (opt-in) : best-effort, ne bloque pas la navigation.
-      exportSessionToHealthConnect({
+      finalizeSavedSession({
         type: 'muscu',
         startedAt: startedAtRef.current,
         endedAt,

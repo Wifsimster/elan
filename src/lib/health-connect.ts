@@ -13,7 +13,7 @@
 import { Platform } from 'react-native';
 
 import { getSetting, setSetting } from '@/lib/db';
-import type { ActivityType } from '@/lib/types';
+import type { ActivityType, HrSample } from '@/lib/types';
 import type { HealthConnectRecord, Permission } from 'react-native-health-connect';
 
 const KEY = 'health_connect';
@@ -95,7 +95,7 @@ export type HealthSessionData = {
   endedAt: number; // ms epoch
   distanceM?: number | null;
   calories?: number | null;
-  hrSamples?: { ts: number; hr: number }[];
+  hrSamples?: HrSample[];
 };
 
 /**

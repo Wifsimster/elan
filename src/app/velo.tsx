@@ -11,8 +11,6 @@ import { PressableScale } from '@/components/pressable-scale';
 import { RouteMap } from '@/components/route-map';
 import { StatTile } from '@/components/stat-tile';
 import { Elevation, Radius, Type } from '@/constants/theme';
-import { autoBackup } from '@/lib/backup';
-import { exportSessionToHealthConnect } from '@/lib/health-connect';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
@@ -22,7 +20,10 @@ import {
 } from '@/lib/db';
 import { cadenceParts, distanceParts, formatDuration, hrParts, speedParts } from '@/lib/format';
 import { movingTimeSec } from '@/lib/moving-time';
+import { nearestSample, pushDownsampled, summarizeCadence, summarizeHr } from '@/lib/samples';
+import { finalizeSavedSession } from '@/lib/session-finalize';
 import { nowMs } from '@/lib/time';
+import type { HrSample } from '@/lib/types';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useGpsTracker } from '@/hooks/use-gps-tracker';
 import { useHeartRate } from '@/hooks/use-heart-rate';
@@ -32,7 +33,6 @@ import { useTheme } from '@/hooks/use-theme';
 
 type Phase = 'idle' | 'active' | 'paused' | 'saving';
 
-type HrSample = { ts: number; hr: number };
 type CadenceSample = { ts: number; cadence: number };
 
 export default function VeloScreen() {
@@ -83,14 +83,9 @@ export default function VeloScreen() {
   // cadence stable) et appauvrirait la moyenne ainsi que l'attachement
   // FC↔point GPS.
   useEffect(() => {
-    return subscribeHr(({ ts, hr }) => {
+    return subscribeHr((sample) => {
       if (phaseRef.current !== 'active') return;
-      // Sur un palier (FC identique), un seul échantillon par seconde : borne le
-      // buffer sur les longues sorties sans toucher moyenne/max/attachement GPS.
-      const buf = hrSamplesRef.current;
-      const last = buf[buf.length - 1];
-      if (last && last.hr === hr && ts - last.ts < 1000) return;
-      buf.push({ ts, hr });
+      pushDownsampled(hrSamplesRef.current, sample, (s) => s.hr);
     });
   }, [subscribeHr]);
 
@@ -98,10 +93,7 @@ export default function VeloScreen() {
     return subscribeCsc(({ ts, cadenceRpm: rpm }) => {
       if (rpm == null) return;
       if (phaseRef.current !== 'active') return;
-      const buf = cadenceSamplesRef.current;
-      const last = buf[buf.length - 1];
-      if (last && last.cadence === rpm && ts - last.ts < 1000) return;
-      buf.push({ ts, cadence: rpm });
+      pushDownsampled(cadenceSamplesRef.current, { ts, cadence: rpm }, (s) => s.cadence);
     });
   }, [subscribeCsc]);
 
@@ -133,25 +125,6 @@ export default function VeloScreen() {
     setPhase('active');
   };
 
-  const computeHr = () => {
-    const samples = hrSamplesRef.current;
-    if (samples.length === 0) return { avgHr: null, maxHr: null };
-    const sum = samples.reduce((a, s) => a + s.hr, 0);
-    const max = samples.reduce((a, s) => Math.max(a, s.hr), 0);
-    return { avgHr: Math.round(sum / samples.length), maxHr: max };
-  };
-
-  // Moyenne « en mouvement » : on exclut les phases de roue libre (cadence 0).
-  const computeCadence = () => {
-    const all = cadenceSamplesRef.current;
-    if (all.length === 0) return { avgCadence: null, maxCadence: null };
-    const moving = all.filter((s) => s.cadence > 0);
-    const max = all.reduce((a, s) => Math.max(a, s.cadence), 0);
-    if (moving.length === 0) return { avgCadence: null, maxCadence: max || null };
-    const sum = moving.reduce((a, s) => a + s.cadence, 0);
-    return { avgCadence: Math.round(sum / moving.length), maxCadence: max };
-  };
-
   const finish = () => {
     Alert.alert('Terminer la sortie ?', 'La séance sera enregistrée.', [
       { text: 'Continuer', style: 'cancel' },
@@ -166,8 +139,10 @@ export default function VeloScreen() {
     savedResultRef.current = result;
     watch.pause();
     const durationSec = watch.elapsedSec;
-    const { avgHr, maxHr } = computeHr();
-    const { avgCadence, maxCadence } = computeCadence();
+    const { avgHr, maxHr } = summarizeHr(hrSamplesRef.current);
+    const { avgCadence, maxCadence } = summarizeCadence(
+      cadenceSamplesRef.current.map((s) => s.cadence),
+    );
     // Temps en mouvement (hors arrêts) déduit du tracé : sert de base à la
     // vitesse moyenne et aux calories pour qu'un arrêt prolongé (ou un chrono
     // oublié) ne les fausse pas. À défaut de tracé exploitable, on retombe sur
@@ -213,14 +188,12 @@ export default function VeloScreen() {
         lon: p.lon,
         altitude: p.altitude,
         speedKmh: p.speedKmh,
-        hr: nearestHr(samples, p.ts),
+        hr: nearestSample(samples, p.ts, (s) => s.hr),
         cadence: nearestSample(cadenceSamples, p.ts, (s) => s.cadence),
       }));
       await insertTrackPoints(id, points);
 
-      autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
-      // Miroir Health Connect (opt-in) : best-effort, ne bloque pas la navigation.
-      exportSessionToHealthConnect({
+      finalizeSavedSession({
         type: 'velo',
         startedAt: startedAtRef.current,
         endedAt,
@@ -456,46 +429,6 @@ export default function VeloScreen() {
       </View>
     </View>
   );
-}
-
-function nearestHr(samples: HrSample[], ts: number): number | null {
-  return nearestSample(samples, ts, (s) => s.hr);
-}
-
-/**
- * Valeur de l'échantillon temporellement le plus proche (tolérance 10 s).
- * Les échantillons sont accumulés dans l'ordre chronologique (push lors de la
- * réception BLE) : recherche dichotomique en O(log N) au lieu d'un scan
- * complet pour chaque point GPS — sur une longue sortie cela évite plusieurs
- * secondes de calcul au moment de l'enregistrement.
- */
-function nearestSample<T extends { ts: number }>(
-  samples: T[],
-  ts: number,
-  pick: (s: T) => number,
-): number | null {
-  if (samples.length === 0) return null;
-  // Borne basse via recherche dichotomique : premier index dont ts >= cible.
-  let lo = 0;
-  let hi = samples.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >>> 1;
-    if (samples[mid].ts < ts) lo = mid + 1;
-    else hi = mid;
-  }
-  const candidates: T[] = [];
-  if (lo < samples.length) candidates.push(samples[lo]);
-  if (lo > 0) candidates.push(samples[lo - 1]);
-  let best = candidates[0];
-  let bestDiff = Math.abs(best.ts - ts);
-  for (let i = 1; i < candidates.length; i++) {
-    const diff = Math.abs(candidates[i].ts - ts);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      best = candidates[i];
-    }
-  }
-  return bestDiff <= 10000 ? pick(best) : null;
 }
 
 /** Cadre d'attente affiché tant que le tracé live n'a pas assez de points. */

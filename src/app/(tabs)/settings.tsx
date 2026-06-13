@@ -18,6 +18,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
 import { PressableScale } from '@/components/pressable-scale';
+import { SettingCardHeader } from '@/components/setting-card-header';
 import { Radius, Type } from '@/constants/theme';
 import { clearAllData, clearAllDataIncludingSettings, getProfile, saveProfile } from '@/lib/db';
 import { GOALS, goalSpec } from '@/lib/exercises';
@@ -247,12 +248,7 @@ export default function SettingsScreen() {
 
       {/* Ceinture cardiaque */}
       <Card style={{ gap: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <MaterialCommunityIcons name="heart-pulse" size={22} color={theme.heart} />
-          <Text style={{ ...Type.sectionTitle, color: theme.text }}>
-            Ceinture cardiaque
-          </Text>
-        </View>
+        <SettingCardHeader icon="heart-pulse" color={theme.heart} title="Ceinture cardiaque" />
 
         <HrStatusLine />
 
@@ -323,12 +319,7 @@ export default function SettingsScreen() {
 
       {/* Capteurs vélo (cadence / vitesse) */}
       <Card style={{ gap: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <MaterialCommunityIcons name="rotate-right" size={22} color={theme.velo} />
-          <Text style={{ ...Type.sectionTitle, color: theme.text }}>
-            Capteurs vélo
-          </Text>
-        </View>
+        <SettingCardHeader icon="rotate-right" color={theme.velo} title="Capteurs vélo" />
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
           {'Cadence et vitesse via le profil BLE standard (iGPSPORT CAD70 / SPD70, ou équivalent). Tu peux en connecter deux à la fois.'}
         </Text>
@@ -439,10 +430,7 @@ export default function SettingsScreen() {
 
       {/* Carte (fond MapLibre — opt-in) */}
       <Card style={{ gap: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <MaterialCommunityIcons name="map-outline" size={22} color={theme.velo} />
-          <Text style={{ ...Type.sectionTitle, color: theme.text }}>Carte</Text>
-        </View>
+        <SettingCardHeader icon="map-outline" color={theme.velo} title="Carte" />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600', flex: 1 }}>
             Fond de carte en ligne
@@ -479,10 +467,7 @@ export default function SettingsScreen() {
       {/* Health Connect (Android uniquement — la carte disparaît ailleurs) */}
       {isHealthConnectSupported() ? (
         <Card style={{ gap: 14 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <MaterialCommunityIcons name="heart-plus-outline" size={22} color={theme.accent} />
-            <Text style={{ ...Type.sectionTitle, color: theme.text }}>Health Connect</Text>
-          </View>
+          <SettingCardHeader icon="heart-plus-outline" color={theme.accent} title="Health Connect" />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600', flex: 1 }}>
               Exporter les séances
@@ -503,10 +488,7 @@ export default function SettingsScreen() {
 
       {/* Profil */}
       <Card style={{ gap: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <MaterialCommunityIcons name="account-outline" size={22} color={theme.accent} />
-          <Text style={{ ...Type.sectionTitle, color: theme.text }}>Profil</Text>
-        </View>
+        <SettingCardHeader icon="account-outline" color={theme.accent} title="Profil" />
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
           {'Utilisé pour estimer les calories et les zones cardio, et pour conseiller reps et charge dans le catalogue.'}
         </Text>
@@ -615,10 +597,7 @@ export default function SettingsScreen() {
 
       {/* Données */}
       <Card style={{ gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <MaterialCommunityIcons name="database-outline" size={22} color={theme.accent} />
-          <Text style={{ ...Type.sectionTitle, color: theme.text }}>Données</Text>
-        </View>
+        <SettingCardHeader icon="database-outline" color={theme.accent} title="Données" />
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
           <MaterialCommunityIcons name="lock-outline" size={18} color={theme.success} />
           <Text style={{ color: theme.textSecondary, fontSize: 13, flex: 1 }}>
@@ -645,12 +624,7 @@ export default function SettingsScreen() {
 
       {/* Exporter mes données (bilan IA / brut) */}
       <Card style={{ gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <MaterialCommunityIcons name="export-variant" size={22} color={theme.accent} />
-          <Text style={{ ...Type.sectionTitle, color: theme.text }}>
-            Exporter mes données
-          </Text>
-        </View>
+        <SettingCardHeader icon="export-variant" color={theme.accent} title="Exporter mes données" />
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
           {"Génère un bilan lisible de ton programme, de ta progression et de ton historique, ou un export brut complet. À déposer dans l'outil de ton choix : coach IA, tableur, sauvegarde personnelle… Tout est généré sur l'appareil, le partage se fait via la feuille système (Drive, mail, fichier…)."}
         </Text>
@@ -698,10 +672,7 @@ export default function SettingsScreen() {
 
       {/* Import Strava */}
       <Card style={{ gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <MaterialCommunityIcons name="cloud-download-outline" size={22} color={theme.velo} />
-          <Text style={{ ...Type.sectionTitle, color: theme.text }}>Import Strava</Text>
-        </View>
+        <SettingCardHeader icon="cloud-download-outline" color={theme.velo} title="Import Strava" />
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
           {"Exporte depuis Strava (page de l'activité → « Exporter GPX », ou « Télécharger tes données » dans les réglages du compte), puis importe le fichier ici. Formats acceptés : GPX, TCX et FIT, y compris compressés (.gz) — comme dans l'export en masse. Tout est traité sur l'appareil."}
         </Text>
@@ -734,12 +705,7 @@ export default function SettingsScreen() {
 
       {/* Sauvegarde homelab (S3) */}
       <Card style={{ gap: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <MaterialCommunityIcons name="cloud-upload-outline" size={22} color={theme.accent} />
-          <Text style={{ ...Type.sectionTitle, color: theme.text }}>
-            Sauvegarde homelab
-          </Text>
-        </View>
+        <SettingCardHeader icon="cloud-upload-outline" color={theme.accent} title="Sauvegarde homelab" />
         <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
           {'Backup automatique de toutes tes données vers ton stockage S3 (MinIO). Elles restent sur ton serveur — rien chez un tiers.'}
         </Text>
@@ -904,12 +870,7 @@ function WeekPlanCard() {
 
   return (
     <Card style={{ gap: 14 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <MaterialCommunityIcons name="calendar-week" size={22} color={theme.accent} />
-        <Text style={{ ...Type.sectionTitle, color: theme.text }}>
-          Planning hebdomadaire
-        </Text>
-      </View>
+      <SettingCardHeader icon="calendar-week" color={theme.accent} title="Planning hebdomadaire" />
       <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
         {"Choisis la séance prévue pour chaque jour. L'accueil propose la séance du jour selon ce planning."}
       </Text>
@@ -993,12 +954,7 @@ function NotificationsCard() {
 
   return (
     <Card style={{ gap: 14 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <MaterialCommunityIcons name="bell-outline" size={22} color={theme.accent} />
-        <Text style={{ ...Type.sectionTitle, color: theme.text }}>
-          Rappels de séance
-        </Text>
-      </View>
+      <SettingCardHeader icon="bell-outline" color={theme.accent} title="Rappels de séance" />
       <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
         {"Un rappel local le jour même d'une séance prévue, à l'heure de ton choix (midi par défaut). Il liste les exercices du programme du jour pour t'aider à le respecter. Aucune notification les jours de repos, et aucune relance si la séance est manquée. 100 % local — aucune connexion réseau."}
       </Text>
