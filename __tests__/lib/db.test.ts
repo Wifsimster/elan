@@ -63,6 +63,8 @@ import {
   replaceMuscuSets,
   sessionRecords,
   setSetting,
+  statsBetween,
+  tonnageBetween,
   updateSession,
   type DbSnapshot,
   type ImportedSessionRow,
@@ -209,5 +211,57 @@ describe('sessionRecords — record de durée vélo sur le temps en mouvement', 
     // malgré ses 3 h de temps total.
     expect(recA.some((r) => r.kind === 'duration')).toBe(true);
     expect(recB.some((r) => r.kind === 'duration')).toBe(false);
+  });
+});
+
+describe('statsBetween (filtre par type) & tonnageBetween — suivi d’objectifs', () => {
+  const T = 2_000_000_000_000;
+
+  beforeAll(async () => {
+    await clearAllData();
+    // Deux sorties vélo terminées (distances connues).
+    const v1 = await createSession('velo', T);
+    await updateSession(v1, { endedAt: T + 100, durationSec: 100, distanceM: 10_000 });
+    const v2 = await createSession('velo', T + 1000);
+    await updateSession(v2, { endedAt: T + 1100, durationSec: 100, distanceM: 5_000 });
+    // Une séance muscu terminée (tonnage = 10×20 + 8×30 = 440).
+    const m1 = await createSession('muscu', T + 2000);
+    await updateSession(m1, { endedAt: T + 2100, durationSec: 100 });
+    await replaceMuscuSets(m1, [
+      { exercise: 'Squat', setIndex: 1, reps: 10, weightKg: 20 },
+      { exercise: 'Squat', setIndex: 2, reps: 8, weightKg: 30 },
+    ]);
+    // Séance en cours (endedAt NULL) : ne doit jamais être comptée.
+    await createSession('velo', T + 3000);
+  });
+
+  it('sans filtre : compte toutes les séances terminées de la fenêtre', async () => {
+    const s = await statsBetween(T, T + 10_000);
+    expect(s.sessionCount).toBe(3);
+    expect(s.totalDistanceM).toBe(15_000);
+  });
+
+  it('filtre vélo : ignore la muscu et la séance en cours', async () => {
+    const s = await statsBetween(T, T + 10_000, 'velo');
+    expect(s.sessionCount).toBe(2);
+    expect(s.totalDistanceM).toBe(15_000);
+  });
+
+  it('filtre muscu : une séance, sans distance', async () => {
+    const s = await statsBetween(T, T + 10_000, 'muscu');
+    expect(s.sessionCount).toBe(1);
+    expect(s.totalDistanceM).toBe(0);
+  });
+
+  it('fenêtre exclut les bornes hautes (toMs exclusif)', async () => {
+    // [T, T+1000) ne contient que la première sortie vélo.
+    const s = await statsBetween(T, T + 1000, 'velo');
+    expect(s.sessionCount).toBe(1);
+  });
+
+  it('tonnageBetween : somme reps × charge des séances muscu de la fenêtre', async () => {
+    expect(await tonnageBetween(T, T + 10_000)).toBe(440);
+    // Avant la séance muscu (à T+2000) : aucun tonnage.
+    expect(await tonnageBetween(T, T + 2000)).toBe(0);
   });
 });

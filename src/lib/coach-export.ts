@@ -24,6 +24,12 @@ import {
   formatDateShort,
 } from '@/lib/format';
 import { goalLabel } from '@/lib/exercises';
+import {
+  describeGoal,
+  formatGoalValue,
+  goalProgressList,
+  type GoalProgress,
+} from '@/lib/goals';
 import { TEMPLATES, WEEK_PLAN, targetHint } from '@/lib/program';
 import { nowMs } from '@/lib/time';
 import type { BodyMeasurement, MuscuSet, Profile, Session } from '@/lib/types';
@@ -147,6 +153,28 @@ async function statsSection(): Promise<string> {
   ].join('\n');
 }
 
+/** Objectifs et leur avancement sur la période courante — omis si aucun défini. */
+function goalsSection(progress: GoalProgress[]): string | null {
+  if (progress.length === 0) return null;
+  const lines: string[] = [
+    '## Objectifs',
+    '',
+    'Avancement sur la période courante (semaine ou mois selon l’objectif).',
+    '',
+    '| Objectif | Réalisé | Cible | Atteint |',
+    '| --- | --- | --- | --- |',
+  ];
+  for (const p of progress) {
+    lines.push(
+      `| ${cell(describeGoal(p.goal))} | ${formatGoalValue(p.goal, p.value)} | ${formatGoalValue(
+        p.goal,
+        p.target,
+      )} | ${p.done ? 'oui' : `${Math.round(p.ratio * 100)} %`} |`,
+    );
+  }
+  return lines.join('\n');
+}
+
 function progressionSection(history: { exercise: string; points: ExercisePoint[] }[]): string {
   if (history.length === 0) {
     return '## Progression par exercice (musculation)\n\n_Aucune séance de musculation enregistrée._';
@@ -227,10 +255,11 @@ function veloSection(sessions: Session[]): string {
  * déposer dans un projet pour qu'une IA suive la programmation et coache.
  */
 export async function buildCoachMarkdown(): Promise<string> {
-  const [profile, sessions, measurements] = await Promise.all([
+  const [profile, sessions, measurements, goals] = await Promise.all([
     getProfile(),
     listSessions(10_000),
     listBodyMeasurements(),
+    goalProgressList(),
   ]);
 
   const muscuSessions = sessions.filter((s) => s.type === 'muscu');
@@ -264,6 +293,7 @@ export async function buildCoachMarkdown(): Promise<string> {
     weightSection(measurements),
     programSection(),
     await statsSection(),
+    goalsSection(goals),
     progressionSection(history),
     muscuDetailSection(muscuDetail),
     veloSection(veloSessions),

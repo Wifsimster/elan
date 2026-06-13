@@ -8,6 +8,7 @@ import { BarChart, type Bar } from '@/components/bar-chart';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
+import { GoalsProgressCard } from '@/components/goals-progress-card';
 import { HrBadge } from '@/components/hr-badge';
 import { OnboardingSheet } from '@/components/onboarding-sheet';
 import { PressableScale } from '@/components/pressable-scale';
@@ -259,6 +260,9 @@ export default function HomeScreen() {
           />
         </View>
       </Card>
+
+      {/* Objectifs (n'apparaît que si au moins un objectif est défini) */}
+      <GoalsProgressCard />
 
       {/* Graphe 7 jours */}
       <Card>

@@ -5,6 +5,7 @@ import { BackupCard } from '@/components/settings/backup-card';
 import { CadenceSensorCard } from '@/components/settings/cadence-sensor-card';
 import { DataCard } from '@/components/settings/data-card';
 import { DataExportCard } from '@/components/settings/data-export-card';
+import { GoalsCard } from '@/components/settings/goals-card';
 import { HealthConnectCard } from '@/components/settings/health-connect-card';
 import { HeartRateCard } from '@/components/settings/heart-rate-card';
 import { MapCard } from '@/components/settings/map-card';
@@ -43,6 +44,7 @@ export default function SettingsScreen() {
       {/* Health Connect : Android uniquement (la carte renvoie null ailleurs). */}
       <HealthConnectCard />
       <ProfileCard />
+      <GoalsCard />
       <WeekPlanCard />
       <NotificationsCard />
       <DataCard />

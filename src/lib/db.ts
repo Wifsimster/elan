@@ -696,9 +696,16 @@ export async function latestBodyMeasurement(): Promise<BodyMeasurement | null> {
 // Statistiques
 // ---------------------------------------------------------------------------
 
-/** Agrégats sur une fenêtre `[fromMs, toMs)` (ms epoch). */
-export async function statsBetween(fromMs: number, toMs: number): Promise<PeriodStats> {
+/** Agrégats sur une fenêtre `[fromMs, toMs)` (ms epoch), éventuellement
+ * restreints à un type d'activité (sinon tous types confondus). */
+export async function statsBetween(
+  fromMs: number,
+  toMs: number,
+  type?: ActivityType,
+): Promise<PeriodStats> {
   const db = await getDb();
+  const typeClause = type ? ' AND type = ?' : '';
+  const params: (string | number)[] = type ? [fromMs, toMs, type] : [fromMs, toMs];
   const row = await db.getFirstAsync<PeriodStats>(
     // Temps en mouvement quand il est connu (vélo), sinon durée totale (muscu) :
     // un chrono oublié à l'arrêt ne gonfle pas le cumul d'effort.
@@ -708,9 +715,8 @@ export async function statsBetween(fromMs: number, toMs: number): Promise<Period
        COALESCE(SUM(distanceM), 0) AS totalDistanceM,
        COALESCE(SUM(calories), 0) AS totalCalories
      FROM sessions
-     WHERE endedAt IS NOT NULL AND startedAt >= ? AND startedAt < ?;`,
-    fromMs,
-    toMs,
+     WHERE endedAt IS NOT NULL AND startedAt >= ? AND startedAt < ?${typeClause};`,
+    ...params,
   );
   return (
     row ?? { sessionCount: 0, totalDurationSec: 0, totalDistanceM: 0, totalCalories: 0 }
@@ -720,6 +726,25 @@ export async function statsBetween(fromMs: number, toMs: number): Promise<Period
 /** Agrégats depuis `sinceMs` jusqu'à maintenant. */
 export async function statsSince(sinceMs: number): Promise<PeriodStats> {
   return statsBetween(sinceMs, Number.MAX_SAFE_INTEGER);
+}
+
+/**
+ * Tonnage musculation (Σ reps × charge) des séances terminées dans la fenêtre
+ * `[fromMs, toMs)`. Sert au suivi d'objectifs de volume — cohérent avec le
+ * volume affiché ailleurs (mêmes séries `muscu_sets`).
+ */
+export async function tonnageBetween(fromMs: number, toMs: number): Promise<number> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ tonnage: number }>(
+    `SELECT COALESCE(SUM(ms.reps * ms.weightKg), 0) AS tonnage
+       FROM muscu_sets ms
+       JOIN sessions s ON s.id = ms.sessionId
+      WHERE s.type = 'muscu' AND s.endedAt IS NOT NULL
+        AND s.startedAt >= ? AND s.startedAt < ?;`,
+    fromMs,
+    toMs,
+  );
+  return row?.tonnage ?? 0;
 }
 
 /** Durée totale d'effort par jour sur les N derniers jours (pour le graphe). */
