@@ -39,19 +39,12 @@ import {
   formatDateTime,
   formatRelativeDays,
 } from '@/lib/format';
+import { nowMs } from '@/lib/time';
 import type { PeriodStats, Profile, Session } from '@/lib/types';
+import { dailyDurationBars, startOfWeekMs } from '@/lib/week';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
-function startOfWeek(): number {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  const day = (d.getDay() + 6) % 7; // lundi = 0
-  d.setDate(d.getDate() - day);
-  return d.getTime();
-}
-
-const DAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const WEEK_MS = 7 * 86_400_000;
 
 /** Construit l'évolution d'une métrique par rapport à la semaine précédente. */
@@ -78,7 +71,8 @@ export default function HomeScreen() {
   const [onboarding, setOnboarding] = useState<Profile | null>(null);
 
   const load = useCallback(async () => {
-    const weekStart = startOfWeek();
+    const now = nowMs();
+    const weekStart = startOfWeekMs(now);
     const [s, prev, daily, sessions, draft] = await Promise.all([
       statsSince(weekStart),
       statsBetween(weekStart - WEEK_MS, weekStart),
@@ -89,21 +83,8 @@ export default function HomeScreen() {
     setStats(s);
     setLastStats(prev);
     setResumable(draft);
-
-    // Construit 7 barres (aujourd'hui à droite).
-    const byDay = new Map(daily.map((d) => [d.day, d.durationSec]));
-    const out: Bar[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-        d.getDate(),
-      ).padStart(2, '0')}`;
-      out.push({ label: DAY_LABELS[(d.getDay() + 6) % 7], value: byDay.get(key) ?? 0 });
-    }
-    setBars(out);
+    // 7 barres (aujourd'hui à droite), jours sans donnée à 0.
+    setBars(dailyDurationBars(daily, 7, now));
     setRecent(sessions);
   }, []);
 
