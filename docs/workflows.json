@@ -1,0 +1,281 @@
+{
+  "meta": {
+    "app": "Élan",
+    "subtitle": "Carte des flux entre écrans, hooks, domaine et paquets natifs",
+    "description": "Tracker d'activité local-first (vélo GPS + musculation). Aucun backend, aucun compte : tout vit dans une base SQLite locale. Les seuls accès réseau (sauvegarde S3 auto-hébergée, fond de carte en ligne) sont opt-in et coupés par défaut. Sélectionnez une action pour voir le flux entre paquets et comment les données circulent.",
+    "generatedNote": "Document éditable : ajoutez/modifiez des nœuds et des flux ici, la page se met à jour automatiquement."
+  },
+  "layers": [
+    { "id": "screen", "label": "Écrans · src/app", "color": "#7c9cff" },
+    { "id": "hook", "label": "Hooks · src/hooks", "color": "#56c8a8" },
+    { "id": "component", "label": "Composants · src/components", "color": "#c79bff" },
+    { "id": "lib", "label": "Domaine · src/lib", "color": "#ffb454" },
+    { "id": "external", "label": "Paquets natifs / externes", "color": "#ff7a93" }
+  ],
+  "nodes": [
+    { "id": "velo", "label": "velo", "layer": "screen", "desc": "Écran de sortie vélo en direct (plein écran modal)." },
+    { "id": "muscu", "label": "muscu", "layer": "screen", "desc": "Écran de séance de musculation en direct." },
+    { "id": "settings", "label": "settings", "layer": "screen", "desc": "Réglages : capteurs, sauvegarde, carte, exports, Health Connect." },
+    { "id": "poids", "label": "poids", "layer": "screen", "desc": "Journal de poids corporel." },
+    { "id": "session-detail", "label": "session/[id]", "layer": "screen", "desc": "Détail d'une séance enregistrée (tracé, stats, partage)." },
+    { "id": "history", "label": "history", "layer": "screen", "desc": "Onglet Historique des séances." },
+    { "id": "index", "label": "index (Accueil)", "layer": "screen", "desc": "Onglet Accueil." },
+
+    { "id": "use-gps-tracker", "label": "use-gps-tracker", "layer": "hook", "desc": "Pilote le suivi GPS : permissions, service de premier plan, filtre, agrégats." },
+    { "id": "use-heart-rate", "label": "use-heart-rate", "layer": "hook", "desc": "Contexte global : une seule connexion BLE ceinture cardiaque, partagée par tous les écrans." },
+    { "id": "use-cadence-speed", "label": "use-cadence-speed", "layer": "hook", "desc": "Contexte capteurs vélo BLE cadence/vitesse (profil CSC)." },
+    { "id": "use-strava-import", "label": "use-strava-import", "layer": "hook", "desc": "Import de fichiers GPX/TCX/FIT : sélection, lecture, décodage, dédup, insertion." },
+    { "id": "use-backup", "label": "use-backup", "layer": "hook", "desc": "Contexte sauvegarde S3 : config, statut, backupNow()/restore()." },
+    { "id": "use-data-export", "label": "use-data-export", "layer": "hook", "desc": "Écrit le bilan coach (Markdown/JSON) dans le cache + ouvre la feuille de partage." },
+    { "id": "use-gpx-export", "label": "use-gpx-export", "layer": "hook", "desc": "Exporte une sortie en GPX partageable (format Strava)." },
+    { "id": "use-session-share", "label": "use-session-share", "layer": "hook", "desc": "Capture la carte de partage en PNG et ouvre la feuille de partage." },
+
+    { "id": "route-map", "label": "route-map", "layer": "component", "desc": "Orchestrateur d'affichage du parcours : MapLibre si configuré, sinon repli SVG." },
+    { "id": "maplibre-route", "label": "maplibre-route", "layer": "component", "desc": "Rend le tracé sur un vrai fond de carte (GeoJSON LineString + marqueurs + attribution OSM)." },
+    { "id": "share-card", "label": "share-card", "layer": "component", "desc": "Carte de partage rendue hors écran (capturée en image)." },
+
+    { "id": "db", "label": "db", "layer": "lib", "desc": "Tout l'accès SQLite : connexion unique, migrations versionnées, fonctions exportées." },
+    { "id": "gps-task", "label": "gps-task", "layer": "lib", "desc": "Tâche de localisation d'arrière-plan (expo-task-manager + service de premier plan Android)." },
+    { "id": "gps-filter", "label": "gps-filter", "layer": "lib", "desc": "Consolidation GPS : porte de précision, rejet d'aberrations, Kalman, hystérésis d'altitude." },
+    { "id": "geo", "label": "geo", "layer": "lib", "desc": "Haversine + décimation de tracé." },
+    { "id": "ble", "label": "ble", "layer": "lib", "desc": "Manager BLE + parsing des trames (Fréquence cardiaque, CSC cadence/vitesse)." },
+    { "id": "wheel-sizes", "label": "wheel-sizes", "layer": "lib", "desc": "Tables tour de roue → vitesse." },
+    { "id": "calories", "label": "calories", "layer": "lib", "desc": "Estimation MET + zones de FC." },
+    { "id": "session-finalize", "label": "session-finalize", "layer": "lib", "desc": "Effets best-effort après enregistrement : autoBackup + Health Connect." },
+    { "id": "backup", "label": "backup", "layer": "lib", "desc": "Instantané versionné de la base ; PUT/GET S3 ; autoBackup()." },
+    { "id": "s3", "label": "s3", "layer": "lib", "desc": "Client S3 minimal, signature AWS SigV4 à la main (path-style, MinIO/SeaweedFS)." },
+    { "id": "strava-parse", "label": "strava/parse", "layer": "lib", "desc": "Parseur GPX/TCX par regex (sans lib XML)." },
+    { "id": "strava-import", "label": "strava/import", "layer": "lib", "desc": "Normalisation, filtre de cohérence, calories, externalId stable." },
+    { "id": "strava-export", "label": "strava/export", "layer": "lib", "desc": "Construit le GPX d'une sortie (buildRideGpx)." },
+    { "id": "coach-export", "label": "coach-export", "layer": "lib", "desc": "Bilan Markdown + export JSON brut pour un projet Claude Code." },
+    { "id": "program", "label": "program", "layer": "lib", "desc": "Modèles de séances intégrés + planning hebdomadaire." },
+    { "id": "health-connect", "label": "health-connect", "layer": "lib", "desc": "Miroir opt-in des séances vers Android Health Connect (on-device)." },
+    { "id": "map", "label": "map", "layer": "lib", "desc": "Réglage de l'URL de style MapLibre (map_style_url)." },
+    { "id": "route-projection", "label": "route-projection", "layer": "lib", "desc": "Projection géo → écran SVG (repli sans réseau)." },
+    { "id": "privacy", "label": "privacy", "layer": "lib", "desc": "Zone de confidentialité : rogne le départ/l'arrivée avant export." },
+    { "id": "format", "label": "format", "layer": "lib", "desc": "Formatage FR (distance, durée, vitesse, FC, calories)." },
+
+    { "id": "expo-location", "label": "expo-location", "layer": "external", "desc": "Permissions + fixes GPS." },
+    { "id": "expo-task-manager", "label": "expo-task-manager", "layer": "external", "desc": "Tâche d'arrière-plan + service de premier plan Android (notification persistante)." },
+    { "id": "ble-plx", "label": "react-native-ble-plx", "layer": "external", "desc": "Pile Bluetooth Low Energy." },
+    { "id": "expo-sqlite", "label": "expo-sqlite", "layer": "external", "desc": "Base SQLite locale (WAL, clés étrangères)." },
+    { "id": "expo-secure-store", "label": "expo-secure-store", "layer": "external", "desc": "Keystore/Keychain : identifiants S3 (jamais en clair dans SQLite)." },
+    { "id": "expo-document-picker", "label": "expo-document-picker", "layer": "external", "desc": "Sélecteur de fichiers de l'OS." },
+    { "id": "expo-file-system", "label": "expo-file-system", "layer": "external", "desc": "Lecture/écriture de fichiers (cache)." },
+    { "id": "expo-sharing", "label": "expo-sharing", "layer": "external", "desc": "Feuille de partage de l'OS (aucun réseau côté app)." },
+    { "id": "rn-health-connect", "label": "react-native-health-connect", "layer": "external", "desc": "Module natif Android Health Connect (chargé paresseusement)." },
+    { "id": "maplibre", "label": "@maplibre/maplibre-react-native", "layer": "external", "desc": "Rendu de carte natif." },
+    { "id": "openfreemap", "label": "OpenFreeMap / OSM", "layer": "external", "desc": "Fond de carte en ligne opt-in (tuiles + attribution obligatoire)." },
+    { "id": "s3-server", "label": "Serveur S3 (homelab)", "layer": "external", "desc": "Stockage S3-compatible auto-hébergé (MinIO/SeaweedFS)." },
+    { "id": "js-sha256", "label": "js-sha256", "layer": "external", "desc": "HMAC-SHA256 pour la signature AWS SigV4." },
+    { "id": "view-shot", "label": "react-native-view-shot", "layer": "external", "desc": "Capture d'une vue React Native en image." }
+  ],
+  "flows": [
+    {
+      "id": "ride",
+      "title": "Démarrer et enregistrer une sortie vélo",
+      "category": "Séances",
+      "description": "Du tap sur « Démarrer » à la séance enregistrée : le GPS tourne via un service de premier plan Android (écran éteint), chaque fix est filtré, puis les agrégats et le tracé sont écrits en base.",
+      "steps": [
+        { "from": "velo", "to": "use-gps-tracker", "label": "start()", "detail": "L'écran demande le démarrage du suivi." },
+        { "from": "use-gps-tracker", "to": "expo-location", "label": "requestForegroundPermissionsAsync()", "detail": "Permission de localisation premier plan. Refus → statut 'denied'." },
+        { "from": "use-gps-tracker", "to": "gps-task", "label": "startGpsUpdates() + setGpsTaskListener(handleFix)", "detail": "Branche le listener et démarre le service." },
+        { "from": "gps-task", "to": "expo-task-manager", "label": "définit la tâche + service de premier plan", "detail": "Notification persistante : pas besoin de la permission localisation d'arrière-plan." },
+        { "from": "expo-task-manager", "to": "expo-location", "label": "fixes GPS continus", "detail": "Les positions arrivent même écran éteint / app en arrière-plan." },
+        { "from": "expo-location", "to": "gps-task", "label": "LocationObject[]", "detail": "Lots de positions livrés à la tâche." },
+        { "from": "gps-task", "to": "use-gps-tracker", "label": "locations.forEach(handleFix)", "detail": "Chaque fix remonte au hook." },
+        { "from": "use-gps-tracker", "to": "gps-filter", "label": "consolidator.process(fix)", "detail": "Porte de précision, rejet d'aberrations, Kalman, hystérésis d'altitude." },
+        { "from": "gps-filter", "to": "geo", "label": "haversineMeters()", "detail": "Distance d'ancrage entre points consolidés." },
+        { "from": "gps-filter", "to": "use-gps-tracker", "label": "ConsolidatedPoint + deltaDistanceM / deltaElevationGainM", "detail": "Le hook cumule distance, dénivelé, vitesse max et alimente le tracé live." },
+        { "from": "use-heart-rate", "to": "use-gps-tracker", "label": "subscribe(sample) — FC par point (si ceinture connectée)", "detail": "Chaque trame BLE est attachée au point GPS courant (cf. flux « ceinture cardiaque »)." },
+        { "from": "use-gps-tracker", "to": "velo", "label": "stop() → { points, distanceM, elevationGainM, maxSpeedKmh… }", "detail": "À l'arrêt, le hook rend les points et agrégats accumulés." },
+        { "from": "velo", "to": "db", "label": "createSession('velo') → updateSession(agrégats) → insertTrackPoints(points)", "detail": "La séance en base devient la source de vérité." },
+        { "from": "db", "to": "expo-sqlite", "label": "INSERT (WAL, FK)", "detail": "Séance + points GPS persistés localement." },
+        { "from": "velo", "to": "session-finalize", "label": "finalizeSavedSession(data)", "detail": "Déclenche les effets best-effort (voir flux « après enregistrement »)." },
+        { "from": "velo", "to": "session-detail", "label": "router.replace('/session/[id]')", "detail": "Navigation vers le détail de la séance." }
+      ]
+    },
+    {
+      "id": "hr",
+      "title": "Appairer une ceinture cardiaque (BLE)",
+      "category": "Capteurs",
+      "description": "Une seule connexion BLE, détenue par HeartRateProvider au niveau racine et partagée par tous les écrans. Scan par UUID de service, connexion, abonnement aux trames, persistance pour reconnexion auto.",
+      "steps": [
+        { "from": "settings", "to": "use-heart-rate", "label": "startScan()", "detail": "Depuis Réglages (ou un écran de séance)." },
+        { "from": "use-heart-rate", "to": "ble", "label": "requestBlePermissions() + getManager()", "detail": "Permissions Bluetooth + manager BLE unique." },
+        { "from": "use-heart-rate", "to": "ble-plx", "label": "startDeviceScan([HEART_RATE_SERVICE])", "detail": "Scan filtré par l'UUID standard Fréquence cardiaque." },
+        { "from": "ble-plx", "to": "use-heart-rate", "label": "appareils découverts → liste scanned", "detail": "Affichés à l'utilisateur pour sélection." },
+        { "from": "settings", "to": "use-heart-rate", "label": "connect(deviceId)", "detail": "L'utilisateur choisit un capteur." },
+        { "from": "use-heart-rate", "to": "ble-plx", "label": "connectToDevice + discoverAll… + monitorCharacteristic", "detail": "Abonnement à la caractéristique de mesure FC." },
+        { "from": "ble-plx", "to": "use-heart-rate", "label": "trames BLE (notify)", "detail": "Émises même quand la valeur est identique (paliers)." },
+        { "from": "use-heart-rate", "to": "ble", "label": "parseHeartRate(characteristic.value)", "detail": "Décodage de la trame → bpm." },
+        { "from": "use-heart-rate", "to": "db", "label": "setSetting('hr_device', info)", "detail": "Mémorise l'appareil pour la reconnexion auto au lancement." },
+        { "from": "db", "to": "expo-sqlite", "label": "persiste l'appareil appairé", "detail": "Dans la table key/value settings (JSON)." }
+      ]
+    },
+    {
+      "id": "csc",
+      "title": "Connecter le capteur cadence/vitesse vélo (BLE CSC)",
+      "category": "Capteurs",
+      "description": "Capteurs vélo « Cycling Speed and Cadence ». La cadence vient du pédalier, la vitesse des tours de roue convertis via les tables de tailles.",
+      "steps": [
+        { "from": "velo", "to": "use-cadence-speed", "label": "connect()", "detail": "Contexte global, même schéma que la ceinture cardiaque." },
+        { "from": "use-cadence-speed", "to": "ble", "label": "getManager() + parseCsc()", "detail": "Scan/connexion sur le service CSC, décodage des trames." },
+        { "from": "use-cadence-speed", "to": "ble-plx", "label": "scan/connect [CSC_SERVICE]", "detail": "Gère un ou deux capteurs simultanés (cadence + vitesse séparés)." },
+        { "from": "use-cadence-speed", "to": "wheel-sizes", "label": "tours de roue → vitesse", "detail": "Conversion via la table de tailles de roue configurée." },
+        { "from": "use-cadence-speed", "to": "velo", "label": "cadence (rpm) + vitesse (km/h)", "detail": "Affichées en direct et enregistrées sur les points." }
+      ]
+    },
+    {
+      "id": "strength",
+      "title": "Enregistrer une séance de musculation",
+      "category": "Séances",
+      "description": "Modèle de séance issu du programme, saisie des séries, puis écriture de la séance et de ses séries en base.",
+      "steps": [
+        { "from": "muscu", "to": "program", "label": "TEMPLATES", "detail": "Modèle de séance + exercices proposés." },
+        { "from": "muscu", "to": "db", "label": "createSession('muscu') → updateSession(agrégats) → replaceMuscuSets(sets)", "detail": "Séance + séries persistées." },
+        { "from": "db", "to": "expo-sqlite", "label": "INSERT séance + muscu_sets", "detail": "muscu_sets en ON DELETE CASCADE de la séance." },
+        { "from": "muscu", "to": "session-finalize", "label": "finalizeSavedSession(data)", "detail": "Effets best-effort (voir flux dédié)." },
+        { "from": "muscu", "to": "session-detail", "label": "router.replace('/session/[id]')", "detail": "Navigation vers le détail." }
+      ]
+    },
+    {
+      "id": "finalize",
+      "title": "Effets après enregistrement (auto)",
+      "category": "Séances",
+      "description": "Partagé par velo.tsx et muscu.tsx. Fan-out best-effort : la séance en base reste la source de vérité, ces effets sont opt-in et ne bloquent jamais la navigation.",
+      "steps": [
+        { "from": "velo", "to": "session-finalize", "label": "finalizeSavedSession(HealthSessionData)", "detail": "Appelé aussi par muscu.tsx, contrat identique." },
+        { "from": "session-finalize", "to": "backup", "label": "autoBackup()", "detail": "Fire-and-forget, ne fait rien si la sauvegarde auto est désactivée/mal configurée." },
+        { "from": "backup", "to": "s3", "label": "putObject(snapshot)", "detail": "Si configuré : téléverse l'instantané (voir flux « sauvegarde »)." },
+        { "from": "s3", "to": "s3-server", "label": "PUT", "detail": "Vers le serveur S3 du homelab." },
+        { "from": "session-finalize", "to": "health-connect", "label": "exportSessionToHealthConnect(data)", "detail": "Opt-in, avale ses erreurs en interne." },
+        { "from": "health-connect", "to": "rn-health-connect", "label": "buildHealthRecords() → insertRecords", "detail": "ExerciseSession + distance/calories/FC, on-device, Android uniquement." }
+      ]
+    },
+    {
+      "id": "strava",
+      "title": "Importer un fichier Strava (GPX/TCX/FIT)",
+      "category": "Données",
+      "description": "Import 100 % hors-ligne : sélection de fichier(s), lecture locale, parsing par regex, normalisation, déduplication par externalId, insertion idempotente.",
+      "steps": [
+        { "from": "settings", "to": "use-strava-import", "label": "pickAndImport()", "detail": "Depuis Réglages." },
+        { "from": "use-strava-import", "to": "expo-document-picker", "label": "getDocumentAsync(GPX/TCX/FIT, multiple)", "detail": "Sélection multiple, copie en cache." },
+        { "from": "use-strava-import", "to": "expo-file-system", "label": "new File(uri).bytes()", "detail": "Lecture locale, plafonnée à 30 Mo (garde-fou mémoire/DoS)." },
+        { "from": "use-strava-import", "to": "db", "label": "getProfile()", "detail": "Récupère le poids pour l'estimation des calories." },
+        { "from": "use-strava-import", "to": "strava-import", "label": "buildDrafts(bytes, weightKg)", "detail": "Normalise et prépare des brouillons de séance." },
+        { "from": "strava-import", "to": "strava-parse", "label": "parse GPX/TCX (regex)", "detail": "Sans lib XML." },
+        { "from": "strava-import", "to": "calories", "label": "calories + dénivelé", "detail": "Estimés à partir du tracé et du poids." },
+        { "from": "use-strava-import", "to": "db", "label": "insertImportedSession(session, points) → 'imported' | 'duplicate'", "detail": "Dédup via un index unique partiel sur externalId." },
+        { "from": "db", "to": "expo-sqlite", "label": "INSERT idempotent", "detail": "Ré-import sans doublon." }
+      ]
+    },
+    {
+      "id": "backup",
+      "title": "Sauvegarder vers S3 (homelab)",
+      "category": "Sauvegarde",
+      "description": "Opt-in, désactivé par défaut. Sérialise toute la base en un seul objet JSON et le PUT vers un stockage S3-compatible auto-hébergé. Les identifiants vivent dans le stockage sécurisé, pas dans le snapshot.",
+      "steps": [
+        { "from": "settings", "to": "use-backup", "label": "backupNow()", "detail": "Action manuelle depuis Réglages." },
+        { "from": "use-backup", "to": "backup", "label": "runBackup(config)", "detail": "Vérifie que la config est complète." },
+        { "from": "backup", "to": "expo-secure-store", "label": "lit accessKeyId / secretAccessKey", "detail": "Keystore/Keychain : secrets jamais en clair dans SQLite." },
+        { "from": "backup", "to": "db", "label": "exportAll()", "detail": "Instantané complet (format versionné, config/secrets exclus)." },
+        { "from": "backup", "to": "s3", "label": "putObject(config, JSON snapshot)", "detail": "Écrase l'objet à chaque sauvegarde." },
+        { "from": "s3", "to": "js-sha256", "label": "signature AWS SigV4 (HMAC-SHA256)", "detail": "Aucune dépendance AWS SDK." },
+        { "from": "s3", "to": "s3-server", "label": "PUT path-style", "detail": "Compatible MinIO / SeaweedFS." }
+      ]
+    },
+    {
+      "id": "restore",
+      "title": "Restaurer depuis une sauvegarde S3",
+      "category": "Sauvegarde",
+      "description": "Télécharge la dernière sauvegarde et REMPLACE les données locales, avec garde-fous de format et de schéma (refus d'un snapshot plus récent que la version courante).",
+      "steps": [
+        { "from": "settings", "to": "use-backup", "label": "restore()", "detail": "Action manuelle depuis Réglages." },
+        { "from": "use-backup", "to": "backup", "label": "restoreBackup(config)", "detail": "Vérifie format + schéma avant import." },
+        { "from": "backup", "to": "s3", "label": "getObject(config)", "detail": "Récupère l'objet JSON." },
+        { "from": "s3", "to": "s3-server", "label": "GET", "detail": "Depuis le serveur S3 du homelab." },
+        { "from": "backup", "to": "db", "label": "importAll(snapshot.data)", "detail": "Remplace les données locales." },
+        { "from": "db", "to": "expo-sqlite", "label": "réécrit les tables", "detail": "La base locale redevient la source de vérité." }
+      ]
+    },
+    {
+      "id": "coach",
+      "title": "Exporter le bilan coach (Markdown / JSON)",
+      "category": "Données",
+      "description": "Construit un bilan Markdown (programme, planning, stats, progression, historique) ou un export JSON brut, écrit en cache puis partagé via l'OS — pensé pour alimenter un projet Claude Code. Aucun réseau côté app.",
+      "steps": [
+        { "from": "settings", "to": "use-data-export", "label": "exportMarkdown() / exportJson()", "detail": "Depuis Réglages." },
+        { "from": "use-data-export", "to": "coach-export", "label": "buildCoachMarkdown() / buildCoachJson()", "detail": "Assemble l'artefact." },
+        { "from": "coach-export", "to": "db", "label": "getProfile, listSessions, statsSince, exerciseHistory, exportAll…", "detail": "Agrège les données de la base." },
+        { "from": "coach-export", "to": "program", "label": "TEMPLATES + WEEK_PLAN", "detail": "Programme et planning hebdomadaire." },
+        { "from": "coach-export", "to": "format", "label": "formatage FR", "detail": "Distance, durée, vitesse, FC, calories." },
+        { "from": "use-data-export", "to": "expo-file-system", "label": "écrit dans le cache", "detail": "Supprimé juste après le partage (l'export contient tout l'historique GPS)." },
+        { "from": "use-data-export", "to": "expo-sharing", "label": "shareAsync(uri)", "detail": "Feuille de partage de l'OS : Drive, mail, fichiers…" }
+      ]
+    },
+    {
+      "id": "gpx",
+      "title": "Exporter une sortie en GPX",
+      "category": "Données",
+      "description": "Construit le GPX d'une sortie (format Strava) après avoir rogné la zone de confidentialité, l'écrit en cache et le partage via l'OS.",
+      "steps": [
+        { "from": "session-detail", "to": "use-gpx-export", "label": "exportRide(session)", "detail": "Depuis le détail d'une sortie vélo." },
+        { "from": "use-gpx-export", "to": "db", "label": "getTrackPoints(session.id)", "detail": "Récupère le tracé GPS." },
+        { "from": "use-gpx-export", "to": "privacy", "label": "trimPrivacyZone(points)", "detail": "Retire départ/arrivée (souvent le domicile)." },
+        { "from": "use-gpx-export", "to": "strava-export", "label": "buildRideGpx()", "detail": "Génère le XML GPX." },
+        { "from": "use-gpx-export", "to": "expo-file-system", "label": "écrit le .gpx en cache", "detail": "Fichier temporaire." },
+        { "from": "use-gpx-export", "to": "expo-sharing", "label": "shareAsync(.gpx)", "detail": "Upload Strava, Drive, mail… au choix de l'utilisateur." }
+      ]
+    },
+    {
+      "id": "share-image",
+      "title": "Partager une séance en image",
+      "category": "Données",
+      "description": "Capture la carte de partage (rendue hors écran) en PNG, puis ouvre la feuille de partage. Aucun réseau côté app.",
+      "steps": [
+        { "from": "session-detail", "to": "use-session-share", "label": "share(cardRef)", "detail": "La ref de la carte est détenue par l'écran." },
+        { "from": "session-detail", "to": "share-card", "label": "rend la carte hors écran", "detail": "Carte stylée prête à capturer." },
+        { "from": "use-session-share", "to": "view-shot", "label": "captureRef(cardRef, png)", "detail": "Capture la vue en image temporaire." },
+        { "from": "use-session-share", "to": "expo-sharing", "label": "shareAsync(png)", "detail": "Discord, etc. — destination au choix." }
+      ]
+    },
+    {
+      "id": "map",
+      "title": "Afficher la carte d'un parcours",
+      "category": "Carte",
+      "description": "MapLibre avec repli SVG : si un style de carte est configuré et qu'il y a ≥ 2 points, on affiche un vrai fond de carte ; sinon, tracé SVG pur sans réseau ni clé d'API.",
+      "steps": [
+        { "from": "session-detail", "to": "route-map", "label": "points GPS", "detail": "Orchestrateur d'affichage du parcours." },
+        { "from": "route-map", "to": "map", "label": "getMapStyleUrl()", "detail": "Lit le réglage de style." },
+        { "from": "map", "to": "db", "label": "getSetting('map_style_url')", "detail": "Vide par défaut → fond de carte coupé." },
+        { "from": "route-map", "to": "maplibre-route", "label": "si style + ≥ 2 points", "detail": "Tracé GeoJSON LineString + marqueurs départ/arrivée." },
+        { "from": "maplibre-route", "to": "maplibre", "label": "rendu natif de la carte", "detail": "@maplibre/maplibre-react-native." },
+        { "from": "maplibre", "to": "openfreemap", "label": "tuiles du fond + attribution OSM", "detail": "Opt-in ; attribution OSM obligatoire affichée." },
+        { "from": "route-map", "to": "route-projection", "label": "sinon : SvgRoute (repli)", "detail": "Projection géo → SVG, 100 % hors-ligne, aucune donnée envoyée." }
+      ]
+    },
+    {
+      "id": "map-enable",
+      "title": "Activer le fond de carte en ligne",
+      "category": "Carte",
+      "description": "Opt-in : l'utilisateur active le fond de carte (OpenFreeMap par défaut, ou une URL de style auto-hébergée) depuis Réglages.",
+      "steps": [
+        { "from": "settings", "to": "map", "label": "setMapStyleUrl(url)", "detail": "OpenFreeMap par défaut ou URL de style perso." },
+        { "from": "map", "to": "db", "label": "setSetting('map_style_url')", "detail": "Persiste le choix." },
+        { "from": "db", "to": "expo-sqlite", "label": "écrit le réglage", "detail": "Table settings (JSON)." }
+      ]
+    },
+    {
+      "id": "weight",
+      "title": "Journal de poids corporel",
+      "category": "Données",
+      "description": "L'enregistrement d'un poids met à jour le journal et reflète la dernière valeur dans le profil — source unique consommée par les calories et recommandations.",
+      "steps": [
+        { "from": "poids", "to": "db", "label": "logBodyWeight(kg, date)", "detail": "Ajoute une entrée au journal." },
+        { "from": "db", "to": "expo-sqlite", "label": "INSERT body_measurements + miroir profile.weightKg", "detail": "La dernière mesure met à jour le profil." },
+        { "from": "calories", "to": "db", "label": "lit profile.weightKg", "detail": "Poids = source unique pour l'estimation MET et les zones de FC." }
+      ]
+    }
+  ]
+}
