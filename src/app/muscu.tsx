@@ -44,6 +44,7 @@ import {
 } from '@/lib/exercises';
 import { formatDuration } from '@/lib/format';
 import { clearMuscuDraft, loadMuscuDraft, saveMuscuDraft } from '@/lib/muscu-draft';
+import { muscuStats, muscuSummary } from '@/lib/muscu-stats';
 import { pushDownsampled, summarizeHr } from '@/lib/samples';
 import type { HrSample } from '@/lib/types';
 import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
@@ -374,12 +375,8 @@ export default function MuscuScreen() {
     }
   };
 
-  const totalSets = exercises.reduce((a, e) => a + e.sets.length, 0);
-  const doneSets = exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
-  const totalVolume = exercises.reduce(
-    (a, e) => a + e.sets.reduce((b, s) => b + s.reps * s.weightKg, 0),
-    0,
-  );
+  const stats = muscuStats(exercises);
+  const { totalSets, doneSets, totalVolume } = stats;
 
   // Sauvegarde du brouillon (séance en pause, reprenable). Best-effort, local.
   const persistDraft = () =>
@@ -432,7 +429,7 @@ export default function MuscuScreen() {
         avgHr,
         maxHr,
         calories,
-        notes: `${exercises.length} exercices · ${totalSets} séries · ${Math.round(totalVolume)} kg soulevés`,
+        notes: muscuSummary(stats),
       });
 
       const flat = exercises.flatMap((e) =>
