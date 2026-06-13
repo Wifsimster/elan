@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Élan · Carte des flux</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --bg-soft: #151a22;
+    --panel: #1a212c;
+    --panel-2: #212a37;
+    --border: #2b3543;
+    --text: #e7ecf3;
+    --text-dim: #9aa7b8;
+    --text-faint: #6b7889;
+    --accent: #7c9cff;
+    --radius: 12px;
+    --shadow: 0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+
+  .app { display: grid; grid-template-columns: 300px 1fr 360px; height: 100vh; }
+  @media (max-width: 1100px) { .app { grid-template-columns: 260px 1fr; } .detail { display: none; } }
+
+  /* ---- Left: flow list ---- */
+  .sidebar { background: var(--bg-soft); border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+  .brand { padding: 18px 18px 12px; border-bottom: 1px solid var(--border); }
+  .brand h1 { margin: 0; font-size: 18px; letter-spacing: .3px; }
+  .brand p { margin: 6px 0 0; font-size: 12px; color: var(--text-dim); }
+  .search { padding: 12px 14px; }
+  .search input {
+    width: 100%; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: 13px; outline: none;
+  }
+  .search input:focus { border-color: var(--accent); }
+  .flows { overflow-y: auto; padding: 0 10px 16px; flex: 1; min-height: 0; }
+  .cat { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--text-faint); padding: 14px 8px 6px; }
+  .flow-btn {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    background: transparent; border: 1px solid transparent; color: var(--text);
+    border-radius: 10px; padding: 9px 11px; margin: 2px 0; font-size: 13px; line-height: 1.35;
+    transition: background .12s, border-color .12s;
+  }
+  .flow-btn:hover { background: var(--panel); }
+  .flow-btn.active { background: var(--panel-2); border-color: var(--accent); }
+  .flow-btn .cnt { float: right; color: var(--text-faint); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+  /* ---- Center: graph ---- */
+  .stage { position: relative; overflow: auto; background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,.035) 1px, transparent 0) 0 0 / 22px 22px,
+      var(--bg);
+  }
+  .legend {
+    position: sticky; top: 0; left: 0; z-index: 5; display: flex; gap: 14px; flex-wrap: wrap;
+    padding: 10px 16px; background: rgba(14,17,22,.82); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text-dim);
+  }
+  .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+  .legend .hint { margin-left: auto; color: var(--text-faint); }
+  svg { display: block; }
+
+  .node rect { transition: opacity .18s, stroke-width .12s; }
+  .node text { font-size: 12px; fill: var(--text); pointer-events: none; }
+  .node .sub { font-size: 9.5px; fill: var(--text-faint); }
+  .node { cursor: pointer; }
+  .node.dim { opacity: .16; }
+  .node.part rect { stroke-width: 2.5; }
+  .node.endpoint rect { stroke-width: 3; }
+
+  .edge { fill: none; stroke-linecap: round; transition: opacity .18s, stroke-width .12s; }
+  .edge-badge circle { stroke: var(--bg); stroke-width: 2; }
+  .edge-badge text { font-size: 10px; font-weight: 700; fill: #0e1116; text-anchor: middle; }
+  .edge-group.faded { opacity: .28; }
+
+  /* ---- Right: detail ---- */
+  .detail { background: var(--bg-soft); border-left: 1px solid var(--border); overflow-y: auto; }
+  .detail-inner { padding: 18px; }
+  .detail h2 { font-size: 16px; margin: 0 0 6px; }
+  .detail .cat-tag { display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: .7px;
+    color: var(--accent); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; margin-bottom: 10px; }
+  .detail .desc { color: var(--text-dim); font-size: 13px; margin: 0 0 16px; }
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .step {
+    position: relative; padding: 10px 10px 10px 40px; border-radius: 10px; margin-bottom: 6px;
+    border: 1px solid transparent; cursor: pointer; transition: background .12s, border-color .12s;
+  }
+  .step:hover, .step.hi { background: var(--panel); border-color: var(--border); }
+  .step .num {
+    position: absolute; left: 8px; top: 10px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #0e1116; font-weight: 700; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step .route { font-size: 11px; color: var(--text-faint); margin-bottom: 2px; }
+  .step .route b { color: var(--text-dim); font-weight: 600; }
+  .step .label { font-weight: 600; font-size: 12.5px; word-break: break-word; }
+  .step .det { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+
+  .empty { color: var(--text-faint); font-size: 13px; padding: 30px 4px; text-align: center; }
+  .node-info { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .node-info h3 { font-size: 13px; margin: 0 0 6px; }
+  .node-info ul { margin: 8px 0 0; padding-left: 18px; }
+  .node-info li { font-size: 12.5px; margin: 3px 0; cursor: pointer; color: var(--accent); }
+
+  /* ---- Loader / error overlay ---- */
+  .overlay {
+    position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center;
+    z-index: 50; padding: 24px;
+  }
+  .overlay .card { max-width: 560px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow); }
+  .overlay h2 { margin: 0 0 10px; font-size: 17px; }
+  .overlay p { color: var(--text-dim); margin: 0 0 12px; }
+  .overlay code { background: var(--bg); padding: 2px 7px; border-radius: 6px; font-size: 12.5px; color: #ffd479; }
+  .overlay pre { background: var(--bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="app" hidden id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1 id="brand-title">Élan</h1>
+      <p id="brand-sub"></p>
+    </div>
+    <div class="search"><input id="search" type="search" placeholder="Filtrer les actions…" autocomplete="off" /></div>
+    <nav class="flows" id="flow-list"></nav>
+  </aside>
+
+  <main class="stage" id="stage">
+    <div class="legend" id="legend"><span class="hint">Cliquez sur une action à gauche, ou sur un nœud du graphe.</span></div>
+    <svg id="graph" xmlns="http://www.w3.org/2000/svg"></svg>
+  </main>
+
+  <aside class="detail">
+    <div class="detail-inner" id="detail">
+      <div class="empty">Sélectionnez une action pour afficher le flux et les données échangées entre chaque paquet.</div>
+    </div>
+  </aside>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="card">
+    <h2 id="ov-title">Chargement…</h2>
+    <div id="ov-body"><p>Lecture de <code>workflows.json</code>…</p></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Layout constants ----
+  var COL_W = 250, NODE_W = 184, NODE_H = 42, ROW_GAP = 60;
+  var PAD_X = 40, PAD_TOP = 70, PAD_BOTTOM = 40;
+
+  var DATA = null, NODE_BY_ID = {}, POS = {}, LAYER_COLOR = {};
+  var activeFlowId = null, activeStepIndex = null;
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function el(name) { return document.createElementNS("http://www.w3.org/2000/svg", name); }
+
+  // ---------- Load JSON (separate file; helpful fallback on file://) ----------
+  fetch("workflows.json", { cache: "no-store" })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(init)
+    .catch(showLoadError);
+
+  function showLoadError(err) {
+    $("#ov-title").textContent = "Impossible de charger workflows.json";
+    $("#ov-body").innerHTML =
+      "<p>Le navigateur a bloqué la lecture du fichier JSON (" + String(err && err.message || err) + ").</p>" +
+      "<p>Ouvrez la page via un petit serveur local — depuis le dossier <code>docs/</code> :</p>" +
+      "<pre>python3 -m http.server 8000</pre>" +
+      "<p>puis visitez <a href=\"http://localhost:8000/workflows.html\">http://localhost:8000/workflows.html</a>.</p>" +
+      "<p style=\"color:var(--text-faint)\">(L'ouverture directe en <code>file://</code> est bloquée par la politique CORS des navigateurs ; les données vivent volontairement dans un fichier JSON séparé et éditable.)</p>";
+  }
+
+  // ---------- Init ----------
+  function init(data) {
+    DATA = data;
+    $("#overlay").hidden = true;
+    $("#app").hidden = false;
+
+    $("#brand-title").textContent = data.meta.app + " · flux";
+    $("#brand-sub").textContent = data.meta.subtitle || "";
+
+    data.nodes.forEach(function (n) { NODE_BY_ID[n.id] = n; });
+    data.layers.forEach(function (l) { LAYER_COLOR[l.id] = l.color; });
+
+    computeLayout();
+    renderLegend();
+    renderGraph();
+    renderFlowList(data.flows);
+    bindSearch();
+  }
+
+  // ---------- Layout: columns by layer, rows by order ----------
+  function computeLayout() {
+    var byLayer = {};
+    DATA.layers.forEach(function (l) { byLayer[l.id] = []; });
+    DATA.nodes.forEach(function (n) { (byLayer[n.layer] || (byLayer[n.layer] = [])).push(n); });
+
+    var maxRows = 0;
+    DATA.layers.forEach(function (l, ci) {
+      var list = byLayer[l.id] || [];
+      maxRows = Math.max(maxRows, list.length);
+      list.forEach(function (n, ri) {
+        POS[n.id] = {
+          x: PAD_X + ci * COL_W,
+          y: PAD_TOP + ri * ROW_GAP,
+          col: ci, row: ri
+        };
+      });
+    });
+
+    DATA._width = PAD_X * 2 + (DATA.layers.length - 1) * COL_W + NODE_W;
+    DATA._height = PAD_TOP + maxRows * ROW_GAP + PAD_BOTTOM;
+    DATA._byLayer = byLayer;
+  }
+
+  function renderLegend() {
+    var lg = $("#legend");
+    lg.innerHTML = "";
+    DATA.layers.forEach(function (l) {
+      var s = document.createElement("span");
+      s.innerHTML = '<span class="dot" style="background:' + l.color + '"></span>' + l.label;
+      lg.appendChild(s);
+    });
+    var hint = document.createElement("span");
+    hint.className = "hint";
+    hint.textContent = "Cliquez une action ou un nœud — flèches numérotées = ordre des étapes.";
+    lg.appendChild(hint);
+  }
+
+  // ---------- Graph rendering ----------
+  function renderGraph() {
+    var svg = $("#graph");
+    svg.setAttribute("width", DATA._width);
+    svg.setAttribute("height", DATA._height);
+    svg.setAttribute("viewBox", "0 0 " + DATA._width + " " + DATA._height);
+    svg.innerHTML = "";
+
+    // defs: arrowheads (default + highlighted)
+    var defs = el("defs");
+    defs.appendChild(marker("arrow", "#5b6677"));
+    defs.appendChild(marker("arrow-hi", "#ffd479"));
+    svg.appendChild(defs);
+
+    // column header labels
+    DATA.layers.forEach(function (l, ci) {
+      var t = el("text");
+      t.setAttribute("x", PAD_X + ci * COL_W + NODE_W / 2);
+      t.setAttribute("y", 40);
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("fill", l.color);
+      t.setAttribute("font-size", "11");
+      t.setAttribute("font-weight", "700");
+      t.setAttribute("letter-spacing", "1");
+      t.textContent = l.label.toUpperCase();
+      svg.appendChild(t);
+    });
+
+    // edge layer (drawn first, under nodes)
+    var edgeLayer = el("g");
+    edgeLayer.setAttribute("id", "edge-layer");
+    svg.appendChild(edgeLayer);
+
+    // nodes
+    DATA.nodes.forEach(function (n) {
+      var p = POS[n.id];
+      var g = el("g");
+      g.setAttribute("class", "node");
+      g.setAttribute("data-id", n.id);
+      g.setAttribute("transform", "translate(" + p.x + "," + p.y + ")");
+
+      var rect = el("rect");
+      rect.setAttribute("width", NODE_W);
+      rect.setAttribute("height", NODE_H);
+      rect.setAttribute("rx", 9);
+      rect.setAttribute("fill", "#1a212c");
+      rect.setAttribute("stroke", LAYER_COLOR[n.layer]);
+      rect.setAttribute("stroke-width", "1.2");
+      g.appendChild(rect);
+
+      var label = el("text");
+      label.setAttribute("x", 12);
+      label.setAttribute("y", n.layer === "external" ? 18 : 26);
+      label.textContent = clip(n.label, n.layer === "external" ? 26 : 24);
+      label.setAttribute("font-weight", "600");
+      g.appendChild(label);
+
+      if (n.layer === "external") {
+        var sub = el("text");
+        sub.setAttribute("class", "sub");
+        sub.setAttribute("x", 12);
+        sub.setAttribute("y", 32);
+        sub.textContent = "paquet natif / externe";
+        g.appendChild(sub);
+      }
+
+      var title = el("title");
+      title.textContent = n.label + " — " + (n.desc || "");
+      g.appendChild(title);
+
+      g.addEventListener("click", function (e) { e.stopPropagation(); selectNode(n.id); });
+      svg.appendChild(g);
+    });
+
+    $("#stage").addEventListener("click", function () { /* click on empty space keeps state */ });
+  }
+
+  function marker(id, color) {
+    var m = el("marker");
+    m.setAttribute("id", id);
+    m.setAttribute("viewBox", "0 0 10 10");
+    m.setAttribute("refX", "9"); m.setAttribute("refY", "5");
+    m.setAttribute("markerWidth", "7"); m.setAttribute("markerHeight", "7");
+    m.setAttribute("orient", "auto-start-reverse");
+    var path = el("path");
+    path.setAttribute("d", "M0,0 L10,5 L0,10 z");
+    path.setAttribute("fill", color);
+    m.appendChild(path);
+    return m;
+  }
+
+  // Point on a node's rectangle border in the direction of (tx,ty).
+  function edgePoint(id, tx, ty) {
+    var p = POS[id];
+    var cx = p.x + NODE_W / 2, cy = p.y + NODE_H / 2;
+    var dx = tx - cx, dy = ty - cy;
+    if (dx === 0 && dy === 0) return { x: cx, y: cy };
+    var hw = NODE_W / 2, hh = NODE_H / 2;
+    var sx = dx === 0 ? Infinity : hw / Math.abs(dx);
+    var sy = dy === 0 ? Infinity : hh / Math.abs(dy);
+    var s = Math.min(sx, sy);
+    return { x: cx + dx * s, y: cy + dy * s };
+  }
+
+  function drawFlowEdges(flow) {
+    var layer = $("#edge-layer");
+    layer.innerHTML = "";
+    flow.steps.forEach(function (step, i) {
+      var a = POS[step.from], b = POS[step.to];
+      if (!a || !b) return;
+      var acx = a.x + NODE_W / 2, acy = a.y + NODE_H / 2;
+      var bcx = b.x + NODE_W / 2, bcy = b.y + NODE_H / 2;
+      var p1 = edgePoint(step.from, bcx, bcy);
+      var p2 = edgePoint(step.to, acx, acy);
+
+      // control points: bow the curve sideways a touch for readability
+      var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+      var dx = p2.x - p1.x, dy = p2.y - p1.y;
+      var len = Math.sqrt(dx * dx + dy * dy) || 1;
+      var bow = Math.min(40, len * 0.18);
+      // perpendicular offset, alternating per step to reduce overlap
+      var ox = -dy / len * bow * (i % 2 === 0 ? 1 : -1);
+      var oy = dx / len * bow * (i % 2 === 0 ? 1 : -1);
+      var cx = mx + ox, cy = my + oy;
+
+      var g = el("g");
+      g.setAttribute("class", "edge-group");
+      g.setAttribute("data-step", i);
+
+      var path = el("path");
+      path.setAttribute("class", "edge");
+      path.setAttribute("d", "M" + p1.x + "," + p1.y + " Q" + cx + "," + cy + " " + p2.x + "," + p2.y);
+      path.setAttribute("stroke", "#ffd479");
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("opacity", "0.85");
+      path.setAttribute("marker-end", "url(#arrow-hi)");
+      g.appendChild(path);
+
+      // numbered badge at curve midpoint (t=0.5 of quadratic)
+      var bx = 0.25 * p1.x + 0.5 * cx + 0.25 * p2.x;
+      var by = 0.25 * p1.y + 0.5 * cy + 0.25 * p2.y;
+      var badge = el("g");
+      badge.setAttribute("class", "edge-badge");
+      var c = el("circle");
+      c.setAttribute("cx", bx); c.setAttribute("cy", by); c.setAttribute("r", 10);
+      c.setAttribute("fill", "#ffd479");
+      badge.appendChild(c);
+      var t = el("text");
+      t.setAttribute("x", bx); t.setAttribute("y", by + 3.5);
+      t.textContent = (i + 1);
+      badge.appendChild(t);
+      g.appendChild(badge);
+
+      var tip = el("title");
+      tip.textContent = (i + 1) + ". " + NODE_BY_ID[step.from].label + " → " + NODE_BY_ID[step.to].label + " : " + step.label;
+      g.appendChild(tip);
+
+      g.addEventListener("click", function (ev) { ev.stopPropagation(); highlightStep(i); });
+      g.addEventListener("mouseenter", function () { emphasizeStep(i); });
+      g.addEventListener("mouseleave", function () { emphasizeStep(activeStepIndex); });
+
+      layer.appendChild(g);
+    });
+  }
+
+  // ---------- Selection: flow ----------
+  function selectFlow(id) {
+    activeFlowId = id;
+    activeStepIndex = null;
+    var flow = DATA.flows.filter(function (f) { return f.id === id; })[0];
+    if (!flow) return;
+
+    // highlight buttons
+    Array.prototype.forEach.call(document.querySelectorAll(".flow-btn"), function (b) {
+      b.classList.toggle("active", b.getAttribute("data-id") === id);
+    });
+
+    var participants = {};
+    var endpoints = {};
+    flow.steps.forEach(function (s, i) {
+      participants[s.from] = true; participants[s.to] = true;
+      if (i === 0) endpoints[s.from] = true;
+      if (i === flow.steps.length - 1) endpoints[s.to] = true;
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll(".node"), function (g) {
+      var nid = g.getAttribute("data-id");
+      g.classList.toggle("dim", !participants[nid]);
+      g.classList.toggle("part", !!participants[nid]);
+      g.classList.toggle("endpoint", !!endpoints[nid]);
+    });
+
+    drawFlowEdges(flow);
+    renderFlowDetail(flow);
+    scrollGraphToFlow(flow);
+  }
+
+  function scrollGraphToFlow(flow) {
+    var minY = Infinity;
+    flow.steps.forEach(function (s) {
+      minY = Math.min(minY, POS[s.from].y, POS[s.to].y);
+    });
+    if (minY !== Infinity) {
+      $("#stage").scrollTo({ top: Math.max(0, minY - 90), behavior: "smooth" });
+    }
+  }
+
+  // ---------- Selection: node (show flows that pass through it) ----------
+  function selectNode(id) {
+    var node = NODE_BY_ID[id];
+    var related = DATA.flows.filter(function (f) {
+      return f.steps.some(function (s) { return s.from === id || s.to === id; });
+    });
+
+    activeFlowId = null; activeStepIndex = null;
+    Array.prototype.forEach.call(document.querySelectorAll(".flow-btn"), function (b) { b.classList.remove("active"); });
+    $("#edge-layer").innerHTML = "";
+
+    var touched = {};
+    touched[id] = true;
+    related.forEach(function (f) { f.steps.forEach(function (s) {
+      if (s.from === id) touched[s.to] = true;
+      if (s.to === id) touched[s.from] = true;
+    }); });
+
+    Array.prototype.forEach.call(document.querySelectorAll(".node"), function (g) {
+      var nid = g.getAttribute("data-id");
+      g.classList.toggle("dim", !touched[nid]);
+      g.classList.toggle("part", !!touched[nid] && nid !== id);
+      g.classList.toggle("endpoint", nid === id);
+    });
+
+    var html = '<span class="cat-tag">' + (DATA.layers.filter(function(l){return l.id===node.layer;})[0]||{}).label + '</span>';
+    html += "<h2>" + esc(node.label) + "</h2>";
+    html += '<p class="desc">' + esc(node.desc || "") + "</p>";
+    html += '<div class="node-info"><h3>Flux passant par ce nœud (' + related.length + ")</h3><ul>";
+    related.forEach(function (f) { html += '<li data-flow="' + f.id + '">' + esc(f.title) + "</li>"; });
+    html += "</ul></div>";
+    $("#detail").innerHTML = html;
+    Array.prototype.forEach.call(document.querySelectorAll("#detail li[data-flow]"), function (li) {
+      li.addEventListener("click", function () { selectFlow(li.getAttribute("data-flow")); });
+    });
+  }
+
+  // ---------- Detail panel (flow) ----------
+  function renderFlowDetail(flow) {
+    var html = '<span class="cat-tag">' + esc(flow.category) + "</span>";
+    html += "<h2>" + esc(flow.title) + "</h2>";
+    html += '<p class="desc">' + esc(flow.description) + "</p>";
+    html += '<ol class="steps">';
+    flow.steps.forEach(function (s, i) {
+      html += '<li class="step" data-step="' + i + '">' +
+        '<span class="num">' + (i + 1) + "</span>" +
+        '<div class="route"><b>' + esc(NODE_BY_ID[s.from].label) + "</b> → <b>" + esc(NODE_BY_ID[s.to].label) + "</b></div>" +
+        '<div class="label">' + esc(s.label) + "</div>" +
+        (s.detail ? '<div class="det">' + esc(s.detail) + "</div>" : "") +
+      "</li>";
+    });
+    html += "</ol>";
+    $("#detail").innerHTML = html;
+
+    Array.prototype.forEach.call(document.querySelectorAll("#detail .step"), function (li) {
+      var i = parseInt(li.getAttribute("data-step"), 10);
+      li.addEventListener("click", function () { highlightStep(i); });
+      li.addEventListener("mouseenter", function () { emphasizeStep(i); });
+      li.addEventListener("mouseleave", function () { emphasizeStep(activeStepIndex); });
+    });
+  }
+
+  function highlightStep(i) {
+    activeStepIndex = (activeStepIndex === i) ? null : i;
+    emphasizeStep(activeStepIndex);
+    Array.prototype.forEach.call(document.querySelectorAll("#detail .step"), function (li) {
+      li.classList.toggle("hi", parseInt(li.getAttribute("data-step"), 10) === activeStepIndex);
+    });
+  }
+
+  function emphasizeStep(i) {
+    var groups = document.querySelectorAll("#edge-layer .edge-group");
+    Array.prototype.forEach.call(groups, function (g) {
+      var gi = parseInt(g.getAttribute("data-step"), 10);
+      if (i == null) {
+        g.classList.remove("faded");
+        $(".edge", g).setAttribute("stroke-width", "2");
+      } else {
+        var on = gi === i;
+        g.classList.toggle("faded", !on);
+        $(".edge", g).setAttribute("stroke-width", on ? "3.5" : "2");
+      }
+    });
+  }
+
+  // ---------- Flow list + search ----------
+  function renderFlowList(flows) {
+    var wrap = $("#flow-list");
+    wrap.innerHTML = "";
+    var byCat = {};
+    var order = [];
+    flows.forEach(function (f) {
+      if (!byCat[f.category]) { byCat[f.category] = []; order.push(f.category); }
+      byCat[f.category].push(f);
+    });
+    order.forEach(function (cat) {
+      var h = document.createElement("div");
+      h.className = "cat";
+      h.textContent = cat;
+      wrap.appendChild(h);
+      byCat[cat].forEach(function (f) {
+        var b = document.createElement("button");
+        b.className = "flow-btn";
+        b.setAttribute("data-id", f.id);
+        b.setAttribute("data-text", (f.title + " " + f.category + " " + f.description).toLowerCase());
+        b.innerHTML = esc(f.title) + '<span class="cnt">' + f.steps.length + "</span>";
+        b.addEventListener("click", function () { selectFlow(f.id); });
+        wrap.appendChild(b);
+      });
+    });
+  }
+
+  function bindSearch() {
+    $("#search").addEventListener("input", function (e) {
+      var q = e.target.value.trim().toLowerCase();
+      Array.prototype.forEach.call(document.querySelectorAll(".flow-btn"), function (b) {
+        b.style.display = (!q || b.getAttribute("data-text").indexOf(q) !== -1) ? "" : "none";
+      });
+      // hide empty category headers
+      Array.prototype.forEach.call(document.querySelectorAll(".cat"), function (h) {
+        var n = h.nextElementSibling, vis = false;
+        while (n && n.classList.contains("flow-btn")) {
+          if (n.style.display !== "none") vis = true;
+          n = n.nextElementSibling;
+        }
+        h.style.display = vis ? "" : "none";
+      });
+    });
+  }
+
+  // ---------- utils ----------
+  function clip(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+})();
+</script>
+</body>
+</html>
