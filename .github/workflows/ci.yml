@@ -1,0 +1,40 @@
+# Intégration continue : vérifie chaque PR et chaque push sur main.
+# Ne couvre que la couche framework-agnostique testable (src/lib via jest-expo),
+# plus le typage et le lint — pas de build natif (Android/iOS) qui exigerait le SDK.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Annule les exécutions précédentes encore en cours sur la même réf (PR/branche).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Type-check · lint · tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests (src/lib)
+        run: npm test
