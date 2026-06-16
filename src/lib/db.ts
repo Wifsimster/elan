@@ -353,19 +353,21 @@ export async function listSessions(
     typeof optsOrLimit === 'number' ? { limit: optsOrLimit } : optsOrLimit;
   const { limit = 100, offset = 0, type, search, fromMs, toMs } = opts;
 
-  const where: string[] = ['endedAt IS NOT NULL'];
+  // Prédicats qualifiés par l'alias `s` : la requête joint `muscu_sets` (alias
+  // `ms`) pour agréger la complétion, donc les colonnes nues seraient ambiguës.
+  const where: string[] = ['s.endedAt IS NOT NULL'];
   const params: (string | number)[] = [];
 
   if (type) {
-    where.push('type = ?');
+    where.push('s.type = ?');
     params.push(type);
   }
   if (fromMs != null) {
-    where.push('startedAt >= ?');
+    where.push('s.startedAt >= ?');
     params.push(fromMs);
   }
   if (toMs != null) {
-    where.push('startedAt < ?');
+    where.push('s.startedAt < ?');
     params.push(toMs);
   }
   const trimmed = search?.trim();
@@ -375,15 +377,24 @@ export async function listSessions(
     // exercice muscu rattaché.
     const like = `%${trimmed}%`;
     where.push(
-      `(type LIKE ? OR IFNULL(notes, '') LIKE ? OR id IN (
+      `(s.type LIKE ? OR IFNULL(s.notes, '') LIKE ? OR s.id IN (
          SELECT sessionId FROM muscu_sets WHERE exercise LIKE ?
        ))`,
     );
     params.push(like, like, like);
   }
 
-  const sql = `SELECT * FROM sessions WHERE ${where.join(' AND ')}
-               ORDER BY startedAt DESC LIMIT ? OFFSET ?;`;
+  // Agrégat de lecture : nombre de séries et d'exercices distincts par séance
+  // (complétion muscu, affichée à la place de la durée). Vélo → 0. Pas de
+  // migration : c'est purement un calcul à la lecture.
+  const sql = `SELECT s.*,
+                      COUNT(ms.id)                AS setCount,
+                      COUNT(DISTINCT ms.exercise) AS exerciseCount
+                 FROM sessions s
+                 LEFT JOIN muscu_sets ms ON ms.sessionId = s.id
+                WHERE ${where.join(' AND ')}
+                GROUP BY s.id
+                ORDER BY s.startedAt DESC LIMIT ? OFFSET ?;`;
   params.push(limit, offset);
 
   const db = await getDb();

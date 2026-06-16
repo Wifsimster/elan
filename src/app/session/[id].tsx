@@ -239,6 +239,24 @@ export default function SessionDetailScreen() {
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18 }}>
             {movingSec != null ? (
               <StatTile label="En mouvement" value={formatDuration(movingSec)} icon="clock-outline" compact />
+            ) : session.type === 'muscu' ? (
+              // Muscu : la durée n'est pas pertinente → on montre la complétion.
+              <>
+                <StatTile
+                  label="Séries"
+                  value={String(sets.length)}
+                  icon="format-list-numbered"
+                  color={color}
+                  compact
+                />
+                <StatTile
+                  label="Exercices"
+                  value={String(new Set(sets.map((s) => s.exercise)).size)}
+                  icon="dumbbell"
+                  color={color}
+                  compact
+                />
+              </>
             ) : (
               <StatTile label="Durée" value={formatDuration(session.durationSec)} icon="clock-outline" compact />
             )}

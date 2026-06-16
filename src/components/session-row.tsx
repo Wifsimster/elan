@@ -38,10 +38,18 @@ export function SessionRow({ session }: { session: Session }) {
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end', gap: 2 }}>
+            {/* En muscu la durée n'a pas de sens : on met en avant la complétion
+                (séries faites, puis exercices). Le vélo garde temps + distance. */}
             <Text style={{ color: theme.text, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
-              {formatDurationShort(session.movingTimeSec ?? session.durationSec)}
+              {session.type === 'muscu'
+                ? `${session.setCount ?? 0} série${(session.setCount ?? 0) > 1 ? 's' : ''}`
+                : formatDurationShort(session.movingTimeSec ?? session.durationSec)}
             </Text>
-            {session.type === 'velo' && session.distanceM != null ? (
+            {session.type === 'muscu' ? (
+              <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+                {`${session.exerciseCount ?? 0} exercice${(session.exerciseCount ?? 0) > 1 ? 's' : ''}`}
+              </Text>
+            ) : session.type === 'velo' && session.distanceM != null ? (
               <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
                 {formatDistance(session.distanceM)}
               </Text>
