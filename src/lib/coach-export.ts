@@ -24,6 +24,7 @@ import {
   formatDateShort,
 } from '@/lib/format';
 import { goalLabel } from '@/lib/exercises';
+import { difficultyLabel } from '@/lib/progression-advice';
 import {
   describeGoal,
   formatGoalValue,
@@ -182,16 +183,19 @@ function progressionSection(history: { exercise: string; points: ExercisePoint[]
   const lines: string[] = [
     '## Progression par exercice (musculation)',
     '',
-    'Une ligne par séance, du plus ancien au plus récent. « Charge max » = série la plus lourde de la séance ; « Reps » = répétitions de cette série ; « Volume » = somme de (reps × charge) sur toutes les séries.',
+    'Une ligne par séance, du plus ancien au plus récent. « Charge max » = série la plus lourde de la séance ; « Reps » = répétitions de cette série ; « Volume » = somme de (reps × charge) sur toutes les séries ; « Ressenti » = effort noté par l\'utilisateur (facile / moyen / dur) pour décider d\'augmenter ou non les reps et la charge.',
   ];
   for (const h of history) {
     lines.push('', `### ${h.exercise}`, '');
-    lines.push('| Date | Charge max (kg) | Reps | Volume | Séries |', '| --- | --- | --- | --- | --- |');
+    lines.push(
+      '| Date | Charge max (kg) | Reps | Volume | Séries | Ressenti |',
+      '| --- | --- | --- | --- | --- | --- |',
+    );
     for (const p of h.points) {
       lines.push(
         `| ${formatDateShort(p.startedAt)} | ${num(p.maxWeightKg)} | ${p.topReps} | ${num(
           p.volume,
-        )} | ${p.sets} |`,
+        )} | ${p.sets} | ${p.difficulty ? difficultyLabel(p.difficulty) : '—'} |`,
       );
     }
   }

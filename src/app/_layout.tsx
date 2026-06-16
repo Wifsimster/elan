@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { DarkTheme, DefaultTheme, type ErrorBoundaryProps, Stack, ThemeProvider } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { DarkTheme, DefaultTheme, type ErrorBoundaryProps, Stack, ThemeProvider, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Pressable, Text, useColorScheme, View } from 'react-native';
@@ -10,11 +11,26 @@ import { BackupProvider } from '@/hooks/use-backup';
 import { CadenceSpeedProvider } from '@/hooks/use-cadence-speed';
 import { HeartRateProvider } from '@/hooks/use-heart-rate';
 import { useTheme } from '@/hooks/use-theme';
+import { clearLiveSessionNotification } from '@/lib/live-notification';
 import { applyNotifications } from '@/lib/notifications';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+// Gestionnaire global de présentation au premier plan (aucun n'existait). Garde
+// la notification persistante « séance en cours » visible dans le volet pendant
+// que l'app est ouverte (shouldShowList), sans pop heads-up par-dessus l'écran
+// de séance (shouldShowBanner: false). N'affecte pas les rappels planifiés, qui
+// se déclenchent app fermée.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: false,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 /**
  * Filet de sécurité racine : expo-router rend ce composant à la place de l'arbre
@@ -71,14 +87,37 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 
 export default function RootLayout() {
   const scheme = useColorScheme();
+  const router = useRouter();
 
   // Re-arme les rappels de séance au lancement : les notifications planifiées
   // sont effacées au redémarrage de l'appareil, donc on les reprogramme à
   // chaque ouverture pour que le programme reste rappelé de façon fiable.
   // Sans effet (et sans permission demandée) si les rappels sont désactivés.
+  //
+  // Filet de sécurité : si l'app a été tuée en pleine séance, la notification
+  // persistante « séance en cours » peut subsister alors que l'écran de séance
+  // n'est plus monté. On l'efface au démarrage à froid (une séance muscu reste
+  // reprenable depuis son brouillon ; le vélo n'a pas de brouillon). Aucune
+  // séance vélo/muscu n'est restaurée au lancement, donc rien à préserver.
   useEffect(() => {
     applyNotifications();
+    clearLiveSessionNotification();
   }, []);
+
+  // Appui sur la notification persistante : ramène à l'écran de séance. On gère
+  // l'app au premier plan (listener) et le démarrage à froid (dernière réponse
+  // synchrone, non dépréciée en v56).
+  useEffect(() => {
+    const handle = (route: unknown) => {
+      if (route === '/velo' || route === '/muscu') router.navigate(route);
+    };
+    const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
+      handle(resp.notification.request.content.data?.route);
+    });
+    const last = Notifications.getLastNotificationResponse();
+    if (last) handle(last.notification.request.content.data?.route);
+    return () => sub.remove();
+  }, [router]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

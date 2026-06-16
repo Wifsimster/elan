@@ -41,11 +41,13 @@ import {
   type RecoProfile,
 } from '@/lib/exercises';
 import { formatDuration } from '@/lib/format';
+import { clearLiveSessionNotification, showLiveSessionNotification } from '@/lib/live-notification';
 import { clearMuscuDraft, loadMuscuDraft, saveMuscuDraft } from '@/lib/muscu-draft';
 import { muscuStats, muscuSummary } from '@/lib/muscu-stats';
+import { difficultyLabel } from '@/lib/progression-advice';
 import { pushDownsampled, summarizeHr } from '@/lib/samples';
 import { finalizeSavedSession } from '@/lib/session-finalize';
-import type { HrSample } from '@/lib/types';
+import type { Difficulty, HrSample } from '@/lib/types';
 import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
 import { nowMs } from '@/lib/time';
 import { useHeartRate } from '@/hooks/use-heart-rate';
@@ -72,6 +74,8 @@ type Exercise = {
   icon?: string;
   /** Clé d'illustration photo (paire départ → fin), affichée dans la fiche. */
   imageKey?: string;
+  /** Ressenti d'effort noté pendant la séance (facile / moyen / dur). */
+  difficulty?: Difficulty;
 };
 
 const COMMON = [
@@ -227,6 +231,10 @@ export default function MuscuScreen() {
         // Démarrage normal d'une nouvelle séance.
         startedAtRef.current = nowMs();
         watch.start();
+        // Notification persistante (appui = retour à la séance). Fire-and-forget.
+        // Une séance reprise depuis un brouillon reste en pause (ci-dessus) : on
+        // n'affiche rien tant que l'utilisateur n'a pas tapé « Reprendre ».
+        showLiveSessionNotification('muscu');
         const preset = templateById(template);
         if (preset) await loadTemplate(preset); // pré-chargement depuis la « Séance du jour »
       }
@@ -278,6 +286,9 @@ export default function MuscuScreen() {
   const resume = () => {
     watch.start();
     setPaused(false);
+    // Reprise (y compris depuis un brouillon) : (ré)affiche la notification.
+    // Identifiant stable = idempotent, ne crée pas de doublon.
+    showLiveSessionNotification('muscu');
   };
 
   const addExercise = (name: string) => {
@@ -363,6 +374,15 @@ export default function MuscuScreen() {
     if (!wasDone) setRestEndsAt(nowMs() + restDurationRef.current * 1000);
   };
 
+  // Note le ressenti de l'exercice (facile / moyen / dur). Re-taper la valeur
+  // déjà sélectionnée la désélectionne : la note reste facultative.
+  const setDifficulty = (id: string, value: Difficulty) =>
+    setExercises((prev) =>
+      prev.map((e) =>
+        e.id === id ? { ...e, difficulty: e.difficulty === value ? undefined : value } : e,
+      ),
+    );
+
   // Ajuste (±15 s) ou ferme le minuteur de repos. Un ajustement mémorise la
   // nouvelle durée comme préférence (réutilisée à la prochaine série).
   const handleRestChange = (next: number | null) => {
@@ -437,6 +457,8 @@ export default function MuscuScreen() {
           setIndex: i + 1,
           reps: s.reps,
           weightKg: s.weightKg,
+          // Ressenti dénormalisé : même valeur sur toutes les séries de l'exercice.
+          difficulty: e.difficulty ?? null,
         })),
       );
       await replaceMuscuSets(id, flat);
@@ -451,6 +473,7 @@ export default function MuscuScreen() {
         calories,
         hrSamples: hrSamplesRef.current,
       });
+      clearLiveSessionNotification();
       router.replace({ pathname: '/session/[id]', params: { id } });
     } catch {
       // Échec d'écriture : on ne reste pas bloqué sur « saving ». Le brouillon est
@@ -469,6 +492,7 @@ export default function MuscuScreen() {
     if (saving) return true;
     if (totalSets === 0) {
       clearMuscuDraft();
+      clearLiveSessionNotification();
       router.back();
       return true;
     }
@@ -490,6 +514,7 @@ export default function MuscuScreen() {
           style: 'destructive',
           onPress: async () => {
             await clearMuscuDraft();
+            clearLiveSessionNotification();
             router.back();
           },
         },
@@ -702,6 +727,23 @@ export default function MuscuScreen() {
               <MaterialCommunityIcons name="plus-circle-outline" size={18} color={theme.muscu} />
               <Text style={{ color: theme.muscu, fontWeight: '700' }}>Ajouter une série</Text>
             </PressableScale>
+
+            {/* Ressenti : alimente le conseil de progression (reps/charge à monter
+                ou non) visible plus tard sur la fiche de l'exercice. Facultatif. */}
+            <View style={{ gap: 6 }}>
+              <Text style={{ ...Type.label, color: theme.textSecondary }}>Ressenti</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {(['facile', 'moyen', 'dur'] as const).map((d) => (
+                  <Chip
+                    key={d}
+                    label={difficultyLabel(d)}
+                    selected={ex.difficulty === d}
+                    color={theme.muscu}
+                    onPress={() => setDifficulty(ex.id, d)}
+                  />
+                ))}
+              </View>
+            </View>
           </Card>
         ))}
 
