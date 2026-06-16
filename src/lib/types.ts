@@ -35,6 +35,14 @@ export type Session = {
   source: string | null;
   /** Clé de déduplication des séances importées (null pour les séances natives). */
   externalId: string | null;
+  /**
+   * Nombre de séries muscu enregistrées. Renseigné uniquement par `listSessions`
+   * (agrégat de lecture) : `0` pour le vélo, `undefined` ailleurs (`getSession`,
+   * exports). Sert à afficher la complétion à la place de la durée en muscu.
+   */
+  setCount?: number;
+  /** Nombre d'exercices muscu distincts. Mêmes règles que `setCount`. */
+  exerciseCount?: number;
 };
 
 /** Un point GPS d'un tracé vélo. */

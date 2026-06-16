@@ -60,6 +60,7 @@ import {
   importAll,
   insertImportedSession,
   insertTrackPoints,
+  listSessions,
   replaceMuscuSets,
   sessionRecords,
   setSetting,
@@ -263,5 +264,29 @@ describe('statsBetween (filtre par type) & tonnageBetween — suivi d’objectif
     expect(await tonnageBetween(T, T + 10_000)).toBe(440);
     // Avant la séance muscu (à T+2000) : aucun tonnage.
     expect(await tonnageBetween(T, T + 2000)).toBe(0);
+  });
+});
+
+describe('listSessions — compteurs de complétion muscu', () => {
+  it('renseigne setCount / exerciseCount pour la muscu et 0 pour le vélo', async () => {
+    const muscuId = await createSession('muscu', 1_700_200_000_000);
+    await updateSession(muscuId, { endedAt: 1_700_200_300_000 });
+    await replaceMuscuSets(muscuId, [
+      { exercise: 'Squat', setIndex: 1, reps: 5, weightKg: 60, difficulty: null },
+      { exercise: 'Squat', setIndex: 2, reps: 5, weightKg: 60, difficulty: null },
+      { exercise: 'Développé couché', setIndex: 1, reps: 8, weightKg: 40, difficulty: null },
+    ]);
+
+    const veloId = await createSession('velo', 1_700_200_400_000);
+    await updateSession(veloId, { endedAt: 1_700_200_700_000 });
+
+    const rows = await listSessions(50);
+    const muscu = rows.find((r) => r.id === muscuId)!;
+    const velo = rows.find((r) => r.id === veloId)!;
+
+    expect(muscu.setCount).toBe(3);
+    expect(muscu.exerciseCount).toBe(2);
+    expect(velo.setCount).toBe(0);
+    expect(velo.exerciseCount).toBe(0);
   });
 });
