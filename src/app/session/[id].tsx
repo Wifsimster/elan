@@ -25,6 +25,7 @@ import {
   type SessionRecord,
 } from '@/lib/db';
 import { sessionEffort } from '@/lib/effort';
+import { difficultyLabel } from '@/lib/progression-advice';
 import { createRouteSnapshot, type RouteSnapshot } from '@/lib/static-map';
 import {
   cadenceParts,
@@ -507,6 +508,14 @@ function MuscuBreakdown({ sets, color }: { sets: MuscuSet[]; color: string }) {
     <View style={{ gap: 12 }}>
       {groups.map((g) => {
         const volume = g.rows.reduce((a, r) => a + r.reps * r.weightKg, 0);
+        // Ressenti uniforme sur les séries de l'exercice : on lit la 1re ligne.
+        const difficulty = g.rows[0]?.difficulty ?? null;
+        const diffColor =
+          difficulty === 'facile'
+            ? theme.success
+            : difficulty === 'moyen'
+              ? theme.warning
+              : theme.danger;
         return (
           <Card key={g.name} style={{ gap: 8 }}>
             <Link href={{ pathname: '/exercise/[name]', params: { name: g.name } }} asChild>
@@ -515,9 +524,24 @@ function MuscuBreakdown({ sets, color }: { sets: MuscuSet[]; color: string }) {
                   <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>{g.name}</Text>
                   <MaterialCommunityIcons name="chart-line" size={16} color={theme.textMuted} />
                 </View>
-                <Text style={{ color: theme.textSecondary, fontSize: 13, fontWeight: '600' }}>
-                  {Math.round(volume)} kg
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {difficulty ? (
+                    <View
+                      style={{
+                        paddingHorizontal: 9,
+                        paddingVertical: 3,
+                        borderRadius: Radius.pill,
+                        backgroundColor: diffColor + '22',
+                      }}>
+                      <Text style={{ color: diffColor, fontSize: 12, fontWeight: '700' }}>
+                        {difficultyLabel(difficulty)}
+                      </Text>
+                    </View>
+                  ) : null}
+                  <Text style={{ color: theme.textSecondary, fontSize: 13, fontWeight: '600' }}>
+                    {Math.round(volume)} kg
+                  </Text>
+                </View>
               </Pressable>
             </Link>
             {g.rows.map((r) => (

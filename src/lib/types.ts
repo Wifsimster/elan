@@ -65,6 +65,13 @@ export type BodyMeasurement = {
   weightKg: number;
 };
 
+/**
+ * Ressenti d'effort d'un exercice sur une séance : pilote le conseil de
+ * progression (augmenter / maintenir / réduire reps et charge). `null` = non noté
+ * (anciennes séances, imports Strava).
+ */
+export type Difficulty = 'facile' | 'moyen' | 'dur';
+
 /** Une série de musculation (un exercice peut avoir plusieurs séries). */
 export type MuscuSet = {
   id: number;
@@ -73,6 +80,11 @@ export type MuscuSet = {
   setIndex: number;
   reps: number;
   weightKg: number;
+  /**
+   * Ressenti de l'exercice, dénormalisé sur chaque série (valeur identique pour
+   * toutes les séries d'un même exercice dans la séance). `null` si non noté.
+   */
+  difficulty: Difficulty | null;
 };
 
 /**

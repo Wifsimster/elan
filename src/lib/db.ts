@@ -6,6 +6,7 @@ import { movingTimeSec } from '@/lib/moving-time';
 import type {
   ActivityType,
   BodyMeasurement,
+  Difficulty,
   MuscuSet,
   PeriodStats,
   Profile,
@@ -21,7 +22,7 @@ const DB_NAME = 'suivi-sport.db';
  * Sert à estampiller les sauvegardes pour refuser une restauration issue d'une
  * version plus récente (cf. lib/backup.ts).
  */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -210,6 +211,15 @@ async function migrate(db: SQLite.SQLiteDatabase) {
       }
     }
     await db.execAsync('PRAGMA user_version = 5;');
+  }
+
+  if (version < 6) {
+    // Ressenti d'effort par exercice (facile / moyen / dur), dénormalisé sur
+    // chaque série de l'exercice dans la séance. Nullable : séances anciennes et
+    // imports Strava restent à NULL. Alimente le conseil de progression
+    // (lib/progression-advice.ts). 100 % local, aucune dépendance réseau.
+    await db.execAsync('ALTER TABLE muscu_sets ADD COLUMN difficulty TEXT;');
+    await db.execAsync('PRAGMA user_version = 6;');
   }
 }
 
@@ -518,18 +528,20 @@ export async function getTrackPoints(sessionId: number): Promise<TrackPoint[]> {
 
 export async function replaceMuscuSets(
   sessionId: number,
-  sets: Omit<MuscuSet, 'id' | 'sessionId'>[],
+  // `difficulty` est facultatif à l'écriture (séries sans ressenti noté) ; il
+  // reste un champ plein (nullable) à la lecture via `MuscuSet`.
+  sets: (Omit<MuscuSet, 'id' | 'sessionId' | 'difficulty'> & { difficulty?: Difficulty | null })[],
 ): Promise<void> {
   const db = await getDb();
   await db.withTransactionAsync(async () => {
     await db.runAsync('DELETE FROM muscu_sets WHERE sessionId = ?;', sessionId);
     if (sets.length === 0) return;
     const stmt = await db.prepareAsync(
-      'INSERT INTO muscu_sets (sessionId, exercise, setIndex, reps, weightKg) VALUES (?, ?, ?, ?, ?);',
+      'INSERT INTO muscu_sets (sessionId, exercise, setIndex, reps, weightKg, difficulty) VALUES (?, ?, ?, ?, ?, ?);',
     );
     try {
       for (const s of sets) {
-        await stmt.executeAsync(sessionId, s.exercise, s.setIndex, s.reps, s.weightKg);
+        await stmt.executeAsync(sessionId, s.exercise, s.setIndex, s.reps, s.weightKg, s.difficulty ?? null);
       }
     } finally {
       await stmt.finalizeAsync();
@@ -584,6 +596,8 @@ export type ExerciseSummary = {
   sessions: number;
   lastWeightKg: number;
   lastAt: number;
+  /** Ressenti noté à la dernière séance (indice de progression dans l'index). */
+  lastDifficulty: Difficulty | null;
 };
 
 /** Liste des exercices muscu déjà enregistrés, les plus récents d'abord. */
@@ -598,7 +612,13 @@ export async function listMuscuExercises(): Promise<ExerciseSummary[]> {
                JOIN sessions s2 ON s2.id = m2.sessionId
               WHERE m2.exercise = ms.exercise AND s2.endedAt IS NOT NULL
               ORDER BY s2.startedAt DESC, m2.weightKg DESC
-              LIMIT 1) AS lastWeightKg
+              LIMIT 1) AS lastWeightKg,
+            (SELECT m3.difficulty
+               FROM muscu_sets m3
+               JOIN sessions s3 ON s3.id = m3.sessionId
+              WHERE m3.exercise = ms.exercise AND s3.endedAt IS NOT NULL
+              ORDER BY s3.startedAt DESC
+              LIMIT 1) AS lastDifficulty
        FROM muscu_sets ms
        JOIN sessions s ON s.id = ms.sessionId
       WHERE s.endedAt IS NOT NULL
@@ -615,6 +635,8 @@ export type ExercisePoint = {
   topReps: number;
   volume: number;
   sets: number;
+  /** Ressenti noté pour cet exercice sur la séance (`null` si non noté). */
+  difficulty: Difficulty | null;
 };
 
 /**
@@ -630,7 +652,8 @@ export async function exerciseHistory(name: string): Promise<ExercisePoint[]> {
             MAX(ms.weightKg) AS maxWeightKg,
             ms.reps AS topReps,
             SUM(ms.reps * ms.weightKg) AS volume,
-            COUNT(*) AS sets
+            COUNT(*) AS sets,
+            MAX(ms.difficulty) AS difficulty
        FROM muscu_sets ms
        JOIN sessions s ON s.id = ms.sessionId
       WHERE s.endedAt IS NOT NULL AND ms.exercise = ?
@@ -988,13 +1011,15 @@ export async function importAll(snap: DbSnapshot): Promise<void> {
     const muscuSets = snap.muscuSets ?? [];
     if (muscuSets.length > 0) {
       const stmt = await db.prepareAsync(
-        `INSERT INTO muscu_sets (id, sessionId, exercise, setIndex, reps, weightKg)
-         VALUES (?, ?, ?, ?, ?, ?);`,
+        `INSERT INTO muscu_sets (id, sessionId, exercise, setIndex, reps, weightKg, difficulty)
+         VALUES (?, ?, ?, ?, ?, ?, ?);`,
       );
       try {
         for (const m of muscuSets) {
           await stmt.executeAsync(
             n(m.id), n(m.sessionId), n(m.exercise), n(m.setIndex), n(m.reps), n(m.weightKg),
+            // `difficulty` est du texte nullable : ne pas passer par n() (force un number).
+            m.difficulty ?? null,
           );
         }
       } finally {

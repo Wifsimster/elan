@@ -14,6 +14,7 @@ import { exerciseHistory, type ExercisePoint } from '@/lib/db';
 import { catalogByName, exerciseHowTo } from '@/lib/exercises';
 import { formatDateTime } from '@/lib/format';
 import { exerciseByName } from '@/lib/program';
+import { adviceLabel, difficultyLabel, suggestProgression } from '@/lib/progression-advice';
 import { epley1RM } from '@/lib/strength';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
@@ -69,6 +70,18 @@ export default function ExerciseScreen() {
     const d = new Date(p.startedAt);
     return { label: `${d.getDate()}/${d.getMonth() + 1}`, value: p.maxWeightKg };
   });
+
+  // Conseil de progression d'après le ressenti noté (points triés ancien → récent).
+  // Tant qu'aucune séance n'est notée, on invite à noter plutôt que de conseiller
+  // « maintiens » à l'aveugle.
+  const ratings = (points ?? []).map((p) => p.difficulty);
+  const hasRating = ratings.some((d) => d != null);
+  const advice = suggestProgression(ratings);
+  const lastRating = [...ratings].reverse().find((d) => d != null) ?? null;
+  const adviceIcon =
+    advice === 'augmente' ? 'arrow-up-bold' : advice === 'reduis' ? 'arrow-down-bold' : 'equal';
+  const adviceColor =
+    advice === 'augmente' ? theme.success : advice === 'reduis' ? theme.warning : theme.muscu;
 
   return (
     <ScrollView
@@ -150,6 +163,45 @@ export default function ExerciseScreen() {
               </Text>
             </Card>
           ) : null}
+
+          {/* Conseil de progression d'après le ressenti des dernières séances. */}
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: Radius.sm,
+                borderCurve: 'continuous',
+                backgroundColor: (hasRating ? adviceColor : theme.textMuted) + '22',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <MaterialCommunityIcons
+                name={hasRating ? adviceIcon : 'gesture-tap'}
+                size={22}
+                color={hasRating ? adviceColor : theme.textMuted}
+              />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ ...Type.overline, color: theme.textMuted }}>Conseil</Text>
+              {hasRating ? (
+                <>
+                  <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }}>
+                    {adviceLabel(advice)}
+                  </Text>
+                  {lastRating ? (
+                    <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+                      Dernière séance : {difficultyLabel(lastRating)}
+                    </Text>
+                  ) : null}
+                </>
+              ) : (
+                <Text style={{ color: theme.textSecondary, fontSize: 14 }}>
+                  Note tes prochaines séances (facile / moyen / dur) pour obtenir un conseil.
+                </Text>
+              )}
+            </View>
+          </Card>
 
           {/* Courbe des charges */}
           <Card>

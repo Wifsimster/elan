@@ -87,6 +87,24 @@ export default function ProgressionScreen() {
                     {fmtKg(it.lastWeightKg)} kg
                   </Text>
                 </View>
+                {/* Indice rapide d'après le dernier ressenti : facile = on peut
+                    monter, dur = on lève le pied. Le conseil complet (sur tout
+                    l'historique) est sur la fiche de l'exercice. */}
+                {it.lastDifficulty === 'facile' ? (
+                  <MaterialCommunityIcons
+                    name="arrow-up-bold"
+                    size={18}
+                    color={theme.success}
+                    accessibilityLabel="Ressenti facile : tu peux monter la charge"
+                  />
+                ) : it.lastDifficulty === 'dur' ? (
+                  <MaterialCommunityIcons
+                    name="arrow-down-bold"
+                    size={18}
+                    color={theme.warning}
+                    accessibilityLabel="Ressenti dur : lève le pied"
+                  />
+                ) : null}
                 <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textMuted} />
               </Card>
             </PressableScale>
