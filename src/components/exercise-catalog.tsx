@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -166,7 +166,8 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         contentContainerStyle={{ paddingBottom: Spacing.three, gap: Spacing.three }}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator
+        persistentScrollbar>
         {sections.length === 0 ? (
           <EmptyState
             icon="magnify-close"
@@ -321,6 +322,13 @@ function ExerciseDetail({
   const rec = ex ? recommend(profile, ex) : null;
   const howTo = ex ? exerciseHowTo(ex.id) : undefined;
 
+  // Dégradé « il reste du contenu » : affiché seulement quand le contenu dépasse
+  // la zone visible (sinon il masquerait inutilement la dernière ligne).
+  const [showFade, setShowFade] = useState(false);
+  const viewportRef = useRef(0);
+  const contentRef = useRef(0);
+  const refreshFade = () => setShowFade(contentRef.current > viewportRef.current + 1);
+
   return (
     <Modal visible={ex != null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable onPress={onClose} style={{ flex: 1, justifyContent: 'flex-end' }}>
@@ -350,14 +358,25 @@ function ExerciseDetail({
               />
             </View>
 
-            {/* flexShrink permet au ScrollView de rétrécir sous la hauteur max de
-                la feuille et donc de DÉFILER (sinon le contenu déborde et se fait
-                rogner derrière le bouton). Indicateur visible : repère de défilement. */}
-            <ScrollView
-              style={{ flexShrink: 1 }}
-              contentContainerStyle={{ padding: 20, paddingBottom: 12, gap: 16 }}
-              showsVerticalScrollIndicator>
-              <ExerciseIllustration imageKey={ex.imageKey} icon={ex.icon} height={150} />
+            {/* Zone défilante : flexShrink la laisse rétrécir sous la hauteur max
+                de la feuille (sinon le contenu déborde et se fait rogner derrière le
+                bouton). persistentScrollbar = barre toujours visible (Android) ; le
+                dégradé en bas signale visuellement qu'il reste du contenu à dérouler. */}
+            <View style={{ flexShrink: 1 }}>
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ padding: 20, paddingBottom: 12, gap: 16 }}
+                showsVerticalScrollIndicator
+                persistentScrollbar
+                onLayout={(e) => {
+                  viewportRef.current = e.nativeEvent.layout.height;
+                  refreshFade();
+                }}
+                onContentSizeChange={(_, h) => {
+                  contentRef.current = h;
+                  refreshFade();
+                }}>
+                <ExerciseIllustration imageKey={ex.imageKey} icon={ex.icon} height={150} />
 
               <Text style={{ ...Type.headline, color: theme.text }}>{ex.name}</Text>
 
@@ -437,7 +456,19 @@ function ExerciseDetail({
                   <Text style={{ ...Type.body, color: theme.text }}>{howTo}</Text>
                 </View>
               ) : null}
-            </ScrollView>
+              </ScrollView>
+              {/* Dégradé de bas : indice « il reste du contenu », visible seulement
+                  quand ça déborde. Couleur dérivée du fond de la feuille (PULSE). */}
+              {showFade ? (
+                <Gradient
+                  colors={[theme.backgroundElement + '00', theme.backgroundElement]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 28 }}
+                  pointerEvents="none"
+                />
+              ) : null}
+            </View>
 
             {/* Action */}
             <View
