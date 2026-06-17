@@ -1,13 +1,15 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
+import { EmptyState } from '@/components/empty-state';
 import { ExerciseIllustration } from '@/components/exercise-illustration';
+import { Gradient } from '@/components/gradient';
 import { PressableScale } from '@/components/pressable-scale';
-import { Radius, Type } from '@/constants/theme';
+import { Gradients, Radius, Spacing, Type } from '@/constants/theme';
 import {
   CATALOG,
   CATEGORIES,
@@ -74,19 +76,26 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
       .filter((s) => s.items.length > 0);
   }, [filtered, category]);
 
+  const hasFilters = category !== null || equipment !== null || query.trim() !== '';
+  const clearAll = () => {
+    setCategory(null);
+    setEquipment(null);
+    setQuery('');
+  };
+
   return (
-    <View style={{ flex: 1, gap: 12 }}>
+    <View style={{ flex: 1, gap: Spacing.three }}>
       {/* Recherche */}
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 8,
+          gap: Spacing.two,
           backgroundColor: theme.background,
           borderRadius: Radius.sm,
           borderWidth: 1,
           borderColor: theme.border,
-          paddingHorizontal: 12,
+          paddingHorizontal: Spacing.three - Spacing.one,
         }}>
         <MaterialCommunityIcons name="magnify" size={20} color={theme.textMuted} />
         <TextInput
@@ -96,7 +105,7 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
           placeholderTextColor={theme.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
-          style={{ flex: 1, color: theme.text, paddingVertical: 10, fontSize: 15 }}
+          style={{ flex: 1, color: theme.text, paddingVertical: Spacing.two + 2, ...Type.body }}
         />
         {query.length > 0 ? (
           <PressableScale onPress={() => setQuery('')} haptic="selection" hitSlop={10}>
@@ -105,11 +114,10 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
         ) : null}
       </View>
 
-      {/* Filtres : groupe musculaire */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
+      {/* Filtres : groupe musculaire. Enveloppe sur plusieurs lignes plutôt que
+          de défiler horizontalement : sinon les derniers libellés (Épaules,
+          Bras, Gainage…) sortent de l'écran et restent illisibles. */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
         <Chip label="Tous" selected={category === null} color={theme.muscu} onPress={() => setCategory(null)} />
         {CATEGORIES.map((c) => (
           <Chip
@@ -120,13 +128,10 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
             onPress={() => setCategory(category === c ? null : c)}
           />
         ))}
-      </ScrollView>
+      </View>
 
-      {/* Filtres : matériel */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
+      {/* Filtres : matériel (même logique d'enveloppe que ci-dessus). */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
         <Chip
           label="Tout matériel"
           selected={equipment === null}
@@ -142,24 +147,51 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
             onPress={() => setEquipment(equipment === e ? null : e)}
           />
         ))}
-      </ScrollView>
+      </View>
+
+      {/* Barre de statut : nombre de résultats + raccourci pour tout réinitialiser. */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={{ ...Type.caption, color: theme.textMuted }}>
+          {`${filtered.length} exercice${filtered.length > 1 ? 's' : ''}`}
+        </Text>
+        {hasFilters ? (
+          <PressableScale onPress={clearAll} haptic="selection" hitSlop={8}>
+            <Text style={{ ...Type.label, color: theme.accent }}>Tout effacer</Text>
+          </PressableScale>
+        ) : null}
+      </View>
 
       {/* Liste */}
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 16, gap: 16 }}
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={{ paddingBottom: Spacing.three, gap: Spacing.three }}
         showsVerticalScrollIndicator={false}>
         {sections.length === 0 ? (
-          <View style={{ alignItems: 'center', paddingVertical: 40, gap: 8 }}>
-            <MaterialCommunityIcons name="magnify-close" size={36} color={theme.textMuted} />
-            <Text style={{ color: theme.textSecondary, fontSize: 14 }}>Aucun exercice trouvé.</Text>
-          </View>
+          <EmptyState
+            icon="magnify-close"
+            tint={theme.muscu}
+            title="Aucun exercice trouvé"
+            subtitle={
+              query.trim()
+                ? `Aucun résultat pour « ${query.trim()} ».`
+                : "Aucun exercice avec cette combinaison. Essaie d'élargir tes filtres."
+            }
+            action={
+              hasFilters
+                ? { label: 'Réinitialiser les filtres', icon: 'filter-remove', onPress: clearAll }
+                : undefined
+            }
+          />
         ) : null}
 
         {sections.map((section) => (
-          <View key={section.cat} style={{ gap: 8 }}>
-            <Text style={{ ...Type.overline, color: theme.textMuted }}>{section.cat}</Text>
-            <View style={{ gap: 8 }}>
+          <View key={section.cat} style={{ gap: Spacing.two }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ ...Type.overline, color: theme.textSecondary }}>{section.cat}</Text>
+              <Text style={{ ...Type.caption, color: theme.textMuted }}>{section.items.length}</Text>
+            </View>
+            <View style={{ gap: Spacing.two }}>
               {section.items.map((ex) => (
                 <ExerciseRow
                   key={ex.id}
@@ -205,6 +237,9 @@ function ExerciseRow({
   theme: ReturnType<typeof useTheme>;
 }) {
   const rec = recommend(profile, ex);
+  // Charge mise en avant en pastille seulement quand c'est un vrai poids ; pour
+  // le gainage (chrono) ou le poids du corps, le libellé reste sur la ligne reco.
+  const weighted = !rec.timed && rec.weightKg > 0;
   return (
     <PressableScale
       onPress={onPress}
@@ -212,8 +247,8 @@ function ExerciseRow({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        padding: 12,
+        gap: Spacing.three - Spacing.one,
+        padding: Spacing.three - Spacing.one,
         borderRadius: Radius.md,
         borderCurve: 'continuous',
         backgroundColor: theme.backgroundElement,
@@ -237,12 +272,24 @@ function ExerciseRow({
         />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ color: theme.text, fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
+        {/* Nom sur 2 lignes max : les variantes longues (« … roumain haltères »
+            vs « … roumain barre ») doivent rester distinguables. */}
+        <Text style={{ ...Type.subtitle, color: theme.text }} numberOfLines={2}>
           {ex.name}
         </Text>
-        <Text style={{ color: theme.textSecondary, fontSize: 12 }} numberOfLines={1}>
-          {recoHint(ex, rec)} · {recoWeightLabel(rec)}
+        {/* Reco + charge sur une ligne ; la charge est teintée pour ressortir
+            sans voler de largeur au nom (pas de pastille concurrente). */}
+        <Text style={{ ...Type.caption, color: theme.textSecondary }} numberOfLines={1}>
+          {recoHint(ex, rec)} ·{' '}
+          <Text style={{ color: weighted ? theme.muscu : theme.textSecondary, fontWeight: '700' }}>
+            {recoWeightLabel(rec)}
+          </Text>
         </Text>
+        {ex.muscles.length > 0 ? (
+          <Text style={{ ...Type.caption, color: theme.textMuted }} numberOfLines={1}>
+            {ex.muscles.slice(0, 3).join(' · ')}
+          </Text>
+        ) : null}
       </View>
       {added ? (
         <MaterialCommunityIcons name="check-circle" size={22} color={theme.muscu} />
@@ -276,9 +323,16 @@ function ExerciseDetail({
 
   return (
     <Modal visible={ex != null} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable
-        onPress={onClose}
-        style={{ flex: 1, backgroundColor: '#00000099', justifyContent: 'flex-end' }}>
+      <Pressable onPress={onClose} style={{ flex: 1, justifyContent: 'flex-end' }}>
+        {/* Voile dégradé (sombre vers le haut) plutôt qu'une couleur en dur ;
+            non interactif pour laisser le tap-pour-fermer au Pressable. */}
+        <Gradient
+          colors={Gradients.scrim}
+          start={{ x: 0.5, y: 1 }}
+          end={{ x: 0.5, y: 0 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
         {ex && rec ? (
           <Pressable
             onPress={(e) => e.stopPropagation()}
@@ -316,7 +370,7 @@ function ExerciseDetail({
                         borderRadius: Radius.pill,
                         backgroundColor: theme.accent + '1F',
                       }}>
-                      <Text style={{ color: theme.accent, fontWeight: '700', fontSize: 13 }}>{eq}</Text>
+                      <Text style={{ ...Type.label, color: theme.accent }}>{eq}</Text>
                     </View>
                   ))}
                 </View>
@@ -340,17 +394,13 @@ function ExerciseDetail({
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                  <Text style={{ color: theme.text, fontSize: 22, fontWeight: '800' }}>
-                    {recoHint(ex, rec)}
-                  </Text>
-                  <Text style={{ color: theme.muscu, fontSize: 16, fontWeight: '800' }}>
-                    {recoWeightLabel(rec)}
-                  </Text>
+                  <Text style={{ ...Type.metric, color: theme.text }}>{recoHint(ex, rec)}</Text>
+                  <Text style={{ ...Type.headline, color: theme.muscu }}>{recoWeightLabel(rec)}</Text>
                 </View>
-                <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+                <Text style={{ ...Type.caption, color: theme.textSecondary }}>
                   Repos conseillé ~{rec.restSec} s entre les séries.
                 </Text>
-                <Text style={{ color: theme.textMuted, fontSize: 12, lineHeight: 17 }}>
+                <Text style={{ ...Type.caption, color: theme.textMuted, lineHeight: 17 }}>
                   {`D'après ton poids (${fmtKg(profile.weightKg)} kg), ta taille (${fmtCm(
                     profile.heightCm,
                   )}) et ton objectif. Un point de départ — tu ajustes reps et charge à ta guise.`}
@@ -370,7 +420,7 @@ function ExerciseDetail({
                         borderRadius: Radius.pill,
                         backgroundColor: theme.muscu + '1F',
                       }}>
-                      <Text style={{ color: theme.muscu, fontWeight: '700', fontSize: 13 }}>{m}</Text>
+                      <Text style={{ ...Type.label, color: theme.muscu }}>{m}</Text>
                     </View>
                   ))}
                 </View>
@@ -380,7 +430,7 @@ function ExerciseDetail({
               {howTo ? (
                 <View style={{ gap: 8 }}>
                   <Text style={{ ...Type.overline, color: theme.textMuted }}>Exécution</Text>
-                  <Text style={{ color: theme.text, fontSize: 15, lineHeight: 23 }}>{howTo}</Text>
+                  <Text style={{ ...Type.body, color: theme.text }}>{howTo}</Text>
                 </View>
               ) : null}
             </ScrollView>
