@@ -350,9 +350,13 @@ function ExerciseDetail({
               />
             </View>
 
+            {/* flexShrink permet au ScrollView de rétrécir sous la hauteur max de
+                la feuille et donc de DÉFILER (sinon le contenu déborde et se fait
+                rogner derrière le bouton). Indicateur visible : repère de défilement. */}
             <ScrollView
+              style={{ flexShrink: 1 }}
               contentContainerStyle={{ padding: 20, paddingBottom: 12, gap: 16 }}
-              showsVerticalScrollIndicator={false}>
+              showsVerticalScrollIndicator>
               <ExerciseIllustration imageKey={ex.imageKey} icon={ex.icon} height={150} />
 
               <Text style={{ ...Type.headline, color: theme.text }}>{ex.name}</Text>
