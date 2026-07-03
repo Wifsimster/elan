@@ -12,6 +12,8 @@ import { getEffectiveWeekPlan, templateById, type PlannedSession } from '@/lib/p
 
 const SETTING_KEY = 'notifications';
 const CHANNEL_ID = 'routine';
+/** Canal séparé pour les annonces de progression auto (silençable à part). */
+const PROGRESSION_CHANNEL_ID = 'progression';
 
 export type NotificationConfig = {
   enabled: boolean;
@@ -62,6 +64,40 @@ async function ensureChannel(): Promise<void> {
 export async function requestNotificationPermission(): Promise<boolean> {
   const res = await Notifications.requestPermissionsAsync();
   return res.granted || res.status === 'granted';
+}
+
+async function ensureProgressionChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync(PROGRESSION_CHANNEL_ID, {
+    name: 'Progression du programme',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    enableVibrate: true,
+    showBadge: false,
+  });
+}
+
+/**
+ * Annonce (best-effort) que le programme de muscu a été relevé pour la nouvelle
+ * semaine. Notification locale immédiate, un seul coup. N'affiche RIEN si la
+ * permission n'est pas DÉJÀ accordée : on ne la réclame pas ici (la bannière
+ * d'accueil, sans permission, reste le canal garanti). 100 % local, échec
+ * silencieux. `title`/`body` sont pré-formatés par `lib/auto-progression.ts`
+ * (qui porte la sémantique des changements) — évite une dépendance circulaire.
+ */
+export async function notifyProgression(title: string, body: string): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    const perm = await Notifications.getPermissionsAsync();
+    const granted = perm.granted || perm.status === 'granted';
+    if (!granted) return; // pas de permission déjà accordée -> on n'annonce pas
+    await ensureProgressionChannel();
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body, data: { route: '/progression' } },
+      trigger: null, // immédiat
+    });
+  } catch {
+    // Échec silencieux (permission révoquée, plateforme non supportée…).
+  }
 }
 
 /**

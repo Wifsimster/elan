@@ -11,6 +11,7 @@ import { HeartRateCard } from '@/components/settings/heart-rate-card';
 import { MapCard } from '@/components/settings/map-card';
 import { NotificationsCard } from '@/components/settings/notifications-card';
 import { ProfileCard } from '@/components/settings/profile-card';
+import { ProgressionAutoCard } from '@/components/settings/progression-auto-card';
 import { StravaImportCard } from '@/components/settings/strava-import-card';
 import { WeekPlanCard } from '@/components/settings/week-plan-card';
 import { Type } from '@/constants/theme';
@@ -46,6 +47,7 @@ export default function SettingsScreen() {
       <ProfileCard />
       <GoalsCard />
       <WeekPlanCard />
+      <ProgressionAutoCard />
       <NotificationsCard />
       <DataCard />
       <DataExportCard />

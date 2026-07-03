@@ -31,6 +31,17 @@ export type TemplateExercise = {
   perSideLabel?: string;
   /** Exercice chronométré (gainage) : les « reps » sont des secondes. */
   timed?: boolean;
+  /**
+   * Type de progression automatique appliquée d'une semaine sur l'autre selon le
+   * ressenti (cf. `lib/auto-progression.ts`) :
+   *  - `'load'` : on monte la charge (haltères) par paliers de 2,5 kg ;
+   *  - `'time'` : on allonge le gainage chronométré (secondes), plafonné ;
+   *  - absent   : l'exercice n'est JAMAIS auto-progressé (rééducation, mobilité,
+   *               posture — dos/lombaire et cervicales), on garde la prescription.
+   * Seuls les deux full-body chargés portent ce drapeau : la progression auto ne
+   * touche pas les exercices de renfort doux, par sécurité.
+   */
+  autoProgress?: 'load' | 'time';
 };
 
 export type WorkoutTemplate = {
@@ -48,7 +59,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
     exercises: [
       {
         name: 'Goblet squat',
-        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 20,
+        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 20, autoProgress: 'load',
         icon: 'weight-lifter',
         imageKey: 'goblet-squat',
         muscles: ['Quadriceps', 'Fessiers', 'Adducteurs', 'Gainage'],
@@ -57,7 +68,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
       },
       {
         name: 'Développé couché haltères',
-        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 16,
+        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 16, autoProgress: 'load',
         icon: 'dumbbell',
         imageKey: 'dumbbell-bench-press',
         muscles: ['Pectoraux', 'Triceps', 'Deltoïdes antérieurs'],
@@ -66,7 +77,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
       },
       {
         name: 'Rowing haltère un bras',
-        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 20, perSideLabel: 'bras',
+        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 20, perSideLabel: 'bras', autoProgress: 'load',
         icon: 'arm-flex',
         imageKey: 'one-arm-dumbbell-row',
         muscles: ['Grand dorsal', 'Trapèzes', 'Rhomboïdes', 'Biceps'],
@@ -75,7 +86,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
       },
       {
         name: 'Fentes avant haltères',
-        sets: 3, repsMin: 10, repsMax: 10, startWeightKg: 12, perSideLabel: 'jambe',
+        sets: 3, repsMin: 10, repsMax: 10, startWeightKg: 12, perSideLabel: 'jambe', autoProgress: 'load',
         icon: 'run',
         imageKey: 'dumbbell-lunges',
         muscles: ['Quadriceps', 'Fessiers', 'Ischio-jambiers'],
@@ -84,7 +95,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
       },
       {
         name: 'Gainage planche',
-        sets: 3, repsMin: 20, repsMax: 40, startWeightKg: 0, timed: true,
+        sets: 3, repsMin: 20, repsMax: 40, startWeightKg: 0, timed: true, autoProgress: 'time',
         icon: 'yoga',
         imageKey: 'plank',
         muscles: ['Abdominaux', 'Transverse', 'Lombaires'],
@@ -100,7 +111,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
     exercises: [
       {
         name: 'Soulevé de terre roumain haltères',
-        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 20,
+        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 20, autoProgress: 'load',
         icon: 'weight-lifter',
         imageKey: 'dumbbell-romanian-deadlift',
         muscles: ['Ischio-jambiers', 'Fessiers', 'Lombaires'],
@@ -109,7 +120,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
       },
       {
         name: 'Développé épaules debout haltères',
-        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 12,
+        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 12, autoProgress: 'load',
         icon: 'dumbbell',
         imageKey: 'standing-dumbbell-press',
         muscles: ['Deltoïdes', 'Triceps', 'Gainage'],
@@ -118,7 +129,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
       },
       {
         name: 'Rowing penché 2 bras haltères',
-        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 16,
+        sets: 3, repsMin: 8, repsMax: 12, startWeightKg: 16, autoProgress: 'load',
         icon: 'arm-flex',
         imageKey: 'bent-over-two-dumbbell-row',
         muscles: ['Grand dorsal', 'Trapèzes', 'Rhomboïdes', 'Biceps'],
@@ -127,7 +138,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
       },
       {
         name: 'Fentes bulgares haltères',
-        sets: 3, repsMin: 8, repsMax: 10, startWeightKg: 12, perSideLabel: 'jambe',
+        sets: 3, repsMin: 8, repsMax: 10, startWeightKg: 12, perSideLabel: 'jambe', autoProgress: 'load',
         icon: 'run',
         imageKey: 'bulgarian-split-squat',
         muscles: ['Quadriceps', 'Fessiers', 'Ischio-jambiers'],
@@ -136,7 +147,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
       },
       {
         name: 'Gainage latéral',
-        sets: 3, repsMin: 15, repsMax: 30, startWeightKg: 0, timed: true, perSideLabel: 'côté',
+        sets: 3, repsMin: 15, repsMax: 30, startWeightKg: 0, timed: true, perSideLabel: 'côté', autoProgress: 'time',
         icon: 'yoga',
         imageKey: 'side-plank',
         muscles: ['Obliques', 'Transverse', 'Moyen fessier'],
