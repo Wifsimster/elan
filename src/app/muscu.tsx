@@ -48,7 +48,8 @@ import { difficultyLabel } from '@/lib/progression-advice';
 import { pushDownsampled, summarizeHr } from '@/lib/samples';
 import { finalizeSavedSession } from '@/lib/session-finalize';
 import type { Difficulty, HrSample } from '@/lib/types';
-import { TEMPLATES, targetHint, defaultReps, templateById, type WorkoutTemplate } from '@/lib/program';
+import { TEMPLATES, targetHint, templateById, type WorkoutTemplate } from '@/lib/program';
+import { targetsForExercises } from '@/lib/auto-progression';
 import { nowMs } from '@/lib/time';
 import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
@@ -76,6 +77,10 @@ type Exercise = {
   imageKey?: string;
   /** Ressenti d'effort noté pendant la séance (facile / moyen / dur). */
   difficulty?: Difficulty;
+  /** Ajustement appliqué par la progression auto au pré-remplissage (kg ou s ; 0/absent = aucun). */
+  bump?: number;
+  /** Nature du `bump` : charge (kg) ou gainage chronométré (s). */
+  bumpKind?: 'load' | 'time';
 };
 
 const COMMON = [
@@ -93,6 +98,15 @@ let uid = 0;
 const nextId = () => `e${uid++}`;
 
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
+
+/** Indice « progression auto » sous le nom de l'exercice, ex. « Auto : +2,5 kg cette semaine ». */
+function bumpHint(bump: number, kind?: 'load' | 'time'): string {
+  const unit = kind === 'time' ? 's' : 'kg';
+  const amount = kind === 'time' ? String(Math.abs(bump)) : fmtKg(Math.abs(bump));
+  return bump > 0
+    ? `Auto : +${amount} ${unit} cette semaine`
+    : `Allégé : −${amount} ${unit} cette semaine`;
+}
 
 /**
  * Construit un exercice de séance à partir d'une fiche du catalogue : reps,
@@ -169,10 +183,14 @@ export default function MuscuScreen() {
   // vide (bouton « Charger un programme » ou « Séance du jour ») : on remplace la
   // liste plutôt que d'empiler, pour ne jamais dupliquer les exercices.
   const loadTemplate = async (t: WorkoutTemplate) => {
-    const last = await lastWeightByExercise(t.exercises.map((e) => e.name));
+    // Cible par exercice : dernière charge/durée enregistrée, éventuellement
+    // relevée d'un cran par la progression auto (selon le ressenti des semaines
+    // passées). Remplace l'ancien `lastWeightByExercise` — la montée est ainsi
+    // appliquée à un seul endroit, jamais deux fois.
+    const targets = await targetsForExercises(t.exercises);
     setExercises(
       t.exercises.map((ex) => {
-        const lw = last[ex.name];
+        const tgt = targets[ex.name];
         return {
           id: nextId(),
           name: ex.name,
@@ -183,10 +201,12 @@ export default function MuscuScreen() {
           icon: ex.icon,
           imageKey: ex.imageKey,
           // Le gainage n'a pas de charge : on n'affiche pas de « dernière fois ».
-          lastWeight: ex.timed ? undefined : lw,
+          lastWeight: tgt.lastWeightKg,
+          bump: tgt.bump,
+          bumpKind: tgt.bumpKind,
           sets: Array.from({ length: ex.sets }, () => ({
-            reps: defaultReps(ex),
-            weightKg: ex.timed ? ex.startWeightKg : (lw ?? ex.startWeightKg),
+            reps: tgt.reps,
+            weightKg: tgt.weightKg,
           })),
         };
       }),
@@ -635,6 +655,11 @@ export default function MuscuScreen() {
                     {ex.target ? `cible ${ex.target}` : ''}
                     {ex.target && ex.lastWeight != null ? '  ·  ' : ''}
                     {ex.lastWeight != null ? `dernière fois : ${fmtKg(ex.lastWeight)} kg` : ''}
+                  </Text>
+                ) : null}
+                {ex.bump ? (
+                  <Text style={{ color: theme.muscu, fontSize: 12, marginTop: 2, fontWeight: '700' }}>
+                    {bumpHint(ex.bump, ex.bumpKind)}
                   </Text>
                 ) : null}
               </View>

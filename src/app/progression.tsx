@@ -8,8 +8,16 @@ import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { PressableScale } from '@/components/pressable-scale';
 import { Radius, Type } from '@/constants/theme';
+import {
+  changeSummaryLine,
+  describeChange,
+  getAutoProgressionState,
+  isoWeekKey,
+  type ProgressionChange,
+} from '@/lib/auto-progression';
 import { listMuscuExercises, type ExerciseSummary } from '@/lib/db';
 import { formatDateShort } from '@/lib/format';
+import { nowMs } from '@/lib/time';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -22,10 +30,16 @@ export default function ProgressionScreen() {
   const router = useRouter();
   // null = chargement en cours (évite un flash d'état vide avant la 1re requête).
   const [items, setItems] = useState<ExerciseSummary[] | null>(null);
+  // Changements de la progression auto pour la semaine en cours (revue).
+  const [changes, setChanges] = useState<ProgressionChange[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       listMuscuExercises().then(setItems);
+      getAutoProgressionState().then((s) => {
+        const currentWeek = isoWeekKey(new Date(nowMs()));
+        setChanges(s.week === currentWeek ? s.changes : []);
+      });
     }, []),
   );
 
@@ -38,6 +52,32 @@ export default function ProgressionScreen() {
         paddingBottom: insets.bottom + 32,
         gap: 12,
       }}>
+      {changes.length > 0 ? (
+        <Card style={{ gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <MaterialCommunityIcons name="trending-up" size={20} color={theme.muscu} />
+            <Text style={{ ...Type.subtitle, color: theme.text }}>Changements de la semaine</Text>
+          </View>
+          <Text style={{ ...Type.caption, color: theme.textSecondary, marginTop: -4 }}>
+            {`Programme relevé selon ton ressenti · ${changeSummaryLine(changes)}. Ces charges sont pré-remplies à ta prochaine séance — modifiables à tout moment.`}
+          </Text>
+          {changes.map((c) => (
+            <View
+              key={c.exercise}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <MaterialCommunityIcons
+                name={c.direction === 'up' ? 'arrow-up-bold' : 'arrow-down-bold'}
+                size={18}
+                color={c.direction === 'up' ? theme.success : theme.warning}
+              />
+              <Text style={{ color: theme.text, fontSize: 14, flex: 1 }} numberOfLines={1}>
+                {describeChange(c)}
+              </Text>
+            </View>
+          ))}
+        </Card>
+      ) : null}
+
       <Text style={{ ...Type.label, color: theme.textSecondary }}>
         Suivi des charges, exercice par exercice. Touche un exercice pour voir sa courbe.
       </Text>

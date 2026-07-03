@@ -10,6 +10,7 @@ import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { GoalsProgressCard } from '@/components/goals-progress-card';
 import { HrBadge } from '@/components/hr-badge';
+import { PlanUpdateBanner } from '@/components/plan-update-banner';
 import { OnboardingSheet } from '@/components/onboarding-sheet';
 import { PressableScale } from '@/components/pressable-scale';
 import { StatTile, type Trend } from '@/components/stat-tile';
@@ -150,6 +151,9 @@ export default function HomeScreen() {
           </View>
           <HrBadge />
         </View>
+
+      {/* Progression auto : programme relevé cette semaine (masquable). */}
+      <PlanUpdateBanner />
 
       {/* Séance du jour (programme perso) */}
       <TodayCard lastSessionAt={recent[0]?.startedAt ?? null} resumable={resumable} />

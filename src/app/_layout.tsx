@@ -11,8 +11,10 @@ import { BackupProvider } from '@/hooks/use-backup';
 import { CadenceSpeedProvider } from '@/hooks/use-cadence-speed';
 import { HeartRateProvider } from '@/hooks/use-heart-rate';
 import { useTheme } from '@/hooks/use-theme';
+import { runWeeklyProgressionIfDue } from '@/lib/auto-progression';
 import { clearLiveSessionNotification } from '@/lib/live-notification';
 import { applyNotifications } from '@/lib/notifications';
+import { nowMs } from '@/lib/time';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -102,6 +104,10 @@ export default function RootLayout() {
   useEffect(() => {
     applyNotifications();
     clearLiveSessionNotification();
+    // Progression auto : si une nouvelle semaine ISO a commencé, on relève la
+    // difficulté du programme muscu selon le ressenti et on notifie (best-effort,
+    // idempotent — ne s'exécute qu'une fois par semaine). Activé par défaut.
+    runWeeklyProgressionIfDue(nowMs());
   }, []);
 
   // Appui sur la notification persistante : ramène à l'écran de séance. On gère
@@ -109,7 +115,11 @@ export default function RootLayout() {
   // synchrone, non dépréciée en v56).
   useEffect(() => {
     const handle = (route: unknown) => {
-      if (route === '/velo' || route === '/muscu') router.navigate(route);
+      // Notification de séance (retour à l'écran en cours) ou annonce de
+      // progression auto (ouvre la revue sur la page Progression).
+      if (route === '/velo' || route === '/muscu' || route === '/progression') {
+        router.navigate(route);
+      }
     };
     const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
       handle(resp.notification.request.content.data?.route);
