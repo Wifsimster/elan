@@ -537,29 +537,36 @@ function MuscuBreakdown({ sets, color }: { sets: MuscuSet[]; color: string }) {
         return (
           <Card key={g.name} style={{ gap: 8 }}>
             <Link href={{ pathname: '/exercise/[name]', params: { name: g.name } }} asChild>
-              <Pressable style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                  <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>{g.name}</Text>
-                  <MaterialCommunityIcons name="chart-line" size={16} color={theme.textMuted} />
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  {difficulty ? (
-                    <View
-                      style={{
-                        paddingHorizontal: 9,
-                        paddingVertical: 3,
-                        borderRadius: Radius.pill,
-                        backgroundColor: diffColor + '22',
-                      }}>
-                      <Text style={{ color: diffColor, fontSize: 12, fontWeight: '700' }}>
-                        {difficultyLabel(difficulty)}
-                      </Text>
-                    </View>
-                  ) : null}
-                  <Text style={{ color: theme.textSecondary, fontSize: 13, fontWeight: '600' }}>
-                    {Math.round(volume)} kg
-                  </Text>
-                </View>
+              <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {/* Titre : occupe l'espace libre et passe à la ligne au besoin. */}
+                <Text style={{ flex: 1, color: theme.text, fontSize: 16, fontWeight: '800', lineHeight: 21 }}>
+                  {g.name}
+                </Text>
+                {/* Méta alignée à droite : ressenti + volume + chevron « voir la
+                    progression » — position constante d'une carte à l'autre. */}
+                {difficulty ? (
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: Radius.pill,
+                      backgroundColor: diffColor + '22',
+                    }}>
+                    <Text style={{ color: diffColor, fontSize: 12, fontWeight: '700' }}>
+                      {difficultyLabel(difficulty)}
+                    </Text>
+                  </View>
+                ) : null}
+                <Text
+                  style={{
+                    color: theme.textSecondary,
+                    fontSize: 13,
+                    fontWeight: '600',
+                    fontVariant: ['tabular-nums'],
+                  }}>
+                  {Math.round(volume)} kg
+                </Text>
+                <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textMuted} />
               </Pressable>
             </Link>
             {g.rows.map((r) => (
