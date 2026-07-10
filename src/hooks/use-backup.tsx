@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -36,6 +37,8 @@ type BackupContextValue = {
   backupNow: () => Promise<void>;
   /** Restaure depuis le serveur (écrase les données locales). */
   restore: () => Promise<number | null>;
+  /** Relit le statut de la dernière sauvegarde (ex. échec d'une auto-backup). */
+  refreshLast: () => Promise<void>;
 };
 
 const BackupContext = createContext<BackupContextValue | null>(null);
@@ -45,18 +48,35 @@ export function BackupProvider({ children }: { children: ReactNode }) {
   const [last, setLast] = useState<BackupLast | null>(null);
   const [status, setStatus] = useState<BackupStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  // Miroir de `config` pour fusionner de façon fiable hors du updater setState.
+  const configRef = useRef<BackupConfig | null>(null);
 
   useEffect(() => {
-    getBackupConfig().then(setConfig);
+    getBackupConfig().then((c) => {
+      configRef.current = c;
+      setConfig(c);
+    });
     getBackupLast().then(setLast);
   }, []);
 
   const update = useCallback((patch: Partial<BackupConfig>) => {
-    setConfig((prev) => {
-      const next = { ...(prev ?? ({} as BackupConfig)), ...patch };
-      saveBackupConfig(next);
-      return next;
+    // Tant que la config n'est pas hydratée, on IGNORE l'update : sinon on
+    // écrirait un objet tronqué et `persistSecrets(undefined, undefined)`
+    // effacerait access key + secret du SecureStore. La persistance est faite
+    // hors du updater setState (un updater peut être rejoué — StrictMode /
+    // React Compiler — ce qui doublait l'effet de bord).
+    const prev = configRef.current;
+    if (prev == null) return;
+    const next = { ...prev, ...patch };
+    configRef.current = next;
+    setConfig(next);
+    saveBackupConfig(next).catch(() => {
+      // échec d'écriture des réglages : la config en mémoire reste la référence
     });
+  }, []);
+
+  const refreshLast = useCallback(async () => {
+    setLast(await getBackupLast());
   }, []);
 
   const backupNow = useCallback(async () => {
@@ -89,8 +109,8 @@ export function BackupProvider({ children }: { children: ReactNode }) {
   const ready = config ? isConfigComplete(config) : false;
 
   const value = useMemo<BackupContextValue>(
-    () => ({ config, last, status, error, ready, update, backupNow, restore }),
-    [config, last, status, error, ready, update, backupNow, restore],
+    () => ({ config, last, status, error, ready, update, backupNow, restore, refreshLast }),
+    [config, last, status, error, ready, update, backupNow, restore, refreshLast],
   );
 
   return <BackupContext value={value}>{children}</BackupContext>;

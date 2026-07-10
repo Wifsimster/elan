@@ -47,8 +47,6 @@ import { dailyDurationBars, startOfWeekMs } from '@/lib/week';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
-const WEEK_MS = 7 * 86_400_000;
-
 /** Construit l'évolution d'une métrique par rapport à la semaine précédente. */
 function buildTrend(current: number, previous: number, fmt: (n: number) => string): Trend {
   const delta = current - previous;
@@ -75,9 +73,12 @@ export default function HomeScreen() {
   const load = useCallback(async () => {
     const now = nowMs();
     const weekStart = startOfWeekMs(now);
+    // Début de la semaine PRÉCÉDENTE par re-floor local (robuste aux changements
+    // d'heure), plutôt qu'un `weekStart − 168 h` fixe qui décalerait d'une heure.
+    const prevWeekStart = startOfWeekMs(weekStart - 43_200_000);
     const [s, prev, daily, sessions, draft] = await Promise.all([
       statsSince(weekStart),
-      statsBetween(weekStart - WEEK_MS, weekStart),
+      statsBetween(prevWeekStart, weekStart),
       dailyDurations(7),
       listSessions(3),
       hasMuscuDraft(),

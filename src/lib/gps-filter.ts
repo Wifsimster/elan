@@ -80,6 +80,23 @@ const ELEVATION_HYSTERESIS_M = 5;
 const MAX_ALTITUDE_ACCURACY_M = 12;
 /** Précision horizontale supposée quand la puce n'en fournit pas. */
 const DEFAULT_ACCURACY_M = 15;
+/** Au-delà de ce trou temporel (s), la fenêtre d'altitude est vidée : après un
+ *  tunnel / une perte de signal, les altitudes d'avant ne doivent plus lisser
+ *  la première mesure de sortie. */
+const ALT_RESET_GAP_S = 30;
+
+/** Ramène une différence de longitude dans [-180, 180] (passage à l'antiméridien). */
+function wrapLonDelta(deltaDeg: number): number {
+  let d = deltaDeg;
+  while (d > 180) d -= 360;
+  while (d < -180) d += 360;
+  return d;
+}
+
+/** Normalise une longitude dans [-180, 180). */
+function normalizeLon(lon: number): number {
+  return ((((lon + 180) % 360) + 360) % 360) - 180;
+}
 
 export class GpsConsolidator {
   // État du filtre de Kalman (position estimée + variance en m²).
@@ -134,8 +151,17 @@ export class GpsConsolidator {
       this.variance += dt * q * q;
       const gain = this.variance / (this.variance + accuracy * accuracy);
       this.estLat += gain * (fix.lat - this.estLat);
-      this.estLon += gain * (fix.lon - this.estLon);
+      // Innovation de longitude enroulée à l'antiméridien : sans ça, un passage
+      // de +179,9° à −179,9° produirait une « innovation » de ~360° et un saut
+      // de l'estimation à l'autre bout du globe.
+      this.estLon = normalizeLon(this.estLon + gain * wrapLonDelta(fix.lon - this.estLon));
       this.variance *= 1 - gain;
+    }
+
+    // Trou de signal (tunnel, app suspendue) : purge la fenêtre d'altitude pour
+    // ne pas lisser la première mesure de sortie avec des altitudes périmées.
+    if (this.lastTs > 0 && (fix.ts - this.lastTs) / 1000 > ALT_RESET_GAP_S) {
+      this.altWindow = [];
     }
     this.lastTs = fix.ts;
 

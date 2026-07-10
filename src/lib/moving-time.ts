@@ -21,9 +21,10 @@ export type TimedPoint = {
   speedKmh?: number | null;
 };
 
-/** En-dessous de cette vitesse on se considère à l'arrêt (~2,9 km/h),
- *  cohérent avec le seuil de standstill du filtre GPS (lib/gps-filter). */
-const MOVING_THRESHOLD_MS = 0.8;
+/** En-dessous de cette vitesse on se considère à l'arrêt (~2,5 km/h). Aligné sur
+ *  le seuil de standstill du filtre GPS (STANDSTILL_SPEED_MS = 0,7 dans
+ *  lib/gps-filter) : les deux décrivent le même « à l'arrêt » et divergeaient. */
+const MOVING_THRESHOLD_MS = 0.7;
 /** Distance minimale d'un segment pour le juger « en mouvement » faute de
  *  vitesse Doppler : couvre la dérive de la position à l'arrêt (précision GPS). */
 const MIN_SEGMENT_M = 4;

@@ -44,7 +44,11 @@ const ACTIVITIES: GoalActivity[] = ['all', 'velo', 'muscu'];
 export function periodRange(period: GoalPeriod, now: number): { fromMs: number; toMs: number } {
   if (period === 'week') {
     const fromMs = startOfWeekMs(now);
-    return { fromMs, toMs: fromMs + WEEK_MS };
+    // Fin = début du lundi SUIVANT (re-floor local), pas `from + 168 h` : aux
+    // changements d'heure la semaine dure 167 ou 169 h, et un +168 h fixe
+    // décalait la borne d'une heure (séances de fin de dimanche mal comptées).
+    const toMs = startOfWeekMs(fromMs + WEEK_MS + 43_200_000); // +7,5 j → lundi suivant
+    return { fromMs, toMs };
   }
   // Mois calendaire local : du 1er du mois au 1er du mois suivant (le
   // dépassement d'index de mois est géré nativement par Date).

@@ -50,9 +50,28 @@ export async function startGpsUpdates(): Promise<void> {
       notificationTitle: 'Sortie vélo en cours',
       notificationBody: 'Élan enregistre ton tracé GPS.',
       notificationColor: '#0A0C10',
+      // On garde `killServiceOnDestroy: true` : un balayage depuis les récents
+      // arrête proprement le service plutôt que de laisser un zombie 1 Hz sans
+      // consommateur JS. Le risque de perte de données qui motivait de le
+      // reconsidérer est levé par le flush incrémental des points en base
+      // (use-gps-tracker) + le sauvetage au lancement (session-recovery) : la
+      // sortie survit au balayage, elle est finalisée depuis ses points.
       killServiceOnDestroy: true,
     },
   });
+}
+
+/**
+ * Réconcilie une tâche de localisation orpheline au démarrage : après un crash
+ * en pleine sortie, expo-task-manager peut restaurer la tâche (notification
+ * « Sortie vélo en cours » + GPS 1 Hz) alors qu'aucune session ne la consomme et
+ * qu'aucun écran ne peut l'arrêter. On la coupe. À appeler une fois au lancement,
+ * avant qu'une nouvelle sortie ne démarre.
+ */
+export async function reconcileOrphanGpsTask(): Promise<void> {
+  // stopGpsUpdates() est déjà gardé par hasStartedLocationUpdatesAsync : no-op
+  // si aucune tâche n'est active.
+  await stopGpsUpdates();
 }
 
 export async function stopGpsUpdates(): Promise<void> {

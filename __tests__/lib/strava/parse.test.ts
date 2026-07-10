@@ -91,6 +91,18 @@ describe('parseStravaFile — GPX', () => {
     expect(a.points[1].hr).toBeNull();
   });
 
+  it('traite une balise vide comme absente (null, pas 0)', () => {
+    const gpx = `<?xml version="1.0"?>
+<gpx creator="StravaGPX" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><trkseg>
+    <trkpt lat="48.8566" lon="2.3522"><ele></ele><time>2025-06-02T08:00:00Z</time></trkpt>
+  </trkseg></trk>
+</gpx>`;
+    const a = parseStravaFile(gpx).activities[0];
+    // <ele></ele> vide : altitude null (et non 0, ce que donnait Number('')).
+    expect(a.points[0].ele).toBeNull();
+  });
+
   it('parse le timestamp de la métadonnée comme date de début', () => {
     const r = parseStravaFile(GPX_SAMPLE);
     const a = r.activities[0];

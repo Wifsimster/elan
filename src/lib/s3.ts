@@ -41,22 +41,32 @@ function uriEncode(str: string, encodeSlash = true): string {
   return out;
 }
 
-function parseEndpoint(endpoint: string): { origin: string; host: string } {
+function parseEndpoint(endpoint: string): { origin: string; host: string; basePath: string } {
   const ep = endpoint.trim().replace(/\/+$/, '');
   // HTTPS obligatoire : une sauvegarde (clé secrète S3 + base entière) ne doit
   // jamais transiter en clair. http:// est refusé volontairement — et de toute
   // façon bloqué par la plateforme en release (cleartext interdit).
-  const m = ep.match(/^(https:\/\/([^/]+))/i);
+  // Le chemin éventuel de l'endpoint (ex. https://host/s3) est CONSERVÉ et
+  // préfixé à l'URI canonique — le jeter cassait la signature et la cible pour
+  // les déploiements derrière un reverse-proxy à préfixe de chemin.
+  const m = ep.match(/^https:\/\/([^/]+)(\/[^?#]*)?$/i);
   if (!m) throw new Error('Endpoint S3 invalide : HTTPS requis (attendu https://hôte).');
-  return { origin: m[1], host: m[2] };
+  const host = m[1];
+  const basePath = (m[2] ?? '').replace(/\/+$/, '');
+  return { origin: `https://${host}`, host, basePath };
 }
+
+/** Délai d'expiration d'une requête S3 (ms) : un NAS injoignable ne doit pas
+ *  laisser la sauvegarde bloquée « en cours » indéfiniment. */
+const REQUEST_TIMEOUT_MS = 30_000;
 
 type Signed = { url: string; headers: Record<string, string> };
 
 /** Construit l'URL + en-têtes signés SigV4 pour une requête S3 (style path). */
 function sign(config: S3Config, method: 'PUT' | 'GET', body: string): Signed {
-  const { origin, host } = parseEndpoint(config.endpoint);
-  const canonicalUri = `/${uriEncode(config.bucket)}/${uriEncode(config.objectKey, false)}`;
+  const { origin, host, basePath } = parseEndpoint(config.endpoint);
+  // basePath (déjà sans slash final) encodé en préservant ses slashes ; vide → ''.
+  const canonicalUri = `${uriEncode(basePath, false)}/${uriEncode(config.bucket)}/${uriEncode(config.objectKey, false)}`;
   const payloadHash = sha256(body);
   const { amzdate, datestamp } = amzDates(new Date());
 
@@ -101,10 +111,16 @@ function sign(config: S3Config, method: 'PUT' | 'GET', body: string): Signed {
   };
 }
 
+/** fetch avec expiration : `AbortSignal.timeout` coupe une requête qui traîne
+ *  (NAS injoignable) au lieu de laisser l'appel pendre indéfiniment. */
+function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+}
+
 /** Téléverse `body` comme objet dans le bucket. Lève en cas d'échec HTTP. */
 export async function putObject(config: S3Config, body: string): Promise<void> {
   const { url, headers } = sign(config, 'PUT', body);
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'PUT',
     headers: { ...headers, 'Content-Type': 'application/json' },
     body,
@@ -118,7 +134,7 @@ export async function putObject(config: S3Config, body: string): Promise<void> {
 /** Récupère le contenu de l'objet, ou `null` s'il n'existe pas (404). */
 export async function getObject(config: S3Config): Promise<string | null> {
   const { url, headers } = sign(config, 'GET', '');
-  const res = await fetch(url, { method: 'GET', headers });
+  const res = await fetchWithTimeout(url, { method: 'GET', headers });
   if (res.status === 404) return null;
   if (!res.ok) {
     const detail = await res.text().catch(() => '');

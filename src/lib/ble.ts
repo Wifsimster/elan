@@ -23,6 +23,49 @@ export function getManager(): BleManager {
   return manager;
 }
 
+/** Délai max d'une tentative de connexion / reconnexion (ms) : au-delà, on
+ *  abandonne au lieu de bloquer la carte ~30 s (capteur endormi). */
+export const CONNECT_TIMEOUT_MS = 10_000;
+
+/** Durée max d'un scan avant arrêt automatique (ms) : la radio ne doit pas
+ *  balayer indéfiniment après qu'on a quitté les Réglages. */
+export const SCAN_TIMEOUT_MS = 20_000;
+
+// ---------------------------------------------------------------------------
+// Coordinateur de scan partagé
+// ---------------------------------------------------------------------------
+// La ceinture cardiaque et les capteurs vélo partagent le MÊME BleManager, donc
+// un seul scan matériel à la fois. Sans coordination, lancer le scan de l'un
+// pendant le scan de l'autre appelle `stopDeviceScan()` global et laisse la
+// première carte bloquée sur « scan en cours ». Ici, un seul propriétaire à la
+// fois : quand un nouveau scan démarre, l'ancien propriétaire est notifié
+// (« scan volé ») pour remettre son état à l'arrêt.
+
+let scanOwner: symbol | null = null;
+let scanStolenCb: (() => void) | null = null;
+
+/**
+ * Prend possession du scan partagé. Si un autre propriétaire scannait, il est
+ * notifié via son callback « volé » et le scan matériel est stoppé au préalable.
+ * L'appelant enchaîne ensuite sur `getManager().startDeviceScan(...)`.
+ */
+export function acquireScan(owner: symbol, onStolen: () => void): void {
+  if (scanOwner && scanOwner !== owner && scanStolenCb) scanStolenCb();
+  getManager().stopDeviceScan();
+  scanOwner = owner;
+  scanStolenCb = onStolen;
+}
+
+/** Relâche le scan partagé et stoppe la radio — seulement si `owner` le détient
+ *  encore (ne coupe pas le scan d'un propriétaire qui l'aurait « volé » depuis). */
+export function releaseScan(owner: symbol): void {
+  if (scanOwner === owner) {
+    scanOwner = null;
+    scanStolenCb = null;
+    getManager().stopDeviceScan();
+  }
+}
+
 /** Demande les permissions Bluetooth nécessaires (Android). */
 export async function requestBlePermissions(): Promise<boolean> {
   if (Platform.OS !== 'android') return true;
@@ -75,8 +118,13 @@ export function parseHeartRate(base64Value: string | null): number | null {
   // Une trame 16 bits annoncée mais tronquée à 2 octets ferait lire `data[2]`
   // = undefined (→ silencieusement la valeur basse seule). On rejette plutôt
   // que de remonter une FC fausse à partir d'une trame capteur malformée.
-  if (is16bit) return data.length < 3 ? null : data[1] | (data[2] << 8);
-  return data[1];
+  const bpm = is16bit ? (data.length < 3 ? null : data[1] | (data[2] << 8)) : data[1];
+  // FC = 0 : contact perdu (bit « Sensor Contact » à 0 ou trame de repli du
+  // capteur). Ce n'est pas une valeur physiologique — on la traite comme
+  // « absente » plutôt que de l'afficher et de la mêler aux agrégats (moyenne
+  // tirée vers le bas, point GPS avec FC 0).
+  if (bpm == null || bpm <= 0) return null;
+  return bpm;
 }
 
 /**

@@ -4,6 +4,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   BackHandler,
   Modal,
   ScrollView,
@@ -23,13 +24,11 @@ import { RestTimer } from '@/components/rest-timer';
 import { Elevation, Radius, Type } from '@/constants/theme';
 import { estimateCalories } from '@/lib/calories';
 import {
-  createSession,
   getProfile,
   getSetting,
   lastWeightByExercise,
-  replaceMuscuSets,
+  saveMuscuSession,
   setSetting,
-  updateSession,
 } from '@/lib/db';
 import {
   catalogById,
@@ -41,7 +40,11 @@ import {
   type RecoProfile,
 } from '@/lib/exercises';
 import { formatDuration } from '@/lib/format';
-import { clearLiveSessionNotification, showLiveSessionNotification } from '@/lib/live-notification';
+import {
+  clearLiveSessionNotification,
+  ensureNotificationPermission,
+  showLiveSessionNotification,
+} from '@/lib/live-notification';
 import { clearMuscuDraft, loadMuscuDraft, saveMuscuDraft } from '@/lib/muscu-draft';
 import { muscuStats, muscuSummary } from '@/lib/muscu-stats';
 import { difficultyLabel } from '@/lib/progression-advice';
@@ -165,6 +168,12 @@ export default function MuscuScreen() {
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
 
   const startedAtRef = useRef<number>(0);
+  // Id réutilisé entre tentatives d'enregistrement (retry) : l'écriture atomique
+  // roule tout en une transaction, donc il reste null tant que rien n'est validé.
+  const muscuIdRef = useRef<number | null>(null);
+  // Garde de réentrance : un double-tap sur « Terminer » ne doit pas lancer deux
+  // enregistrements concurrents.
+  const savingRef = useRef<boolean>(false);
   const hrSamplesRef = useRef<HrSample[]>([]);
   const pausedRef = useRef<boolean>(false);
   const weightRef = useRef<number>(70);
@@ -251,6 +260,9 @@ export default function MuscuScreen() {
         // Démarrage normal d'une nouvelle séance.
         startedAtRef.current = nowMs();
         watch.start();
+        // Permission notifications (Android 13+) best-effort, une fois, pour que
+        // la notification persistante de séance soit visible dans le volet.
+        ensureNotificationPermission();
         // Notification persistante (appui = retour à la séance). Fire-and-forget.
         // Une séance reprise depuis un brouillon reste en pause (ci-dessus) : on
         // n'affiche rien tant que l'utilisateur n'a pas tapé « Reprendre ».
@@ -403,39 +415,53 @@ export default function MuscuScreen() {
       ),
     );
 
-  // Ajuste (±15 s) ou ferme le minuteur de repos. Un ajustement mémorise la
-  // nouvelle durée comme préférence (réutilisée à la prochaine série).
+  // Ouvre / décale / ferme le minuteur de repos (horodatage de fin seul).
   const handleRestChange = (next: number | null) => {
     setRestEndsAt(next);
-    if (next != null) {
-      const secs = Math.max(15, Math.min(600, Math.round((next - nowMs()) / 1000)));
-      restDurationRef.current = secs;
-      setSetting('rest_seconds', String(secs)); // best-effort, local
-    }
+  };
+
+  // Ajustement ±15 s : mémorise la nouvelle DURÉE préférée (repos souhaité + delta),
+  // et non le temps restant — « +15 » à 2 s de la fin ne doit pas régler le repos
+  // préféré à ~16 s. Réutilisée à la prochaine série. Best-effort, local.
+  const adjustRestPreference = (deltaSec: number) => {
+    const secs = Math.max(15, Math.min(600, restDurationRef.current + deltaSec));
+    restDurationRef.current = secs;
+    setSetting('rest_seconds', String(secs));
   };
 
   const stats = muscuStats(exercises);
   const { totalSets, doneSets, totalVolume } = stats;
 
   // Sauvegarde du brouillon (séance en pause, reprenable). Best-effort, local.
-  const persistDraft = () =>
+  // `getElapsedSec()` (temps live) plutôt que le state `elapsedSec` : au passage
+  // en arrière-plan on veut le chrono à l'instant T, pas la valeur figée.
+  const persistDraft = () => {
+    if (totalSets === 0) return; // ne pas persister un brouillon vide
     saveMuscuDraft({
       version: 1,
       startedAt: startedAtRef.current,
-      elapsedSec: watch.elapsedSec,
+      elapsedSec: watch.getElapsedSec(),
       exercises,
       hrSamples: hrSamplesRef.current,
     });
+  };
 
   // Écriture continue : à chaque changement structurel (exercices, pause), on
-  // re-sauvegarde, pour qu'une fermeture brutale de l'app ne perde rien.
+  // re-sauvegarde, pour qu'une fermeture brutale de l'app ne perde rien. Quand la
+  // séance retombe à vide (dernier exercice retiré), on EFFACE le brouillon —
+  // sinon un ancien état ressusciterait au prochain lancement.
   useEffect(() => {
-    if (!hydratedRef.current || totalSets === 0) return;
+    if (!hydratedRef.current) return;
+    if (totalSets === 0) {
+      clearMuscuDraft();
+      return;
+    }
     persistDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exercises, paused]);
 
   const finish = () => {
+    if (savingRef.current) return; // réentrance
     if (totalSets === 0) {
       Alert.alert('Séance vide', 'Ajoute au moins un exercice avant de terminer.');
       return;
@@ -447,9 +473,13 @@ export default function MuscuScreen() {
   };
 
   const save = async () => {
+    if (savingRef.current) return; // réentrance (double-tap « Terminer »)
+    savingRef.current = true;
     setSaving(true);
     watch.pause();
-    const durationSec = watch.elapsedSec;
+    // Durée lue en direct au moment du « Terminer » (pas la valeur figée du state,
+    // qui se cristallise dans la closure de l'Alert de confirmation).
+    const durationSec = watch.getElapsedSec();
     const { avgHr, maxHr } = summarizeHr(hrSamplesRef.current);
     const calories = estimateCalories({
       type: 'muscu',
@@ -461,16 +491,6 @@ export default function MuscuScreen() {
 
     try {
       const endedAt = nowMs();
-      const id = await createSession('muscu', startedAtRef.current);
-      await updateSession(id, {
-        endedAt,
-        durationSec,
-        avgHr,
-        maxHr,
-        calories,
-        notes: muscuSummary(stats),
-      });
-
       const flat = exercises.flatMap((e) =>
         e.sets.map((s, i) => ({
           exercise: e.name,
@@ -481,9 +501,18 @@ export default function MuscuScreen() {
           difficulty: e.difficulty ?? null,
         })),
       );
-      await replaceMuscuSets(id, flat);
+      // Écriture atomique : création + agrégats + séries dans une transaction.
+      // En cas d'échec, rien n'est écrit (ni séance visible sans séries, ni
+      // orpheline `endedAt IS NULL`), et le retry réutilise l'id éventuel.
+      const id = await saveMuscuSession(
+        muscuIdRef.current,
+        startedAtRef.current,
+        { endedAt, durationSec, avgHr, maxHr, calories, notes: muscuSummary(stats) },
+        flat,
+      );
+      muscuIdRef.current = id;
 
-      // Le brouillon n'est effacé qu'APRÈS l'écriture réussie : si une étape
+      // Le brouillon n'est effacé qu'APRÈS l'écriture réussie : si l'étape
       // ci-dessus lève, la séance reste reprenable au prochain lancement.
       await clearMuscuDraft();
       finalizeSavedSession({
@@ -498,6 +527,7 @@ export default function MuscuScreen() {
     } catch {
       // Échec d'écriture : on ne reste pas bloqué sur « saving ». Le brouillon est
       // intact, l'utilisateur peut réessayer de terminer.
+      savingRef.current = false;
       setSaving(false);
       Alert.alert(
         "Échec de l'enregistrement",
@@ -542,6 +572,22 @@ export default function MuscuScreen() {
     );
     return true;
   };
+
+  // Persiste le brouillon au passage en arrière-plan (chrono live + buffer FC
+  // depuis la dernière écriture structurelle) : sinon un kill mémoire en arrière-
+  // plan perdrait ces secondes/échantillons. Ref pour capter le dernier état.
+  const persistDraftRef = useRef(persistDraft);
+  useEffect(() => {
+    persistDraftRef.current = persistDraft;
+  });
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' && hydratedRef.current && !savingRef.current) {
+        persistDraftRef.current();
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   // Le bouton retour matériel (Android) doit suivre le même chemin que la croix,
   // sinon il quitterait la modale en perdant la séance en mémoire.
@@ -828,7 +874,12 @@ export default function MuscuScreen() {
 
       {/* Repos inter-séries + contrôles, ancrés en bas */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-        <RestTimer key={restEndsAt ?? 'idle'} endsAt={restEndsAt} onChange={handleRestChange} />
+        <RestTimer
+          key={restEndsAt ?? 'idle'}
+          endsAt={restEndsAt}
+          onChange={handleRestChange}
+          onAdjustPreference={adjustRestPreference}
+        />
         <View
           style={{
             paddingLeft: insets.left + 16,

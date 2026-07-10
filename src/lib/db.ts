@@ -22,7 +22,7 @@ const DB_NAME = 'suivi-sport.db';
  * Sert à estampiller les sauvegardes pour refuser une restauration issue d'une
  * version plus récente (cf. lib/backup.ts).
  */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -33,102 +33,149 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
       const db = await SQLite.openDatabaseAsync(DB_NAME);
       await migrate(db);
       return db;
-    })();
+    })().catch((e) => {
+      // Ne jamais mettre en cache une promesse rejetée : sinon un échec de
+      // migration (ou une ouverture ratée) condamnerait TOUS les accès base à
+      // chaque lancement, pour toujours. On réarme pour permettre une nouvelle
+      // tentative au prochain getDb() (ex. après un redémarrage de l'app).
+      dbPromise = null;
+      throw e;
+    });
   }
   return dbPromise;
 }
 
+/** Vrai si `table` possède déjà la colonne `column`. */
+async function hasColumn(
+  db: SQLite.SQLiteDatabase,
+  table: string,
+  column: string,
+): Promise<boolean> {
+  const cols = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table});`);
+  return cols.some((c) => c.name === column);
+}
+
+/**
+ * Ajoute une colonne seulement si elle n'existe pas déjà. SQLite ne connaît pas
+ * `ADD COLUMN IF NOT EXISTS` : sans cette garde, un bloc de migration rejoué
+ * après une interruption (app tuée entre l'ALTER et le bump du pragma) lèverait
+ * « duplicate column name » et briquerait la base.
+ */
+async function addColumn(
+  db: SQLite.SQLiteDatabase,
+  table: string,
+  column: string,
+  decl: string,
+): Promise<void> {
+  if (!(await hasColumn(db, table, column))) {
+    await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${decl};`);
+  }
+}
+
 async function migrate(db: SQLite.SQLiteDatabase) {
+  // Hors transaction : WAL/foreign_keys sont des pragmas de connexion.
   await db.execAsync('PRAGMA journal_mode = WAL;');
   await db.execAsync('PRAGMA foreign_keys = ON;');
 
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;');
   const version = row?.user_version ?? 0;
 
+  // Chaque bloc (DDL + backfill + bump du pragma) tourne dans UNE transaction :
+  // si l'app est tuée en cours de route, tout est annulé et le bloc rejoue
+  // proprement au prochain lancement (au lieu de laisser un schéma à moitié
+  // migré avec un `user_version` incohérent). Les ajouts de colonnes passent par
+  // `addColumn` (idempotents) en défense de profondeur pour les bases déjà
+  // partiellement migrées par une version antérieure à ce correctif.
   if (version < 1) {
-    await db.execAsync(`
-      CREATE TABLE sessions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        type TEXT NOT NULL,
-        startedAt INTEGER NOT NULL,
-        endedAt INTEGER,
-        durationSec INTEGER NOT NULL DEFAULT 0,
-        notes TEXT,
-        avgHr REAL,
-        maxHr REAL,
-        distanceM REAL,
-        avgSpeedKmh REAL,
-        maxSpeedKmh REAL,
-        elevationGainM REAL,
-        calories REAL
-      );
-      CREATE INDEX idx_sessions_startedAt ON sessions (startedAt DESC);
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS sessions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          type TEXT NOT NULL,
+          startedAt INTEGER NOT NULL,
+          endedAt INTEGER,
+          durationSec INTEGER NOT NULL DEFAULT 0,
+          notes TEXT,
+          avgHr REAL,
+          maxHr REAL,
+          distanceM REAL,
+          avgSpeedKmh REAL,
+          maxSpeedKmh REAL,
+          elevationGainM REAL,
+          calories REAL
+        );
+        CREATE INDEX IF NOT EXISTS idx_sessions_startedAt ON sessions (startedAt DESC);
 
-      CREATE TABLE track_points (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sessionId INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-        ts INTEGER NOT NULL,
-        lat REAL NOT NULL,
-        lon REAL NOT NULL,
-        altitude REAL,
-        speedKmh REAL,
-        hr REAL
-      );
-      CREATE INDEX idx_track_session ON track_points (sessionId, ts);
+        CREATE TABLE IF NOT EXISTS track_points (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          sessionId INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+          ts INTEGER NOT NULL,
+          lat REAL NOT NULL,
+          lon REAL NOT NULL,
+          altitude REAL,
+          speedKmh REAL,
+          hr REAL
+        );
+        CREATE INDEX IF NOT EXISTS idx_track_session ON track_points (sessionId, ts);
 
-      CREATE TABLE muscu_sets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sessionId INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-        exercise TEXT NOT NULL,
-        setIndex INTEGER NOT NULL,
-        reps INTEGER NOT NULL,
-        weightKg REAL NOT NULL
-      );
-      CREATE INDEX idx_sets_session ON muscu_sets (sessionId, exercise, setIndex);
+        CREATE TABLE IF NOT EXISTS muscu_sets (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          sessionId INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+          exercise TEXT NOT NULL,
+          setIndex INTEGER NOT NULL,
+          reps INTEGER NOT NULL,
+          weightKg REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_sets_session ON muscu_sets (sessionId, exercise, setIndex);
 
-      CREATE TABLE settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-      );
-    `);
-    await db.execAsync('PRAGMA user_version = 1;');
+        CREATE TABLE IF NOT EXISTS settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        );
+      `);
+      await db.execAsync('PRAGMA user_version = 1;');
+    });
   }
 
   if (version < 2) {
     // Capteurs de cadence/vitesse vélo (profil BLE CSC).
-    await db.execAsync(`
-      ALTER TABLE sessions ADD COLUMN avgCadence REAL;
-      ALTER TABLE sessions ADD COLUMN maxCadence REAL;
-      ALTER TABLE track_points ADD COLUMN cadence REAL;
-    `);
-    await db.execAsync('PRAGMA user_version = 2;');
+    await db.withTransactionAsync(async () => {
+      await addColumn(db, 'sessions', 'avgCadence', 'REAL');
+      await addColumn(db, 'sessions', 'maxCadence', 'REAL');
+      await addColumn(db, 'track_points', 'cadence', 'REAL');
+      await db.execAsync('PRAGMA user_version = 2;');
+    });
   }
 
   if (version < 3) {
     // Import Strava : provenance + clé de déduplication (index unique partiel
     // pour rendre une ré-importation idempotente, sans gêner les séances natives
     // dont externalId reste NULL).
-    await db.execAsync(`
-      ALTER TABLE sessions ADD COLUMN source TEXT;
-      ALTER TABLE sessions ADD COLUMN externalId TEXT;
-      CREATE UNIQUE INDEX idx_sessions_external ON sessions (externalId) WHERE externalId IS NOT NULL;
-    `);
-    await db.execAsync('PRAGMA user_version = 3;');
+    await db.withTransactionAsync(async () => {
+      await addColumn(db, 'sessions', 'source', 'TEXT');
+      await addColumn(db, 'sessions', 'externalId', 'TEXT');
+      await db.execAsync(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_external ON sessions (externalId) WHERE externalId IS NOT NULL;',
+      );
+      await db.execAsync('PRAGMA user_version = 3;');
+    });
   }
 
   if (version < 4) {
     // Journal de poids corporel : une ligne par pesée. La pesée la plus
     // récente sert de poids de référence (calories, charges conseillées) via
     // la synchronisation du profil dans logBodyWeight().
-    await db.execAsync(`
-      CREATE TABLE body_measurements (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        measuredAt INTEGER NOT NULL,
-        weightKg REAL NOT NULL
-      );
-      CREATE INDEX idx_body_measuredAt ON body_measurements (measuredAt DESC);
-    `);
-    await db.execAsync('PRAGMA user_version = 4;');
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS body_measurements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          measuredAt INTEGER NOT NULL,
+          weightKg REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_body_measuredAt ON body_measurements (measuredAt DESC);
+      `);
+      await db.execAsync('PRAGMA user_version = 4;');
+    });
   }
 
   if (version < 5) {
@@ -136,81 +183,83 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     // la colonne puis on la rétro-calcule depuis les points GPS des sorties déjà
     // enregistrées — et on en dérive une vitesse moyenne « en mouvement » plus
     // honnête que la moyenne sur le temps total (cas du chrono oublié à l'arrêt).
-    await db.execAsync('ALTER TABLE sessions ADD COLUMN movingTimeSec INTEGER;');
+    await db.withTransactionAsync(async () => {
+      await addColumn(db, 'sessions', 'movingTimeSec', 'INTEGER');
 
-    // Poids/FC max courants pour ré-estimer les calories des séances natives
-    // (lecture directe du réglage : appeler getProfile() rouvrirait getDb(),
-    // dont la promesse est encore en cours ici → interblocage).
-    let weightKg = DEFAULT_PROFILE.weightKg;
-    let profileMaxHr = DEFAULT_PROFILE.maxHr;
-    const profileRow = await db.getFirstAsync<{ value: string }>(
-      "SELECT value FROM settings WHERE key = 'profile';",
-    );
-    if (profileRow) {
-      try {
-        const p = JSON.parse(profileRow.value);
-        if (typeof p.weightKg === 'number') weightKg = p.weightKg;
-        if (typeof p.maxHr === 'number') profileMaxHr = p.maxHr;
-      } catch {
-        // réglage illisible : on garde les valeurs par défaut.
-      }
-    }
-
-    const velos = await db.getAllAsync<{
-      id: number;
-      distanceM: number | null;
-      elevationGainM: number | null;
-      avgHr: number | null;
-      source: string | null;
-    }>("SELECT id, distanceM, elevationGainM, avgHr, source FROM sessions WHERE type = 'velo';");
-
-    for (const s of velos) {
-      const pts = await db.getAllAsync<{ ts: number; lat: number; lon: number; speedKmh: number | null }>(
-        'SELECT ts, lat, lon, speedKmh FROM track_points WHERE sessionId = ? ORDER BY ts ASC;',
-        s.id,
+      // Poids/FC max courants pour ré-estimer les calories des séances natives
+      // (lecture directe du réglage : appeler getProfile() rouvrirait getDb(),
+      // dont la promesse est encore en cours ici → interblocage).
+      let weightKg = DEFAULT_PROFILE.weightKg;
+      let profileMaxHr = DEFAULT_PROFILE.maxHr;
+      const profileRow = await db.getFirstAsync<{ value: string }>(
+        "SELECT value FROM settings WHERE key = 'profile';",
       );
-      const moving = movingTimeSec(pts);
-      if (moving <= 0) continue;
-
-      // Vitesse moyenne sur le temps en mouvement (uniquement si la distance est
-      // connue, pour ne pas écraser une valeur par un 0 trompeur).
-      const avgSpeedKmh =
-        s.distanceM != null ? s.distanceM / 1000 / (moving / 3600) : null;
-      // Calories : on ne ré-estime que les séances natives — pour un import
-      // Strava la valeur du fichier fait foi, on ne la remplace pas.
-      const calories =
-        s.source == null
-          ? estimateCalories({
-              type: 'velo',
-              weightKg,
-              durationSec: moving,
-              avgSpeedKmh,
-              elevationGainM: s.elevationGainM,
-              avgHr: s.avgHr,
-              maxHr: profileMaxHr,
-            })
-          : null;
-
-      if (avgSpeedKmh != null && calories != null) {
-        await db.runAsync(
-          'UPDATE sessions SET movingTimeSec = ?, avgSpeedKmh = ?, calories = ? WHERE id = ?;',
-          moving,
-          avgSpeedKmh,
-          calories,
-          s.id,
-        );
-      } else if (avgSpeedKmh != null) {
-        await db.runAsync(
-          'UPDATE sessions SET movingTimeSec = ?, avgSpeedKmh = ? WHERE id = ?;',
-          moving,
-          avgSpeedKmh,
-          s.id,
-        );
-      } else {
-        await db.runAsync('UPDATE sessions SET movingTimeSec = ? WHERE id = ?;', moving, s.id);
+      if (profileRow) {
+        try {
+          const p = JSON.parse(profileRow.value);
+          if (typeof p.weightKg === 'number') weightKg = p.weightKg;
+          if (typeof p.maxHr === 'number') profileMaxHr = p.maxHr;
+        } catch {
+          // réglage illisible : on garde les valeurs par défaut.
+        }
       }
-    }
-    await db.execAsync('PRAGMA user_version = 5;');
+
+      const velos = await db.getAllAsync<{
+        id: number;
+        distanceM: number | null;
+        elevationGainM: number | null;
+        avgHr: number | null;
+        source: string | null;
+      }>("SELECT id, distanceM, elevationGainM, avgHr, source FROM sessions WHERE type = 'velo';");
+
+      for (const s of velos) {
+        const pts = await db.getAllAsync<{ ts: number; lat: number; lon: number; speedKmh: number | null }>(
+          'SELECT ts, lat, lon, speedKmh FROM track_points WHERE sessionId = ? ORDER BY ts ASC;',
+          s.id,
+        );
+        const moving = movingTimeSec(pts);
+        if (moving <= 0) continue;
+
+        // Vitesse moyenne sur le temps en mouvement (uniquement si la distance est
+        // connue, pour ne pas écraser une valeur par un 0 trompeur).
+        const avgSpeedKmh =
+          s.distanceM != null ? s.distanceM / 1000 / (moving / 3600) : null;
+        // Calories : on ne ré-estime que les séances natives — pour un import
+        // Strava la valeur du fichier fait foi, on ne la remplace pas.
+        const calories =
+          s.source == null
+            ? estimateCalories({
+                type: 'velo',
+                weightKg,
+                durationSec: moving,
+                avgSpeedKmh,
+                elevationGainM: s.elevationGainM,
+                avgHr: s.avgHr,
+                maxHr: profileMaxHr,
+              })
+            : null;
+
+        if (avgSpeedKmh != null && calories != null) {
+          await db.runAsync(
+            'UPDATE sessions SET movingTimeSec = ?, avgSpeedKmh = ?, calories = ? WHERE id = ?;',
+            moving,
+            avgSpeedKmh,
+            calories,
+            s.id,
+          );
+        } else if (avgSpeedKmh != null) {
+          await db.runAsync(
+            'UPDATE sessions SET movingTimeSec = ?, avgSpeedKmh = ? WHERE id = ?;',
+            moving,
+            avgSpeedKmh,
+            s.id,
+          );
+        } else {
+          await db.runAsync('UPDATE sessions SET movingTimeSec = ? WHERE id = ?;', moving, s.id);
+        }
+      }
+      await db.execAsync('PRAGMA user_version = 5;');
+    });
   }
 
   if (version < 6) {
@@ -218,8 +267,21 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     // chaque série de l'exercice dans la séance. Nullable : séances anciennes et
     // imports Strava restent à NULL. Alimente le conseil de progression
     // (lib/progression-advice.ts). 100 % local, aucune dépendance réseau.
-    await db.execAsync('ALTER TABLE muscu_sets ADD COLUMN difficulty TEXT;');
-    await db.execAsync('PRAGMA user_version = 6;');
+    await db.withTransactionAsync(async () => {
+      await addColumn(db, 'muscu_sets', 'difficulty', 'TEXT');
+      await db.execAsync('PRAGMA user_version = 6;');
+    });
+  }
+
+  if (version < 7) {
+    // Index sur `muscu_sets(exercise)` : les requêtes par exercice
+    // (`exerciseHistory`, `listMuscuExercises`, export coach) filtrent sur cette
+    // colonne seule, que l'index composite `idx_sets_session` (préfixe
+    // sessionId) ne couvre pas. Sans migration de données — simple index.
+    await db.withTransactionAsync(async () => {
+      await db.execAsync('CREATE INDEX IF NOT EXISTS idx_sets_exercise ON muscu_sets (exercise);');
+      await db.execAsync('PRAGMA user_version = 7;');
+    });
   }
 }
 
@@ -327,6 +389,43 @@ export async function getSession(id: number): Promise<Session | null> {
   return db.getFirstAsync<Session>('SELECT * FROM sessions WHERE id = ?;', id);
 }
 
+/**
+ * Finalise une séance vélo pré-créée (au `begin()`) de façon ATOMIQUE : réécrit
+ * l'intégralité de ses points GPS et applique les agrégats + `endedAt` dans une
+ * seule transaction. Idempotent : un réessai après un échec (ou un flush
+ * incrémental antérieur) réécrit proprement le même résultat, sans doublon de
+ * séance ni point orphelin. C'est le remplaçant du triptyque non transactionnel
+ * createSession → updateSession → insertTrackPoints côté écran.
+ */
+export async function finalizeSession(
+  id: number,
+  patch: SessionUpdate,
+  points: Omit<TrackPoint, 'id' | 'sessionId'>[],
+): Promise<void> {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM track_points WHERE sessionId = ?;', id);
+    await insertTrackPointRows(db, id, points);
+    const keys = Object.keys(patch) as (keyof SessionUpdate)[];
+    if (keys.length > 0) {
+      const assignments = keys.map((k) => `${k} = ?`).join(', ');
+      const values = keys.map((k) => patch[k] ?? null);
+      await db.runAsync(`UPDATE sessions SET ${assignments} WHERE id = ?;`, ...values, id);
+    }
+  });
+}
+
+/** Séances « en cours » (endedAt NULL), optionnellement filtrées par type. */
+export async function listInProgressSessions(type?: ActivityType): Promise<Session[]> {
+  const db = await getDb();
+  const clause = type ? ' AND type = ?' : '';
+  const params = type ? [type] : [];
+  return db.getAllAsync<Session>(
+    `SELECT * FROM sessions WHERE endedAt IS NULL${clause} ORDER BY startedAt ASC;`,
+    ...params,
+  );
+}
+
 /** Options de filtrage de l'historique. Compatibilité ascendante : passer un
  * nombre garde l'ancien comportement (limite seule, pas d'offset, pas de filtre). */
 export type ListSessionsOptions = {
@@ -374,11 +473,14 @@ export async function listSessions(
   if (trimmed) {
     // SQLite : LIKE est insensible à la casse pour l'ASCII par défaut. On
     // matche sur le code de type (« velo »/« muscu »), les notes ou un
-    // exercice muscu rattaché.
-    const like = `%${trimmed}%`;
+    // exercice muscu rattaché. Les jokers `%` `_` (et l'échappement `\`) sont
+    // neutralisés dans la saisie utilisateur — sinon taper « 50 % » ou « a_b »
+    // matcherait n'importe quoi. `ESCAPE '\'` active la séquence d'échappement.
+    const escaped = trimmed.replace(/[\\%_]/g, '\\$&');
+    const like = `%${escaped}%`;
     where.push(
-      `(s.type LIKE ? OR IFNULL(s.notes, '') LIKE ? OR s.id IN (
-         SELECT sessionId FROM muscu_sets WHERE exercise LIKE ?
+      `(s.type LIKE ? ESCAPE '\\' OR IFNULL(s.notes, '') LIKE ? ESCAPE '\\' OR s.id IN (
+         SELECT sessionId FROM muscu_sets WHERE exercise LIKE ? ESCAPE '\\'
        ))`,
     );
     params.push(like, like, like);
@@ -410,11 +512,17 @@ export async function deleteSession(id: number): Promise<void> {
 // Points GPS
 // ---------------------------------------------------------------------------
 
+/** Lignes par INSERT multi-valeurs : 100 × 8 colonnes = 800 paramètres liés,
+ *  sous la limite SQLite (999) tout en réduisant les allers-retours du pont. */
+const TRACK_POINT_CHUNK = 100;
+
 /**
  * Insère en lot des points GPS rattachés à une séance (l'id est auto-incrémenté).
  * À appeler dans une transaction déjà ouverte. Une longue sortie peut compter
- * plusieurs milliers de points : un statement préparé évite de re-parser le SQL
- * à chaque insertion. Partagé par `insertTrackPoints` et `insertImportedSession`.
+ * plusieurs milliers de points : on regroupe les lignes en INSERT multi-valeurs
+ * (une exécution par paquet de 100 au lieu d'un aller-retour du pont par point,
+ * soit ~12 000 → ~120 pour 3 h de sortie). Partagé par `insertTrackPoints` et
+ * `insertImportedSession`.
  */
 async function insertTrackPointRows(
   db: SQLite.SQLiteDatabase,
@@ -422,24 +530,17 @@ async function insertTrackPointRows(
   points: Omit<TrackPoint, 'id' | 'sessionId'>[],
 ): Promise<void> {
   if (points.length === 0) return;
-  const stmt = await db.prepareAsync(
-    'INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
-  );
-  try {
-    for (const p of points) {
-      await stmt.executeAsync(
-        sessionId,
-        p.ts,
-        p.lat,
-        p.lon,
-        p.altitude,
-        p.speedKmh,
-        p.hr,
-        p.cadence,
-      );
+  for (let i = 0; i < points.length; i += TRACK_POINT_CHUNK) {
+    const chunk = points.slice(i, i + TRACK_POINT_CHUNK);
+    const placeholders = chunk.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+    const values: SQLite.SQLiteBindValue[] = [];
+    for (const p of chunk) {
+      values.push(sessionId, p.ts, p.lat, p.lon, p.altitude, p.speedKmh, p.hr, p.cadence);
     }
-  } finally {
-    await stmt.finalizeAsync();
+    await db.runAsync(
+      `INSERT INTO track_points (sessionId, ts, lat, lon, altitude, speedKmh, hr, cadence) VALUES ${placeholders};`,
+      ...values,
+    );
   }
 }
 
@@ -537,27 +638,76 @@ export async function getTrackPoints(sessionId: number): Promise<TrackPoint[]> {
 // Séries de musculation
 // ---------------------------------------------------------------------------
 
+/** Une série muscu prête à écrire (difficulty facultatif). */
+export type MuscuSetInput = Omit<MuscuSet, 'id' | 'sessionId' | 'difficulty'> & {
+  difficulty?: Difficulty | null;
+};
+
+async function replaceMuscuSetsIn(
+  db: SQLite.SQLiteDatabase,
+  sessionId: number,
+  sets: MuscuSetInput[],
+): Promise<void> {
+  await db.runAsync('DELETE FROM muscu_sets WHERE sessionId = ?;', sessionId);
+  if (sets.length === 0) return;
+  const stmt = await db.prepareAsync(
+    'INSERT INTO muscu_sets (sessionId, exercise, setIndex, reps, weightKg, difficulty) VALUES (?, ?, ?, ?, ?, ?);',
+  );
+  try {
+    for (const s of sets) {
+      await stmt.executeAsync(sessionId, s.exercise, s.setIndex, s.reps, s.weightKg, s.difficulty ?? null);
+    }
+  } finally {
+    await stmt.finalizeAsync();
+  }
+}
+
 export async function replaceMuscuSets(
   sessionId: number,
   // `difficulty` est facultatif à l'écriture (séries sans ressenti noté) ; il
   // reste un champ plein (nullable) à la lecture via `MuscuSet`.
-  sets: (Omit<MuscuSet, 'id' | 'sessionId' | 'difficulty'> & { difficulty?: Difficulty | null })[],
+  sets: MuscuSetInput[],
 ): Promise<void> {
   const db = await getDb();
   await db.withTransactionAsync(async () => {
-    await db.runAsync('DELETE FROM muscu_sets WHERE sessionId = ?;', sessionId);
-    if (sets.length === 0) return;
-    const stmt = await db.prepareAsync(
-      'INSERT INTO muscu_sets (sessionId, exercise, setIndex, reps, weightKg, difficulty) VALUES (?, ?, ?, ?, ?, ?);',
-    );
-    try {
-      for (const s of sets) {
-        await stmt.executeAsync(sessionId, s.exercise, s.setIndex, s.reps, s.weightKg, s.difficulty ?? null);
-      }
-    } finally {
-      await stmt.finalizeAsync();
-    }
+    await replaceMuscuSetsIn(db, sessionId, sets);
   });
+}
+
+/**
+ * Enregistre une séance muscu terminée de façon ATOMIQUE : création de la ligne
+ * (si `id` absent), agrégats + `endedAt`, et remplacement des séries, le tout
+ * dans une seule transaction. En cas d'échec, tout est annulé : ni séance
+ * visible sans séries, ni séance orpheline `endedAt IS NULL`. Renvoie l'id créé
+ * (ou réutilisé). Remplace le triptyque createSession → updateSession →
+ * replaceMuscuSets côté écran.
+ */
+export async function saveMuscuSession(
+  id: number | null,
+  startedAt: number,
+  patch: SessionUpdate,
+  sets: MuscuSetInput[],
+): Promise<number> {
+  const db = await getDb();
+  let sessionId = id;
+  await db.withTransactionAsync(async () => {
+    if (sessionId == null) {
+      const res = await db.runAsync(
+        'INSERT INTO sessions (type, startedAt, durationSec) VALUES (?, ?, 0);',
+        'muscu',
+        startedAt,
+      );
+      sessionId = res.lastInsertRowId;
+    }
+    const keys = Object.keys(patch) as (keyof SessionUpdate)[];
+    if (keys.length > 0) {
+      const assignments = keys.map((k) => `${k} = ?`).join(', ');
+      const values = keys.map((k) => patch[k] ?? null);
+      await db.runAsync(`UPDATE sessions SET ${assignments} WHERE id = ?;`, ...values, sessionId);
+    }
+    await replaceMuscuSetsIn(db, sessionId!, sets);
+  });
+  return sessionId!;
 }
 
 export async function getMuscuSets(sessionId: number): Promise<MuscuSet[]> {
@@ -652,8 +802,13 @@ export type ExercisePoint = {
 
 /**
  * Historique d'un exercice, une ligne par séance terminée, du plus ancien au
- * plus récent. `topReps` correspond aux reps de la série la plus lourde
- * (SQLite renvoie la valeur de la ligne portant le MAX pour les colonnes nues).
+ * plus récent. `topReps` correspond aux reps de la série la plus lourde.
+ *
+ * On NE s'appuie PAS sur « colonne nue = ligne du MAX » : cette garantie SQLite
+ * ne vaut qu'avec un seul agrégat min/max dans la requête, or on a aussi besoin
+ * de `difficulty`. On isole donc `topReps` et `difficulty` dans des sous-requêtes
+ * corrélées explicites (sinon `topReps` pouvait venir d'une série d'échauffement,
+ * gonflant le 1RM Epley et les records).
  */
 export async function exerciseHistory(name: string): Promise<ExercisePoint[]> {
   const db = await getDb();
@@ -661,10 +816,18 @@ export async function exerciseHistory(name: string): Promise<ExercisePoint[]> {
     `SELECT s.id AS sessionId,
             s.startedAt AS startedAt,
             MAX(ms.weightKg) AS maxWeightKg,
-            ms.reps AS topReps,
+            (SELECT m2.reps
+               FROM muscu_sets m2
+              WHERE m2.sessionId = s.id AND m2.exercise = ms.exercise
+              ORDER BY m2.weightKg DESC, m2.reps DESC
+              LIMIT 1) AS topReps,
             SUM(ms.reps * ms.weightKg) AS volume,
             COUNT(*) AS sets,
-            MAX(ms.difficulty) AS difficulty
+            (SELECT m3.difficulty
+               FROM muscu_sets m3
+              WHERE m3.sessionId = s.id AND m3.exercise = ms.exercise
+                AND m3.difficulty IS NOT NULL
+              LIMIT 1) AS difficulty
        FROM muscu_sets ms
        JOIN sessions s ON s.id = ms.sessionId
       WHERE s.endedAt IS NOT NULL AND ms.exercise = ?
@@ -876,10 +1039,16 @@ export async function sessionRecords(s: Session): Promise<SessionRecord[]> {
   return out;
 }
 
-/** Efface toutes les données (séances, points, séries) — garde les réglages. */
+/**
+ * Efface les séances (points, séries) — garde les réglages ET le journal de
+ * poids (page « Poids » distincte, avec sa propre gestion). Transactionnel :
+ * une interruption ne laisse pas des points/séries orphelins de leur séance.
+ */
 export async function clearAllData(): Promise<void> {
   const db = await getDb();
-  await db.execAsync('DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions;');
+  await db.withTransactionAsync(async () => {
+    await db.execAsync('DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions;');
+  });
 }
 
 /**
