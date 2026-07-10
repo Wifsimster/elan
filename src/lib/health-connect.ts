@@ -110,6 +110,14 @@ export function buildHealthRecords(data: HealthSessionData): HealthConnectRecord
   const startTime = new Date(data.startedAt).toISOString();
   const endTime = new Date(data.endedAt).toISOString();
 
+  // Identifiant stable par (séance × type d'enregistrement) : un ré-export de la
+  // MÊME séance réécrit l'enregistrement au lieu de le dupliquer (Health Connect
+  // déduplique sur `clientRecordId`). La séance est identifiée par son instant de
+  // début, unique. Sans lui, chaque ré-export doublait sessions et calories.
+  const meta = (suffix: string) => ({
+    metadata: { clientRecordId: `elan-${data.type}-${data.startedAt}-${suffix}` },
+  });
+
   const records: HealthConnectRecord[] = [
     {
       recordType: 'ExerciseSession',
@@ -118,6 +126,7 @@ export function buildHealthRecords(data: HealthSessionData): HealthConnectRecord
       title: data.type === 'velo' ? 'Sortie vélo' : 'Séance musculation',
       startTime,
       endTime,
+      ...meta('session'),
     },
   ];
 
@@ -127,6 +136,7 @@ export function buildHealthRecords(data: HealthSessionData): HealthConnectRecord
       distance: { unit: 'meters', value: data.distanceM },
       startTime,
       endTime,
+      ...meta('distance'),
     });
   }
 
@@ -136,6 +146,7 @@ export function buildHealthRecords(data: HealthSessionData): HealthConnectRecord
       energy: { unit: 'kilocalories', value: data.calories },
       startTime,
       endTime,
+      ...meta('calories'),
     });
   }
 
@@ -145,7 +156,7 @@ export function buildHealthRecords(data: HealthSessionData): HealthConnectRecord
     .filter((s) => s.ts >= data.startedAt && s.ts <= data.endedAt && s.hr > 0 && s.hr < 300)
     .map((s) => ({ time: new Date(s.ts).toISOString(), beatsPerMinute: Math.round(s.hr) }));
   if (samples.length > 0) {
-    records.push({ recordType: 'HeartRate', samples, startTime, endTime });
+    records.push({ recordType: 'HeartRate', samples, startTime, endTime, ...meta('hr') });
   }
 
   return records;

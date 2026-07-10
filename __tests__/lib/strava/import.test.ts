@@ -60,6 +60,26 @@ describe('buildDrafts — construction du brouillon', () => {
   });
 });
 
+// GPX avec un point « téléporté » : le 2e point saute de ~1000 km en 10 s
+// (vitesse absurde). La distance de ce segment ne doit pas être créditée.
+const GPX_TELEPORT = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="StravaGPX" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><trkseg>
+    <trkpt lat="48.8566" lon="2.3522"><ele>35.0</ele><time>2025-06-02T08:00:00Z</time></trkpt>
+    <trkpt lat="59.9000" lon="10.7000"><ele>36.0</ele><time>2025-06-02T08:00:10Z</time></trkpt>
+    <trkpt lat="59.9001" lon="10.7001"><ele>37.0</ele><time>2025-06-02T08:00:20Z</time></trkpt>
+  </trkseg></trk>
+</gpx>`;
+
+describe('buildDrafts — segment aberrant (téléportation GPS)', () => {
+  it("n'inclut pas la distance du saut invraisemblable", () => {
+    const { session } = buildDrafts(bytes(GPX_TELEPORT), WEIGHT_KG).drafts[0];
+    // Seul le dernier segment (~13 m, plausible) est crédité : la distance reste
+    // petite, pas les ~1000 km du saut Paris → Oslo.
+    expect(session.distanceM as number).toBeLessThan(1000);
+  });
+});
+
 describe('buildDrafts — clé de déduplication (externalId)', () => {
   it('préfixée « strava- » et déterministe pour des octets identiques', () => {
     const a = buildDrafts(bytes(GPX), WEIGHT_KG).drafts[0].session.externalId;

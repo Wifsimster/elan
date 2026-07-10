@@ -123,10 +123,13 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
         { lat: prev.lat as number, lon: prev.lon as number },
         { lat: p.lat as number, lon: p.lon as number },
       );
-      accDist += dM;
       if (dtSec > 0) {
         const s = (dM / dtSec) * 3.6;
         if (s <= MAX_PLAUSIBLE_SPEED_KMH) {
+          // Segment plausible : on crédite sa distance et sa vitesse. Un saut
+          // (téléportation GPS) est ÉCARTÉ de la distance aussi — plafonner la
+          // seule vitesse laissait la distance (et donc l'externalId) gonflée.
+          accDist += dM;
           speedKmh = s;
           if (maxSpeedKmh == null || s > maxSpeedKmh) maxSpeedKmh = s;
         }

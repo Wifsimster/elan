@@ -116,4 +116,21 @@ describe('buildHealthRecords', () => {
     expect(buildHealthRecords({ type: 'velo', startedAt: T0, endedAt: T0 })).toEqual([]);
     expect(buildHealthRecords({ type: 'velo', startedAt: NaN, endedAt: T1 })).toEqual([]);
   });
+
+  it('estampille un clientRecordId stable par (séance × type) — idempotence', () => {
+    const data = { type: 'velo' as const, startedAt: T0, endedAt: T1, distanceM: 1000, calories: 100 };
+    const a = buildHealthRecords(data);
+    const b = buildHealthRecords(data); // ré-export de la même séance
+    // Deux exports → mêmes identifiants client (Health Connect réécrit, ne double pas).
+    const ids = (recs: typeof a) => recs.map((r) => r.metadata?.clientRecordId);
+    expect(ids(a)).toEqual(ids(b));
+    expect(ids(a)).toEqual([
+      `elan-velo-${T0}-session`,
+      `elan-velo-${T0}-distance`,
+      `elan-velo-${T0}-calories`,
+    ]);
+    // Une autre séance (autre instant de début) a d'autres identifiants.
+    const other = buildHealthRecords({ ...data, startedAt: T0 + 5000, endedAt: T1 + 5000 });
+    expect(other[0].metadata?.clientRecordId).not.toBe(a[0].metadata?.clientRecordId);
+  });
 });
