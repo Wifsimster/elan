@@ -197,10 +197,12 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
       // Garde anti-double-connexion : une tentative déjà en vol, ou une connexion
       // au même appareil, ne doit pas en lancer une seconde (deux moniteurs
       // mêleraient leurs valeurs). Une connexion à un AUTRE appareil déconnecte
-      // d'abord le précédent.
+      // d'abord le précédent. `connectingRef` est armé AVANT tout `await` (la
+      // déconnexion du précédent en contient un) pour fermer la fenêtre de course.
       if (connectingRef.current) return;
+      if (connectedRef.current?.id === deviceId) return;
+      connectingRef.current = true;
       if (connectedRef.current) {
-        if (connectedRef.current.id === deviceId) return;
         const prev = connectedRef.current;
         connectedRef.current = null;
         disconnectSubRef.current?.remove();
@@ -213,7 +215,6 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
           // déjà déconnecté
         }
       }
-      connectingRef.current = true;
       setError(null);
       // Tentative volontaire : on réarme la reconnexion auto et on annule une
       // tentative différée éventuellement en cours.
