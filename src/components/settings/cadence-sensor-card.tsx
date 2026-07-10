@@ -53,21 +53,25 @@ export function CadenceSensorCard() {
         </View>
       ))}
 
-      <Button
-        title={
-          csc.status === 'scanning'
-            ? 'Recherche en cours…'
-            : csc.status === 'reconnecting'
-              ? 'Reconnexion…'
-              : 'Rechercher un capteur'
-        }
-        icon="bluetooth"
-        color={theme.velo}
-        loading={
-          csc.status === 'scanning' || csc.status === 'connecting' || csc.status === 'reconnecting'
-        }
-        onPress={csc.startScan}
-      />
+      {csc.status === 'scanning' ? (
+        // Bouton « Stop » pendant le scan (plutôt que désactivé) : la radio ne
+        // reste pas à balayer si l'utilisateur change d'avis.
+        <Button
+          title="Arrêter la recherche"
+          icon="bluetooth-off"
+          variant="secondary"
+          color={theme.velo}
+          onPress={csc.stopScan}
+        />
+      ) : (
+        <Button
+          title={csc.status === 'reconnecting' ? 'Reconnexion…' : 'Rechercher un capteur'}
+          icon="bluetooth"
+          color={theme.velo}
+          loading={csc.status === 'connecting' || csc.status === 'reconnecting'}
+          onPress={csc.startScan}
+        />
+      )}
 
       {csc.error ? <Text style={{ color: theme.danger, fontSize: 13 }}>{csc.error}</Text> : null}
 

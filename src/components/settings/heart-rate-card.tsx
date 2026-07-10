@@ -27,20 +27,22 @@ export function HeartRateCard() {
           color={theme.accent}
           onPress={hr.disconnect}
         />
+      ) : hr.status === 'scanning' ? (
+        // Bouton « Stop » pendant le scan (plutôt que désactivé) : la radio ne
+        // reste pas à balayer si l'utilisateur change d'avis.
+        <Button
+          title="Arrêter la recherche"
+          icon="bluetooth-off"
+          variant="secondary"
+          color={theme.accent}
+          onPress={hr.stopScan}
+        />
       ) : (
         <Button
-          title={
-            hr.status === 'scanning'
-              ? 'Recherche en cours…'
-              : hr.status === 'reconnecting'
-                ? 'Reconnexion…'
-                : 'Rechercher une ceinture'
-          }
+          title={hr.status === 'reconnecting' ? 'Reconnexion…' : 'Rechercher une ceinture'}
           icon="bluetooth"
           color={theme.accent}
-          loading={
-            hr.status === 'scanning' || hr.status === 'connecting' || hr.status === 'reconnecting'
-          }
+          loading={hr.status === 'connecting' || hr.status === 'reconnecting'}
           onPress={hr.startScan}
         />
       )}
