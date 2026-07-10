@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -108,15 +108,13 @@ export default function PoidsScreen() {
     .reverse()
     .map((m) => ({ x: m.measuredAt, y: m.weightKg }));
 
-  return (
-    <ScrollView
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={{
-        ...contentStyle,
-        paddingTop: 12,
-        paddingBottom: insets.bottom + 32,
-        gap: 14,
-      }}>
+  const list = items ?? [];
+
+  // En-tête (tout le contenu au-dessus du journal) : rendu une fois par la
+  // FlatList. Le journal des pesées, lui, est virtualisé (renderItem) — il peut
+  // compter des centaines de lignes sur plusieurs années.
+  const header = (
+    <View style={{ gap: 14 }}>
       <Text style={{ ...Type.label, color: theme.textSecondary }}>
         {'Note ton poids régulièrement : la dernière pesée sert de référence pour les calories et les charges conseillées. Tout reste sur l’appareil.'}
       </Text>
@@ -191,56 +189,78 @@ export default function PoidsScreen() {
         </Card>
       ) : null}
 
-      {items && items.length > 0 ? (
-        <>
-          <Text style={{ ...Type.headline, color: theme.text }}>Pesées</Text>
-          <Card style={{ gap: 0, paddingVertical: 4 }}>
-            {items.map((m, i) => {
-              const prev = items[i + 1];
-              return (
-                <View
-                  key={m.id}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 12,
-                    paddingVertical: 12,
-                    borderTopWidth: i === 0 ? 0 : 1,
-                    borderTopColor: theme.hairline,
-                  }}>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={{ ...Type.subtitle, color: theme.text, fontVariant: ['tabular-nums'] }}>
-                      {fmtKg(m.weightKg)} kg
-                    </Text>
-                    <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-                      {formatDateTime(m.measuredAt, true)}
-                    </Text>
-                  </View>
-                  {prev ? (
-                    <Text
-                      style={{
-                        color: theme.textSecondary,
-                        fontSize: 13,
-                        fontWeight: '700',
-                        fontVariant: ['tabular-nums'],
-                      }}>
-                      {fmtDelta(m.weightKg - prev.weightKg)} kg
-                    </Text>
-                  ) : null}
-                  <Pressable
-                    onPress={() => confirmDelete(m)}
-                    hitSlop={12}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Supprimer la pesée du ${formatDateTime(m.measuredAt, true)}`}>
-                    <MaterialCommunityIcons name="trash-can-outline" size={20} color={theme.textMuted} />
-                  </Pressable>
-                </View>
-              );
-            })}
-          </Card>
-        </>
+      {list.length > 0 ? (
+        <Text style={{ ...Type.headline, color: theme.text }}>Pesées</Text>
       ) : null}
-    </ScrollView>
+    </View>
+  );
+
+  return (
+    <FlatList
+      style={{ backgroundColor: theme.background }}
+      contentContainerStyle={{
+        ...contentStyle,
+        paddingTop: 12,
+        paddingBottom: insets.bottom + 32,
+        // Pas de `gap` : l'en-tête gère son propre espacement (14) et les lignes
+        // du journal sont contiguës pour former un bloc arrondi continu.
+      }}
+      data={list}
+      keyExtractor={(m) => String(m.id)}
+      ListHeaderComponent={header}
+      // Marge entre l'en-tête (titre « Pesées ») et le bloc journal.
+      ListHeaderComponentStyle={{ marginBottom: 14 }}
+      renderItem={({ item: m, index: i }) => {
+        const prev = list[i + 1];
+        const first = i === 0;
+        const last = i === list.length - 1;
+        return (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              backgroundColor: theme.backgroundElement,
+              borderTopWidth: first ? 0 : 1,
+              borderTopColor: theme.hairline,
+              borderTopLeftRadius: first ? Radius.lg : 0,
+              borderTopRightRadius: first ? Radius.lg : 0,
+              borderBottomLeftRadius: last ? Radius.lg : 0,
+              borderBottomRightRadius: last ? Radius.lg : 0,
+              borderCurve: 'continuous',
+            }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ ...Type.subtitle, color: theme.text, fontVariant: ['tabular-nums'] }}>
+                {fmtKg(m.weightKg)} kg
+              </Text>
+              <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+                {formatDateTime(m.measuredAt, true)}
+              </Text>
+            </View>
+            {prev ? (
+              <Text
+                style={{
+                  color: theme.textSecondary,
+                  fontSize: 13,
+                  fontWeight: '700',
+                  fontVariant: ['tabular-nums'],
+                }}>
+                {fmtDelta(m.weightKg - prev.weightKg)} kg
+              </Text>
+            ) : null}
+            <Pressable
+              onPress={() => confirmDelete(m)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={`Supprimer la pesée du ${formatDateTime(m.measuredAt, true)}`}>
+              <MaterialCommunityIcons name="trash-can-outline" size={20} color={theme.textMuted} />
+            </Pressable>
+          </View>
+        );
+      }}
+    />
   );
 }
 
