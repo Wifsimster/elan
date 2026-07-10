@@ -66,7 +66,7 @@ export default function PoidsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      load();
+      load().catch(() => {}); // lecture locale : un échec transitoire ne casse pas l'écran
     }, [load]),
   );
 

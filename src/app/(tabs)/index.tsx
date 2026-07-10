@@ -93,7 +93,7 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      load();
+      load().catch(() => {}); // lecture locale : pas de crash sur échec transitoire
     }, [load]),
   );
 
@@ -321,9 +321,11 @@ function TodayCard({
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      getEffectiveWeekPlan().then((p) => {
-        if (!cancelled) setWeekPlan(p);
-      });
+      getEffectiveWeekPlan()
+        .then((p) => {
+          if (!cancelled) setWeekPlan(p);
+        })
+        .catch(() => {});
       return () => {
         cancelled = true;
       };

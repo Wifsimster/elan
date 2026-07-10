@@ -171,7 +171,7 @@ function WheelSizePicker({
           onPress={() => setOpen(false)}
           style={{
             flex: 1,
-            backgroundColor: '#00000088',
+            backgroundColor: theme.scrim,
             justifyContent: 'center',
             padding: 24,
           }}>

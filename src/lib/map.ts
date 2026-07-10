@@ -12,6 +12,17 @@ import { getSetting, setSetting } from '@/lib/db';
 
 const KEY = 'map_style_url';
 
+// Cache mémoire de la dernière URL de style résolue (`undefined` = jamais lue).
+// Évite le flash SVG→MapLibre : une fois connue, chaque nouvelle carte s'ouvre
+// directement dans le bon rendu au lieu d'afficher le repli SVG le temps de la
+// lecture SQLite asynchrone. Invalidé à l'écriture (setMapStyleUrl).
+let cachedStyleUrl: string | undefined;
+
+/** URL de style déjà résolue en mémoire (sync), ou `undefined` si pas encore lue. */
+export function peekMapStyleUrl(): string | undefined {
+  return cachedStyleUrl;
+}
+
 /**
  * Style public OpenFreeMap (gratuit, open source, sans clé API, données
  * OpenStreetMap). Proposé en un tap pour activer un vrai fond de carte sans
@@ -31,7 +42,9 @@ export async function getMapStyleUrl(): Promise<string> {
   // re-valide tout de même ici pour neutraliser toute valeur héritée/incorrecte
   // (http://, etc.) en retombant sur le rendu SVG hors-ligne.
   const url = (await getSetting(KEY)) ?? '';
-  return isValidMapStyleUrl(url) ? url : '';
+  const resolved = isValidMapStyleUrl(url) ? url : '';
+  cachedStyleUrl = resolved;
+  return resolved;
 }
 
 /**
@@ -51,6 +64,7 @@ export async function setMapStyleUrl(url: string): Promise<void> {
     throw new Error('URL de style invalide : HTTPS requis.');
   }
   await setSetting(KEY, trimmed);
+  cachedStyleUrl = trimmed; // garde le cache cohérent avec le réglage écrit
 }
 
 /**

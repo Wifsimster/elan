@@ -85,7 +85,7 @@ export default function HistoryScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadFirstPage();
+      loadFirstPage().catch(() => setLoading(false));
     }, [loadFirstPage]),
   );
 
@@ -110,11 +110,14 @@ export default function HistoryScreen() {
   return (
     <FlatList
       style={{ backgroundColor: theme.background }}
+      // Espacement des lignes géré par le seul `ItemSeparatorComponent` (10 px) —
+      // pas de `gap` ici, sinon lignes espacées de 20 (gap + séparateur) alors que
+      // l'en-tête → 1re ligne n'a que le gap. La marge en-tête est portée par le
+      // `paddingBottom` du ListHeaderComponent (10, cohérent avec les lignes).
       contentContainerStyle={{
         ...contentStyle,
         paddingTop: insets.top + 12,
         paddingBottom: 32,
-        gap: 10,
       }}
       data={sessions}
       keyExtractor={(s) => String(s.id)}
@@ -123,7 +126,7 @@ export default function HistoryScreen() {
       onEndReachedThreshold={0.5}
       keyboardShouldPersistTaps="handled"
       ListHeaderComponent={
-        <View style={{ gap: 14, paddingBottom: 4 }}>
+        <View style={{ gap: 14, paddingBottom: 10 }}>
           <Text style={{ ...Type.title, color: theme.text }}>Historique</Text>
 
           <Link href="/progression" asChild>

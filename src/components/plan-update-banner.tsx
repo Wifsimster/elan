@@ -30,9 +30,11 @@ export function PlanUpdateBanner() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      getAutoProgressionState().then((s) => {
-        if (!cancelled) setState(s);
-      });
+      getAutoProgressionState()
+        .then((s) => {
+          if (!cancelled) setState(s);
+        })
+        .catch(() => {});
       return () => {
         cancelled = true;
       };
