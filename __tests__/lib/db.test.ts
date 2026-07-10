@@ -53,6 +53,7 @@ jest.mock('expo-sqlite', () => {
 import {
   clearAllData,
   createSession,
+  exerciseHistory,
   exportAll,
   getMuscuSets,
   getSession,
@@ -264,6 +265,42 @@ describe('statsBetween (filtre par type) & tonnageBetween — suivi d’objectif
     expect(await tonnageBetween(T, T + 10_000)).toBe(440);
     // Avant la séance muscu (à T+2000) : aucun tonnage.
     expect(await tonnageBetween(T, T + 2000)).toBe(0);
+  });
+});
+
+describe('exerciseHistory — topReps vient bien de la série la plus lourde', () => {
+  it('ignore une série d’échauffement plus « répétée » que la série lourde', async () => {
+    await clearAllData();
+    const id = await createSession('muscu', 2_100_000_000_000);
+    await updateSession(id, { endedAt: 2_100_003_000_000, durationSec: 3000 });
+    // Échauffement léger et très répété (20 kg × 15), puis série lourde (100 kg × 3).
+    // Avec la colonne nue + double MAX, `topReps` pouvait renvoyer 15.
+    await replaceMuscuSets(id, [
+      { exercise: 'Développé couché', setIndex: 1, reps: 15, weightKg: 20, difficulty: 'facile' },
+      { exercise: 'Développé couché', setIndex: 2, reps: 3, weightKg: 100, difficulty: 'facile' },
+    ]);
+
+    const hist = await exerciseHistory('Développé couché');
+    expect(hist).toHaveLength(1);
+    expect(hist[0].maxWeightKg).toBe(100);
+    expect(hist[0].topReps).toBe(3);
+    expect(hist[0].difficulty).toBe('facile');
+  });
+});
+
+describe('listSessions — recherche : les jokers LIKE de la saisie sont neutralisés', () => {
+  it('« %% » ne matche pas toutes les séances', async () => {
+    await clearAllData();
+    const withNote = await createSession('muscu', 2_200_000_000_000);
+    await updateSession(withNote, { endedAt: 2_200_000_300_000, notes: '100% effort' });
+    const other = await createSession('velo', 2_200_000_400_000);
+    await updateSession(other, { endedAt: 2_200_000_700_000, distanceM: 1000 });
+
+    // Littéral « % » : ne doit matcher que la note contenant réellement « % »,
+    // pas toutes les lignes (ce que ferait un joker non échappé).
+    const hits = await listSessions({ search: '%' });
+    expect(hits).toHaveLength(1);
+    expect(hits[0].id).toBe(withNote);
   });
 });
 
