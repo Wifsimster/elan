@@ -1,3 +1,5 @@
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Alert, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -12,6 +14,15 @@ import { useTheme } from '@/hooks/use-theme';
 export function BackupCard() {
   const theme = useTheme();
   const backup = useBackup();
+
+  // Relit le statut de la dernière sauvegarde au retour sur l'écran : un échec
+  // d'auto-backup (après une séance) était sinon invisible jusqu'au redémarrage.
+  const { refreshLast } = backup;
+  useFocusEffect(
+    useCallback(() => {
+      refreshLast();
+    }, [refreshLast]),
+  );
 
   const confirmRestore = () => {
     Alert.alert(

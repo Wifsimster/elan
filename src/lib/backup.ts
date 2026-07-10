@@ -53,6 +53,24 @@ async function persistSecrets(accessKeyId: string, secretAccessKey: string): Pro
 /** Version du format de sauvegarde (indépendante du schéma SQLite). */
 const BACKUP_FORMAT = 1;
 
+// Mutex de sauvegarde/restauration : sérialise `runBackup` (lit toute la base
+// via exportAll) et `restoreBackup` (la remplace via importAll). Sans lui, une
+// auto-backup déclenchée après une séance pouvait lire une base à moitié
+// restaurée (expo-sqlite laisse des requêtes concurrentes rejoindre une
+// withTransactionAsync). On chaîne les opérations pour qu'elles ne se
+// chevauchent jamais.
+let backupChain: Promise<unknown> = Promise.resolve();
+
+function withBackupLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = backupChain.then(fn, fn);
+  // La chaîne ne doit pas se rompre sur une erreur (sinon tout se bloque).
+  backupChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 export type BackupConfig = S3Config & {
   /** Sauvegarde automatique après chaque séance. */
   enabled: boolean;
@@ -153,31 +171,33 @@ async function recordLast(last: BackupLast): Promise<void> {
 
 /** Téléverse une sauvegarde complète. Lève en cas d'erreur réseau/HTTP. */
 export async function runBackup(config?: BackupConfig): Promise<BackupLast> {
-  const cfg = config ?? (await getBackupConfig());
-  if (!isConfigComplete(cfg)) throw new Error('Configuration S3 incomplète.');
+  return withBackupLock(async () => {
+    const cfg = config ?? (await getBackupConfig());
+    if (!isConfigComplete(cfg)) throw new Error('Configuration S3 incomplète.');
 
-  const snapshot: BackupSnapshot = {
-    format: BACKUP_FORMAT,
-    app: 'suivi-sport',
-    exportedAt: nowMs(),
-    schema: SCHEMA_VERSION,
-    data: await exportAll(),
-  };
-
-  try {
-    await putObject(cfg, JSON.stringify(snapshot));
-    const last: BackupLast = { at: nowMs(), ok: true };
-    await recordLast(last);
-    return last;
-  } catch (e) {
-    const last: BackupLast = {
-      at: nowMs(),
-      ok: false,
-      error: e instanceof Error ? e.message : 'Échec de la sauvegarde.',
+    const snapshot: BackupSnapshot = {
+      format: BACKUP_FORMAT,
+      app: 'suivi-sport',
+      exportedAt: nowMs(),
+      schema: SCHEMA_VERSION,
+      data: await exportAll(),
     };
-    await recordLast(last);
-    throw e;
-  }
+
+    try {
+      await putObject(cfg, JSON.stringify(snapshot));
+      const last: BackupLast = { at: nowMs(), ok: true };
+      await recordLast(last);
+      return last;
+    } catch (e) {
+      const last: BackupLast = {
+        at: nowMs(),
+        ok: false,
+        error: e instanceof Error ? e.message : 'Échec de la sauvegarde.',
+      };
+      await recordLast(last);
+      throw e;
+    }
+  });
 }
 
 /**
@@ -196,6 +216,10 @@ export async function autoBackup(): Promise<void> {
 
 /** Télécharge la dernière sauvegarde et REMPLACE les données locales. */
 export async function restoreBackup(config?: BackupConfig): Promise<number> {
+  return withBackupLock(() => restoreBackupInner(config));
+}
+
+async function restoreBackupInner(config?: BackupConfig): Promise<number> {
   const cfg = config ?? (await getBackupConfig());
   if (!isConfigComplete(cfg)) throw new Error('Configuration S3 incomplète.');
 
