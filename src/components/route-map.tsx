@@ -12,7 +12,7 @@ import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 
 import { MapLibreRoute } from '@/components/maplibre-route';
 import { Radius } from '@/constants/theme';
-import { getMapStyleUrl } from '@/lib/map';
+import { getMapStyleUrl, peekMapStyleUrl } from '@/lib/map';
 import { createProjection, type GeoPoint } from '@/lib/route-projection';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -68,11 +68,33 @@ type Props = {
  */
 export function RouteMap(props: Props) {
   const theme = useTheme();
-  const [styleUrl, setStyleUrl] = useState<string | null>(null);
+  // Amorce depuis le cache mémoire (sync) : si le style est déjà connu, on ouvre
+  // directement le bon rendu, sans passer par le repli SVG puis basculer
+  // (flash SVG→MapLibre). `undefined` = pas encore résolu → placeholder neutre.
+  const [styleUrl, setStyleUrl] = useState<string | undefined>(peekMapStyleUrl);
 
   useEffect(() => {
-    getMapStyleUrl().then((u) => setStyleUrl(u || null));
-  }, []);
+    if (styleUrl === undefined) getMapStyleUrl().then((u) => setStyleUrl(u ?? ''));
+  }, [styleUrl]);
+
+  // État inconnu (première carte de la session, cache vide) : cadre neutre de la
+  // bonne taille plutôt que le SVG — évite un flash si un fond de carte est actif.
+  if (styleUrl === undefined) {
+    return props.fill ? (
+      <View style={{ flex: 1, backgroundColor: theme.background }} />
+    ) : (
+      <View
+        style={{
+          height: props.height ?? 200,
+          borderRadius: Radius.md,
+          borderCurve: 'continuous',
+          backgroundColor: theme.background,
+          borderWidth: 1,
+          borderColor: theme.border,
+        }}
+      />
+    );
+  }
 
   if (styleUrl && props.points.length >= 2) {
     return (

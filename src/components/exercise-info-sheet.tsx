@@ -82,7 +82,7 @@ export function ExerciseInfoSheet({ exercise, onClose }: Props) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <Pressable
         onPress={handleClose}
-        style={{ flex: 1, backgroundColor: '#00000099', justifyContent: 'flex-end' }}>
+        style={{ flex: 1, backgroundColor: theme.scrim, justifyContent: 'flex-end' }}>
         {exercise ? (
           <Animated.View
             style={[

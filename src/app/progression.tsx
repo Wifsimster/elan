@@ -35,11 +35,13 @@ export default function ProgressionScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      listMuscuExercises().then(setItems);
-      getAutoProgressionState().then((s) => {
-        const currentWeek = isoWeekKey(new Date(nowMs()));
-        setChanges(s.week === currentWeek ? s.changes : []);
-      });
+      listMuscuExercises().then(setItems).catch(() => {});
+      getAutoProgressionState()
+        .then((s) => {
+          const currentWeek = isoWeekKey(new Date(nowMs()));
+          setChanges(s.week === currentWeek ? s.changes : []);
+        })
+        .catch(() => {});
     }, []),
   );
 

@@ -27,6 +27,10 @@ export const Colors = {
     hairline: '#EDF0F6',
     accent: '#3B5BFF',
     accentSoft: '#E5EAFF',
+    // Couleur de lien (texte cliquable) — dérivée de l'accent de marque.
+    link: '#2F6BFF',
+    // Voile des surfaces modales (fond assombri derrière une feuille/pop-up).
+    scrim: 'rgba(0,0,0,0.6)',
     velo: '#0BA59B',
     muscu: '#7C3AED',
     heart: '#F43F5E',
@@ -48,6 +52,10 @@ export const Colors = {
     hairline: '#1A1F28',
     accent: '#5B7CFF',
     accentSoft: '#1B2236',
+    // Couleur de lien (texte cliquable) — dérivée de l'accent de marque.
+    link: '#6E8BFF',
+    // Voile des surfaces modales (un peu plus dense sur fond sombre).
+    scrim: 'rgba(0,0,0,0.66)',
     velo: '#22D3C5',
     muscu: '#A78BFA',
     heart: '#FF5C7A',

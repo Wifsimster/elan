@@ -21,9 +21,11 @@ export function GoalsProgressCard() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      goalProgressList(nowMs()).then((list) => {
-        if (!cancelled) setItems(list);
-      });
+      goalProgressList(nowMs())
+        .then((list) => {
+          if (!cancelled) setItems(list);
+        })
+        .catch(() => {});
       return () => {
         cancelled = true;
       };

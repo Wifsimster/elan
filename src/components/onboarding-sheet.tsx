@@ -51,7 +51,7 @@ export function OnboardingSheet({
       {/* ScrollView : centré quand le contenu tient, défilable sinon (paysage
           court). Marges latérales de sécurité pour l'encoche en paysage. */}
       <ScrollView
-        style={{ flex: 1, backgroundColor: '#000000AA' }}
+        style={{ flex: 1, backgroundColor: theme.scrim }}
         contentContainerStyle={{
           flexGrow: 1,
           justifyContent: 'center',
