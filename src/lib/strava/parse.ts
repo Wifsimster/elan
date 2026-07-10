@@ -40,7 +40,11 @@ const MAX_CHARS = 30_000_000;
 
 function num(s: string | null | undefined): number | null {
   if (s == null) return null;
-  const v = Number(s.trim());
+  const t = s.trim();
+  // Chaîne vide → null (et non 0) : `Number('')` vaut 0, ce qui fabriquait de
+  // fausses altitudes / cadences à 0 pour une balise présente mais vide.
+  if (t === '') return null;
+  const v = Number(t);
   return Number.isFinite(v) ? v : null;
 }
 

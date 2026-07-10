@@ -4,6 +4,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   BackHandler,
   Modal,
   ScrollView,
@@ -432,14 +433,18 @@ export default function MuscuScreen() {
   const { totalSets, doneSets, totalVolume } = stats;
 
   // Sauvegarde du brouillon (séance en pause, reprenable). Best-effort, local.
-  const persistDraft = () =>
+  // `getElapsedSec()` (temps live) plutôt que le state `elapsedSec` : au passage
+  // en arrière-plan on veut le chrono à l'instant T, pas la valeur figée.
+  const persistDraft = () => {
+    if (totalSets === 0) return; // ne pas persister un brouillon vide
     saveMuscuDraft({
       version: 1,
       startedAt: startedAtRef.current,
-      elapsedSec: watch.elapsedSec,
+      elapsedSec: watch.getElapsedSec(),
       exercises,
       hrSamples: hrSamplesRef.current,
     });
+  };
 
   // Écriture continue : à chaque changement structurel (exercices, pause), on
   // re-sauvegarde, pour qu'une fermeture brutale de l'app ne perde rien. Quand la
@@ -567,6 +572,22 @@ export default function MuscuScreen() {
     );
     return true;
   };
+
+  // Persiste le brouillon au passage en arrière-plan (chrono live + buffer FC
+  // depuis la dernière écriture structurelle) : sinon un kill mémoire en arrière-
+  // plan perdrait ces secondes/échantillons. Ref pour capter le dernier état.
+  const persistDraftRef = useRef(persistDraft);
+  useEffect(() => {
+    persistDraftRef.current = persistDraft;
+  });
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' && hydratedRef.current && !savingRef.current) {
+        persistDraftRef.current();
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   // Le bouton retour matériel (Android) doit suivre le même chemin que la croix,
   // sinon il quitterait la modale en perdant la séance en mémoire.
