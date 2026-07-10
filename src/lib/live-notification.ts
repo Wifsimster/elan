@@ -19,6 +19,23 @@ const LIVE_NOTIFICATION_ID = 'live-session';
 
 export type LiveKind = 'velo' | 'muscu';
 
+/**
+ * Demande (best-effort, une fois) la permission de notifications. Sur Android
+ * 13+ (`POST_NOTIFICATIONS`) elle est nécessaire pour que la notification
+ * persistante de séance ET celle du service GPS de premier plan soient visibles
+ * dans le volet. Sans elle, l'enregistrement continue mais sans indicateur.
+ * À appeler au démarrage d'une séance ; ne lève jamais.
+ */
+export async function ensureNotificationPermission(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') await Notifications.requestPermissionsAsync();
+  } catch {
+    // Refus / plateforme non supportée : on continue sans notification.
+  }
+}
+
 // Canal silencieux et discret (importance basse : reste dans le volet sans son
 // ni vibration ni heads-up). Créé à la demande, Android uniquement.
 async function ensureLiveChannel(): Promise<void> {

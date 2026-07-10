@@ -12,8 +12,10 @@ import { CadenceSpeedProvider } from '@/hooks/use-cadence-speed';
 import { HeartRateProvider } from '@/hooks/use-heart-rate';
 import { useTheme } from '@/hooks/use-theme';
 import { runWeeklyProgressionIfDue } from '@/lib/auto-progression';
+import { reconcileOrphanGpsTask } from '@/lib/gps-task';
 import { clearLiveSessionNotification } from '@/lib/live-notification';
 import { applyNotifications } from '@/lib/notifications';
+import { recoverOrphanSessions } from '@/lib/session-recovery';
 import { nowMs } from '@/lib/time';
 
 export const unstable_settings = {
@@ -98,12 +100,16 @@ export default function RootLayout() {
   //
   // Filet de sécurité : si l'app a été tuée en pleine séance, la notification
   // persistante « séance en cours » peut subsister alors que l'écran de séance
-  // n'est plus monté. On l'efface au démarrage à froid (une séance muscu reste
-  // reprenable depuis son brouillon ; le vélo n'a pas de brouillon). Aucune
-  // séance vélo/muscu n'est restaurée au lancement, donc rien à préserver.
+  // n'est plus monté. On l'efface au démarrage à froid. Une sortie vélo
+  // interrompue est en outre récupérée depuis ses points flushés (session-recovery),
+  // et une tâche GPS orpheline (service de premier plan sans consommateur) est
+  // coupée. Ces opérations tournent avant toute nouvelle séance, donc aucune
+  // séance en cours ne peut être balayée par erreur.
   useEffect(() => {
     applyNotifications();
     clearLiveSessionNotification();
+    recoverOrphanSessions();
+    reconcileOrphanGpsTask();
     // Progression auto : si une nouvelle semaine ISO a commencé, on relève la
     // difficulté du programme muscu selon le ressenti et on notifie (best-effort,
     // idempotent — ne s'exécute qu'une fois par semaine). Activé par défaut.
@@ -115,9 +121,12 @@ export default function RootLayout() {
   // synchrone, non dépréciée en v56).
   useEffect(() => {
     const handle = (route: unknown) => {
-      // Notification de séance (retour à l'écran en cours) ou annonce de
-      // progression auto (ouvre la revue sur la page Progression).
-      if (route === '/velo' || route === '/muscu' || route === '/progression') {
+      // Notification de séance muscu (retour à l'écran en cours) ou annonce de
+      // progression auto (ouvre la revue sur la page Progression). Pas de branche
+      // « /velo » : le vélo n'émet pas de notification persistante applicative
+      // (seul le service GPS natif en affiche une, sans route) — y naviguer
+      // ouvrirait une NOUVELLE sortie.
+      if (route === '/muscu' || route === '/progression') {
         router.navigate(route);
       }
     };

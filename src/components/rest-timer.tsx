@@ -14,6 +14,13 @@ type Props = {
   endsAt: number | null;
   /** Ajuste le minuteur (nouvel horodatage de fin) ou le ferme (`null`). */
   onChange: (endsAt: number | null) => void;
+  /**
+   * Signale un ajustement ±Δs de la DURÉE souhaitée (bouton −15 / +15). Distinct
+   * de `onChange` (qui ne porte que l'horodatage de fin) : le parent mémorise la
+   * préférence par le delta réel, sinon « +15 » à 2 s de la fin enregistrerait
+   * ~16 s comme repos préféré.
+   */
+  onAdjustPreference?: (deltaSec: number) => void;
 };
 
 /** Auto-fermeture de la barre une fois le repos terminé (ms). */
@@ -24,7 +31,7 @@ const LINGER_MS = 5000;
  * récupération. Démarré automatiquement quand une série est cochée pendant une
  * séance de muscu. 100 % local — aucune donnée ne sort de l'appareil.
  */
-export function RestTimer({ endsAt, onChange }: Props) {
+export function RestTimer({ endsAt, onChange, onAdjustPreference }: Props) {
   const theme = useTheme();
   // L'heure courante est tenue en état et rafraîchie par l'intervalle (jamais
   // lue pendant le rendu, qui doit rester pur). Le parent remonte le composant
@@ -57,10 +64,13 @@ export function RestTimer({ endsAt, onChange }: Props) {
   const remainingSec = Math.max(0, Math.ceil((endsAt - now) / 1000));
   const done = remainingSec === 0;
 
-  // Décale la fin à partir du temps restant courant (ou de maintenant si terminé).
+  // Décale la fin à partir du temps restant courant (ou de maintenant si terminé),
+  // et signale le delta pour que le parent ajuste la DURÉE préférée (pas le
+  // restant) — voir `onAdjustPreference`.
   const adjust = (deltaSec: number) => {
     const base = Math.max(endsAt, now);
     onChange(Math.max(now + 1000, base + deltaSec * 1000));
+    onAdjustPreference?.(deltaSec);
   };
 
   return (

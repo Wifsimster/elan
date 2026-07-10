@@ -16,6 +16,10 @@ export type LivePoint = ConsolidatedPoint;
 
 export type GpsStatus = 'idle' | 'requesting' | 'denied' | 'tracking';
 
+/** Résultat d'une demande de démarrage du suivi (distingue le refus « position
+ *  approximative » d'un refus total, pour un message dédié). */
+export type GpsStartResult = 'granted' | 'denied' | 'coarse';
+
 type GpsState = {
   distanceM: number;
   speedKmh: number;
@@ -36,6 +40,9 @@ const INITIAL: GpsState = {
 
 /** Distance minimale entre deux points conservés dans le tracé affiché en live. */
 const LIVE_DECIMATE_M = 8;
+/** Vitesse instantanée plafond retenue pour la vitesse max (km/h) : au-delà,
+ *  c'est un fix Doppler glitché, pas un vrai record (« 173 km/h à vélo »). */
+const MAX_PLAUSIBLE_KMH = 120;
 
 export function useGpsTracker() {
   const [status, setStatus] = useState<GpsStatus>('idle');
@@ -48,6 +55,9 @@ export function useGpsTracker() {
   const usingTaskRef = useRef(false);
   const consolidatorRef = useRef<GpsConsolidator | null>(null);
   const pointsRef = useRef<LivePoint[]>([]);
+  // Curseur du flush incrémental : index du premier point pas encore écrit en
+  // base (cf. use-gps-tracker → velo.tsx, persistance au fil de l'eau).
+  const flushedCountRef = useRef(0);
   const livePathRef = useRef<LivePoint[]>([]);
   const lastLiveRef = useRef<LivePoint | null>(null);
   // Horodatage de la dernière émission du curseur de tête (throttle du rendu carte).
@@ -87,7 +97,9 @@ export function useGpsTracker() {
     elevationGainM += result.deltaElevationGainM;
 
     const instSpeed = point.speedKmh ?? 0;
-    if (instSpeed > maxSpeedKmh) maxSpeedKmh = instSpeed;
+    // Plafond de plausibilité : un fix Doppler aberrant ne s'octroie pas la
+    // vitesse max de la sortie.
+    if (instSpeed > maxSpeedKmh && instSpeed <= MAX_PLAUSIBLE_KMH) maxSpeedKmh = instSpeed;
 
     pointsRef.current.push(point);
 
@@ -119,15 +131,25 @@ export function useGpsTracker() {
     setState({ ...accRef.current });
   }, []);
 
-  const start = useCallback(async (): Promise<boolean> => {
+  const start = useCallback(async (): Promise<GpsStartResult> => {
     setStatus('requesting');
-    const { status: perm } = await Location.requestForegroundPermissionsAsync();
-    if (perm !== 'granted') {
+    const perm = await Location.requestForegroundPermissionsAsync();
+    if (perm.status !== 'granted') {
       setStatus('denied');
-      return false;
+      return 'denied';
+    }
+    // Android 12+ : l'utilisateur peut n'accorder que la position APPROXIMATIVE.
+    // À vélo elle est inexploitable — chaque fix dépasse la porte de précision
+    // (50 m, gps-filter) et est rejeté en silence, laissant une session vide et
+    // « En attente de déplacement ». On refuse explicitement, avec un message
+    // dédié côté écran (position précise requise).
+    if (perm.android?.accuracy === 'coarse') {
+      setStatus('denied');
+      return 'coarse';
     }
     consolidatorRef.current = new GpsConsolidator();
     pointsRef.current = [];
+    flushedCountRef.current = 0;
     livePathRef.current = [];
     lastLiveRef.current = null;
     lastLiveEmitRef.current = 0;
@@ -160,12 +182,27 @@ export function useGpsTracker() {
       );
     }
     setStatus('tracking');
-    return true;
+    return 'granted';
   }, [handleFix]);
 
   const setPaused = useCallback((paused: boolean) => {
     pausedRef.current = paused;
   }, []);
+
+  // Renvoie les points accumulés depuis le dernier appel et avance le curseur.
+  // Sert au flush incrémental : l'écran écrit ces points en base au fil de l'eau
+  // (survie à un crash) sans re-persister ce qui l'a déjà été.
+  const takeUnflushed = useCallback((): LivePoint[] => {
+    const all = pointsRef.current;
+    const from = flushedCountRef.current;
+    if (from >= all.length) return [];
+    const slice = all.slice(from);
+    flushedCountRef.current = all.length;
+    return slice;
+  }, []);
+
+  // Tous les points capturés (pour recalculer les agrégats à l'enregistrement).
+  const allPoints = useCallback((): LivePoint[] => pointsRef.current.slice(), []);
 
   const stop = useCallback(() => {
     subRef.current?.remove();
@@ -182,5 +219,5 @@ export function useGpsTracker() {
     };
   }, []);
 
-  return { status, ...state, livePath, start, stop, setPaused };
+  return { status, ...state, livePath, start, stop, setPaused, takeUnflushed, allPoints };
 }

@@ -14,13 +14,15 @@ import { Elevation, Radius, Type } from '@/constants/theme';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
+  deleteSession,
+  finalizeSession,
   getProfile,
   insertTrackPoints,
-  updateSession,
 } from '@/lib/db';
 import { cadenceParts, distanceParts, formatDuration, hrParts, speedParts } from '@/lib/format';
 import { movingTimeSec } from '@/lib/moving-time';
 import { nearestSample, pushDownsampled, summarizeCadence, summarizeHr } from '@/lib/samples';
+import { ensureNotificationPermission } from '@/lib/live-notification';
 import { finalizeSavedSession } from '@/lib/session-finalize';
 import { nowMs } from '@/lib/time';
 import type { HrSample } from '@/lib/types';
@@ -31,7 +33,10 @@ import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useStopwatch } from '@/hooks/use-stopwatch';
 import { useTheme } from '@/hooks/use-theme';
 
-type Phase = 'idle' | 'active' | 'paused' | 'saving';
+type Phase = 'idle' | 'active' | 'paused' | 'saving' | 'save-failed';
+
+/** Cadence du flush incrémental des points GPS vers la base (survie au crash). */
+const FLUSH_INTERVAL_MS = 20_000;
 
 type CadenceSample = { ts: number; cadence: number };
 
@@ -57,11 +62,18 @@ export default function VeloScreen() {
   const [profileMaxHr, setProfileMaxHr] = useState(190);
   const phaseRef = useRef<Phase>('idle');
   const startedAtRef = useRef<number>(0);
+  // Id de la séance, créée dès le `begin()` (endedAt NULL = « en cours ») : les
+  // points sont flushés en base au fil de l'eau, donc un crash/kill ne perd plus
+  // toute la sortie (récupérée au prochain lancement, cf. session-recovery).
+  const sessionIdRef = useRef<number | null>(null);
   const hrSamplesRef = useRef<HrSample[]>([]);
   const cadenceSamplesRef = useRef<CadenceSample[]>([]);
   // Résultat figé de gps.stop() : un réessai après un échec d'enregistrement ne
   // doit pas re-stopper le GPS ni risquer de repartir d'un tracé vidé.
   const savedResultRef = useRef<ReturnType<typeof gps.stop> | null>(null);
+  // Garde anti-recouvrement du flush incrémental (un flush lent ne doit pas se
+  // superposer au suivant, ni au flush final).
+  const flushingRef = useRef(false);
 
   const hasCadenceSensor = cscDevices.length > 0 || cadenceRpm != null;
   const hasSpeedSensor = sensorSpeedKmh != null;
@@ -98,25 +110,90 @@ export default function VeloScreen() {
   }, [subscribeCsc]);
 
   const begin = async () => {
-    const ok = await gps.start();
-    if (!ok) {
+    // Demande best-effort de la permission notifications (Android 13+) : sans
+    // elle, la notification du service GPS de premier plan est masquée du volet
+    // (l'enregistrement continue mais sans indicateur ni retour en un tap).
+    ensureNotificationPermission();
+    const res = await gps.start();
+    if (res !== 'granted') {
       Alert.alert(
-        'Localisation refusée',
-        "Autorise l'accès à la position pour mesurer ta sortie. Tu peux l'activer dans les réglages Android.",
+        res === 'coarse' ? 'Position précise requise' : 'Localisation refusée',
+        res === 'coarse'
+          ? "Élan a besoin de la position précise pour tracer ta sortie. Choisis « Précise » dans les réglages de localisation de l'application."
+          : "Autorise l'accès à la position pour mesurer ta sortie. Tu peux l'activer dans les réglages Android.",
       );
       return;
     }
-    startedAtRef.current = nowMs();
+    const startedAt = nowMs();
+    // Crée la séance immédiatement (endedAt NULL = en cours, déjà exclue de
+    // l'historique et des stats). Si la base échoue, on ne démarre pas : mieux
+    // vaut un refus clair qu'une sortie qu'on croit enregistrer sans filet.
+    let id: number;
+    try {
+      id = await createSession('velo', startedAt);
+    } catch {
+      gps.stop();
+      Alert.alert(
+        'Impossible de démarrer',
+        "La sortie n'a pas pu être initialisée. Réessaie.",
+      );
+      return;
+    }
+    sessionIdRef.current = id;
+    startedAtRef.current = startedAt;
+    savedResultRef.current = null;
     hrSamplesRef.current = [];
     cadenceSamplesRef.current = [];
+    watch.reset();
     watch.start();
     setPhase('active');
   };
+
+  // Attache la FC et la cadence les plus proches à un lot de points GPS.
+  const attachSensors = (points: { ts: number; lat: number; lon: number; altitude: number | null; speedKmh: number | null }[]) =>
+    points.map((p) => ({
+      ts: p.ts,
+      lat: p.lat,
+      lon: p.lon,
+      altitude: p.altitude,
+      speedKmh: p.speedKmh,
+      hr: nearestSample(hrSamplesRef.current, p.ts, (s) => s.hr),
+      cadence: nearestSample(cadenceSamplesRef.current, p.ts, (s) => s.cadence),
+    }));
+
+  // Flush incrémental : écrit les points GPS accumulés depuis le dernier flush.
+  // Best-effort — un échec n'est pas grave, l'enregistrement final réécrit
+  // l'intégralité du tracé (finalizeSession est idempotent).
+  const flush = async () => {
+    const id = sessionIdRef.current;
+    if (id == null || flushingRef.current) return;
+    const pts = gps.takeUnflushed();
+    if (pts.length === 0) return;
+    flushingRef.current = true;
+    try {
+      await insertTrackPoints(id, attachSensors(pts));
+    } catch {
+      // Points perdus pour la survie au crash uniquement ; réécrits à la fin.
+    } finally {
+      flushingRef.current = false;
+    }
+  };
+
+  // Flush périodique tant que la sortie est active.
+  useEffect(() => {
+    if (phase !== 'active') return;
+    const timer = setInterval(() => {
+      flush();
+    }, FLUSH_INTERVAL_MS);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   const pause = () => {
     watch.pause();
     gps.setPaused(true);
     setPhase('paused');
+    flush(); // persiste sans attendre le prochain tick
   };
 
   const resume = () => {
@@ -126,6 +203,9 @@ export default function VeloScreen() {
   };
 
   const finish = () => {
+    // Garde de réentrance : ne pas empiler deux confirmations (double-tap) ni
+    // relancer un enregistrement déjà en cours.
+    if (phase === 'saving') return;
     Alert.alert('Terminer la sortie ?', 'La séance sera enregistrée.', [
       { text: 'Continuer', style: 'cancel' },
       { text: 'Terminer', style: 'default', onPress: save },
@@ -133,21 +213,25 @@ export default function VeloScreen() {
   };
 
   const save = async () => {
+    if (phaseRef.current === 'saving') return; // réentrance
+    const id = sessionIdRef.current;
+    if (id == null) return;
     setPhase('saving');
     // Figé au premier appel : un réessai réutilise le même tracé/agrégats.
     const result = savedResultRef.current ?? gps.stop();
     savedResultRef.current = result;
     watch.pause();
-    const durationSec = watch.elapsedSec;
+    // Durée lue en direct (pas la valeur figée du state) au moment du « Terminer ».
+    const durationSec = watch.getElapsedSec();
     const { avgHr, maxHr } = summarizeHr(hrSamplesRef.current);
     const { avgCadence, maxCadence } = summarizeCadence(
       cadenceSamplesRef.current.map((s) => s.cadence),
     );
     // Temps en mouvement (hors arrêts) déduit du tracé : sert de base à la
     // vitesse moyenne et aux calories pour qu'un arrêt prolongé (ou un chrono
-    // oublié) ne les fausse pas. À défaut de tracé exploitable, on retombe sur
-    // la durée totale.
-    const moving = movingTimeSec(result.points);
+    // oublié) ne les fausse pas. Borné à la durée totale (le mouvement ne peut
+    // pas dépasser le temps écoulé). À défaut de tracé, on retombe sur la durée.
+    const moving = Math.min(movingTimeSec(result.points), durationSec);
     const effectiveSec = moving > 0 ? moving : durationSec;
     const avgSpeedKmh =
       effectiveSec > 0 ? result.distanceM / 1000 / (effectiveSec / 3600) : 0;
@@ -163,35 +247,28 @@ export default function VeloScreen() {
 
     try {
       const endedAt = nowMs();
-      const id = await createSession('velo', startedAtRef.current);
-      await updateSession(id, {
-        endedAt,
-        durationSec,
-        movingTimeSec: moving > 0 ? moving : null,
-        distanceM: result.distanceM,
-        avgSpeedKmh,
-        maxSpeedKmh: result.maxSpeedKmh,
-        elevationGainM: result.elevationGainM,
-        avgHr,
-        maxHr,
-        avgCadence,
-        maxCadence,
-        calories,
-      });
-
-      // Attache la FC et la cadence les plus proches à chaque point GPS.
-      const samples = hrSamplesRef.current;
-      const cadenceSamples = cadenceSamplesRef.current;
-      const points = result.points.map((p) => ({
-        ts: p.ts,
-        lat: p.lat,
-        lon: p.lon,
-        altitude: p.altitude,
-        speedKmh: p.speedKmh,
-        hr: nearestSample(samples, p.ts, (s) => s.hr),
-        cadence: nearestSample(cadenceSamples, p.ts, (s) => s.cadence),
-      }));
-      await insertTrackPoints(id, points);
+      const points = attachSensors(result.points);
+      // Écriture atomique : réécrit tout le tracé + agrégats + endedAt dans une
+      // seule transaction, en réutilisant l'id créé au démarrage (pas de
+      // doublon au réessai, pas de séance visible sans points).
+      await finalizeSession(
+        id,
+        {
+          endedAt,
+          durationSec,
+          movingTimeSec: moving > 0 ? moving : null,
+          distanceM: result.distanceM,
+          avgSpeedKmh,
+          maxSpeedKmh: result.maxSpeedKmh,
+          elevationGainM: result.elevationGainM,
+          avgHr,
+          maxHr,
+          avgCadence,
+          maxCadence,
+          calories,
+        },
+        points,
+      );
 
       finalizeSavedSession({
         type: 'velo',
@@ -199,16 +276,19 @@ export default function VeloScreen() {
         endedAt,
         distanceM: result.distanceM,
         calories,
-        hrSamples: samples,
+        hrSamples: hrSamplesRef.current,
       });
+      sessionIdRef.current = null; // enregistrée : plus d'orpheline à récupérer
       router.replace({ pathname: '/session/[id]', params: { id } });
     } catch {
-      // L'écriture a échoué : on ne reste pas bloqué sur « saving ». On revient
-      // en pause pour que l'utilisateur puisse réessayer sans perdre la sortie.
-      setPhase('paused');
+      // Échec d'écriture : phase dédiée (Réessayer / Abandonner). Surtout PAS de
+      // « Reprendre » — le GPS est déjà arrêté, reprendre roulerait sans tracer.
+      // La séance reste en base (endedAt NULL) : récupérable au pire au prochain
+      // lancement, et un réessai réécrit tout proprement.
+      setPhase('save-failed');
       Alert.alert(
         "Échec de l'enregistrement",
-        "La sortie n'a pas pu être enregistrée. Réessaie.",
+        "La sortie n'a pas pu être enregistrée. Réessaie, ou abandonne.",
       );
     }
   };
@@ -218,6 +298,7 @@ export default function VeloScreen() {
       router.back();
       return;
     }
+    if (phase === 'saving') return; // pas d'abandon en plein enregistrement
     Alert.alert('Abandonner la sortie ?', 'Les données ne seront pas enregistrées.', [
       { text: 'Continuer', style: 'cancel' },
       {
@@ -225,10 +306,25 @@ export default function VeloScreen() {
         style: 'destructive',
         onPress: () => {
           gps.stop();
+          // Supprime la séance en cours pour qu'elle ne soit pas « récupérée »
+          // au prochain lancement (best-effort, local).
+          const id = sessionIdRef.current;
+          sessionIdRef.current = null;
+          if (id != null) deleteSession(id).catch(() => {});
           router.back();
         },
       },
     ]);
+  };
+
+  // Abandon depuis la phase « échec d'enregistrement » : la sortie est finie,
+  // on supprime la séance en cours (sinon elle serait récupérée au prochain
+  // lancement) et on quitte, sans reconfirmation (l'utilisateur a choisi).
+  const discardAfterFailure = () => {
+    const id = sessionIdRef.current;
+    sessionIdRef.current = null;
+    if (id != null) deleteSession(id).catch(() => {});
+    router.back();
   };
 
   // Le bouton retour matériel (Android) doit suivre le même chemin que la croix
@@ -255,11 +351,16 @@ export default function VeloScreen() {
     };
   }, [gps.stop]);
 
+  // Calories live estimées avec la vitesse MOYENNE (distance / temps écoulé),
+  // pas la vitesse instantanée : sinon la tuile bondit (~280 → ~1100 kcal) sur
+  // un simple sprint, alors que l'estimation doit refléter l'effort cumulé.
+  const liveAvgSpeedKmh =
+    watch.elapsedSec > 0 ? gps.distanceM / 1000 / (watch.elapsedSec / 3600) : 0;
   const liveCalories = estimateCalories({
     type: 'velo',
     weightKg,
     durationSec: watch.elapsedSec,
-    avgSpeedKmh: gps.speedKmh,
+    avgSpeedKmh: liveAvgSpeedKmh,
   });
 
   return (
@@ -402,6 +503,24 @@ export default function VeloScreen() {
               onPress={begin}
             />
           </View>
+        ) : phase === 'save-failed' ? (
+          // Écriture échouée : uniquement Réessayer / Abandonner. Pas de reprise
+          // possible — le GPS est arrêté, la sortie est finie, seule l'écriture
+          // a raté.
+          <>
+            <View style={{ flex: 1 }}>
+              <Button
+                title="Abandonner"
+                icon="trash-can-outline"
+                variant="secondary"
+                color={theme.danger}
+                onPress={discardAfterFailure}
+              />
+            </View>
+            <View style={{ flex: 1.4 }}>
+              <Button title="Réessayer" icon="refresh" color={theme.velo} onPress={save} />
+            </View>
+          </>
         ) : (
           <>
             <View style={{ flex: 1 }}>
@@ -410,6 +529,7 @@ export default function VeloScreen() {
                 icon={phase === 'paused' ? 'play' : 'pause'}
                 variant="secondary"
                 color={theme.velo}
+                disabled={phase === 'saving'}
                 onPress={phase === 'paused' ? resume : pause}
               />
             </View>

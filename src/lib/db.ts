@@ -389,6 +389,43 @@ export async function getSession(id: number): Promise<Session | null> {
   return db.getFirstAsync<Session>('SELECT * FROM sessions WHERE id = ?;', id);
 }
 
+/**
+ * Finalise une séance vélo pré-créée (au `begin()`) de façon ATOMIQUE : réécrit
+ * l'intégralité de ses points GPS et applique les agrégats + `endedAt` dans une
+ * seule transaction. Idempotent : un réessai après un échec (ou un flush
+ * incrémental antérieur) réécrit proprement le même résultat, sans doublon de
+ * séance ni point orphelin. C'est le remplaçant du triptyque non transactionnel
+ * createSession → updateSession → insertTrackPoints côté écran.
+ */
+export async function finalizeSession(
+  id: number,
+  patch: SessionUpdate,
+  points: Omit<TrackPoint, 'id' | 'sessionId'>[],
+): Promise<void> {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM track_points WHERE sessionId = ?;', id);
+    await insertTrackPointRows(db, id, points);
+    const keys = Object.keys(patch) as (keyof SessionUpdate)[];
+    if (keys.length > 0) {
+      const assignments = keys.map((k) => `${k} = ?`).join(', ');
+      const values = keys.map((k) => patch[k] ?? null);
+      await db.runAsync(`UPDATE sessions SET ${assignments} WHERE id = ?;`, ...values, id);
+    }
+  });
+}
+
+/** Séances « en cours » (endedAt NULL), optionnellement filtrées par type. */
+export async function listInProgressSessions(type?: ActivityType): Promise<Session[]> {
+  const db = await getDb();
+  const clause = type ? ' AND type = ?' : '';
+  const params = type ? [type] : [];
+  return db.getAllAsync<Session>(
+    `SELECT * FROM sessions WHERE endedAt IS NULL${clause} ORDER BY startedAt ASC;`,
+    ...params,
+  );
+}
+
 /** Options de filtrage de l'historique. Compatibilité ascendante : passer un
  * nombre garde l'ancien comportement (limite seule, pas d'offset, pas de filtre). */
 export type ListSessionsOptions = {
@@ -601,27 +638,76 @@ export async function getTrackPoints(sessionId: number): Promise<TrackPoint[]> {
 // Séries de musculation
 // ---------------------------------------------------------------------------
 
+/** Une série muscu prête à écrire (difficulty facultatif). */
+export type MuscuSetInput = Omit<MuscuSet, 'id' | 'sessionId' | 'difficulty'> & {
+  difficulty?: Difficulty | null;
+};
+
+async function replaceMuscuSetsIn(
+  db: SQLite.SQLiteDatabase,
+  sessionId: number,
+  sets: MuscuSetInput[],
+): Promise<void> {
+  await db.runAsync('DELETE FROM muscu_sets WHERE sessionId = ?;', sessionId);
+  if (sets.length === 0) return;
+  const stmt = await db.prepareAsync(
+    'INSERT INTO muscu_sets (sessionId, exercise, setIndex, reps, weightKg, difficulty) VALUES (?, ?, ?, ?, ?, ?);',
+  );
+  try {
+    for (const s of sets) {
+      await stmt.executeAsync(sessionId, s.exercise, s.setIndex, s.reps, s.weightKg, s.difficulty ?? null);
+    }
+  } finally {
+    await stmt.finalizeAsync();
+  }
+}
+
 export async function replaceMuscuSets(
   sessionId: number,
   // `difficulty` est facultatif à l'écriture (séries sans ressenti noté) ; il
   // reste un champ plein (nullable) à la lecture via `MuscuSet`.
-  sets: (Omit<MuscuSet, 'id' | 'sessionId' | 'difficulty'> & { difficulty?: Difficulty | null })[],
+  sets: MuscuSetInput[],
 ): Promise<void> {
   const db = await getDb();
   await db.withTransactionAsync(async () => {
-    await db.runAsync('DELETE FROM muscu_sets WHERE sessionId = ?;', sessionId);
-    if (sets.length === 0) return;
-    const stmt = await db.prepareAsync(
-      'INSERT INTO muscu_sets (sessionId, exercise, setIndex, reps, weightKg, difficulty) VALUES (?, ?, ?, ?, ?, ?);',
-    );
-    try {
-      for (const s of sets) {
-        await stmt.executeAsync(sessionId, s.exercise, s.setIndex, s.reps, s.weightKg, s.difficulty ?? null);
-      }
-    } finally {
-      await stmt.finalizeAsync();
-    }
+    await replaceMuscuSetsIn(db, sessionId, sets);
   });
+}
+
+/**
+ * Enregistre une séance muscu terminée de façon ATOMIQUE : création de la ligne
+ * (si `id` absent), agrégats + `endedAt`, et remplacement des séries, le tout
+ * dans une seule transaction. En cas d'échec, tout est annulé : ni séance
+ * visible sans séries, ni séance orpheline `endedAt IS NULL`. Renvoie l'id créé
+ * (ou réutilisé). Remplace le triptyque createSession → updateSession →
+ * replaceMuscuSets côté écran.
+ */
+export async function saveMuscuSession(
+  id: number | null,
+  startedAt: number,
+  patch: SessionUpdate,
+  sets: MuscuSetInput[],
+): Promise<number> {
+  const db = await getDb();
+  let sessionId = id;
+  await db.withTransactionAsync(async () => {
+    if (sessionId == null) {
+      const res = await db.runAsync(
+        'INSERT INTO sessions (type, startedAt, durationSec) VALUES (?, ?, 0);',
+        'muscu',
+        startedAt,
+      );
+      sessionId = res.lastInsertRowId;
+    }
+    const keys = Object.keys(patch) as (keyof SessionUpdate)[];
+    if (keys.length > 0) {
+      const assignments = keys.map((k) => `${k} = ?`).join(', ');
+      const values = keys.map((k) => patch[k] ?? null);
+      await db.runAsync(`UPDATE sessions SET ${assignments} WHERE id = ?;`, ...values, sessionId);
+    }
+    await replaceMuscuSetsIn(db, sessionId!, sets);
+  });
+  return sessionId!;
 }
 
 export async function getMuscuSets(sessionId: number): Promise<MuscuSet[]> {
