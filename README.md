@@ -1,166 +1,168 @@
 # Élan 🚴‍♂️🏋️
 
-Élan est une application mobile de **suivi sportif personnel**, pensée pour le **vélo** et la **musculation**. Elle fonctionne **100 % hors-ligne** : aucune donnée ne quitte votre téléphone, sans compte ni serveur.
+Élan is a personal **fitness-tracking** mobile app, built for **cycling** and **strength training**. It works **100% offline**: no data ever leaves your phone, with no account and no server.
 
-> 🔒 **Vos données restent sur votre appareil.** Tout est stocké dans une base locale. Les seules connexions réseau sont **optionnelles** et configurées par vous-même (sauvegarde et fonds de carte sur vos propres serveurs).
+> 🔒 **Your data stays on your device.** Everything is stored in a local database. The only network connections are **optional** and configured by you (backup and map tiles on your own servers).
 
 ---
 
-## Table des matières
+## Table of contents
 
-- [À quoi sert ce produit ?](#à-quoi-sert-ce-produit-)
-- [Captures d'écran](#captures-décran)
-- [Fonctionnalités principales](#fonctionnalités-principales)
-- [Comment ça fonctionne](#comment-ça-fonctionne)
-- [Environnements](#environnements)
-- [Déploiement](#déploiement)
-- [Stack technique](#stack-technique)
-- [Documentation complémentaire](#documentation-complémentaire)
+- [What is it for?](#what-is-it-for)
+- [Screenshots](#screenshots)
+- [Key features](#key-features)
+- [How it works](#how-it-works)
+- [Environments](#environments)
+- [Deployment](#deployment)
+- [Tech stack](#tech-stack)
+- [Further documentation](#further-documentation)
 
-### Documentation technique
+### Technical documentation
 
 | Document | Description |
 |----------|-------------|
-| [Capteurs Bluetooth](docs/CAPTEURS.md) | Appairer une ceinture cardiaque ou un capteur vélo, reconnexion auto, dépannage |
-| [Importer vos sorties](docs/IMPORT.md) | Reprendre d'anciennes activités depuis des fichiers GPX, TCX ou FIT |
-| [Sauvegarde des données](docs/SAUVEGARDE.md) | Configurer la sauvegarde optionnelle vers votre propre serveur S3 |
-| [Export « coach » pour une IA](docs/EXPORT-COACH.md) | Générer un bilan d'entraînement Markdown ou JSON à analyser par une IA |
-| [Guide de publication Play Store](docs/PUBLISHING.md) | Procédure pas à pas pour publier l'application sur le Google Play Store |
-| [Sécurité des données](docs/DATA_SAFETY.md) | Réponses prêtes à l'emploi pour le questionnaire « Sécurité des données » de la Play Console |
-| [Politique de confidentialité](PRIVACY.md) | Engagement de confidentialité de l'application (texte public) |
-| [Système de design PULSE](DESIGN.md) | Règles visuelles : couleurs, typographie, composants |
+| [Bluetooth sensors](docs/CAPTEURS.md) | Pair a heart-rate strap or a bike sensor, auto-reconnect, troubleshooting |
+| [Import your activities](docs/IMPORT.md) | Bring in past activities from GPX, TCX or FIT files |
+| [Data backup](docs/SAUVEGARDE.md) | Configure the optional backup to your own S3 server |
+| [“Coach” export for an AI](docs/EXPORT-COACH.md) | Generate a Markdown or JSON training report to be analysed by an AI |
+| [Play Store publishing guide](docs/PUBLISHING.md) | Step-by-step process to publish the app on the Google Play Store |
+| [Data safety](docs/DATA_SAFETY.md) | Ready-to-use answers for the Play Console “Data safety” questionnaire |
+| [Privacy policy](PRIVACY.md) | The app's privacy commitment (public text) |
+| [PULSE design system](DESIGN.md) | Visual rules: colors, typography, components |
 
 ---
 
-## À quoi sert ce produit ?
+## What is it for?
 
-- **Mesurer vos sorties vélo** en temps réel : distance, vitesse, dénivelé et tracé du parcours.
-- **Suivre vos séances de musculation** : exercices, séries, charges soulevées et progression.
-- **Enregistrer votre fréquence cardiaque** via une ceinture Bluetooth pour estimer l'effort et les calories.
-- **Garder l'historique** de toutes vos activités et visualiser vos progrès dans le temps.
-- **Rester maître de vos données** : tout est local, sauvegardes et cartes restent sous votre contrôle.
+- **Measure your bike rides** in real time: distance, speed, elevation gain and route trace.
+- **Track your strength-training sessions**: exercises, sets, weight lifted and progression.
+- **Record your heart rate** via a Bluetooth strap to estimate effort and calories.
+- **Keep the history** of all your activities and visualize your progress over time.
+- **Stay in control of your data**: everything is local; backups and maps remain under your control.
 
 ---
 
-## Captures d'écran
+## Screenshots
 
 <table>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/screenshots/01-accueil.png" width="240" alt="Tableau de bord" /><br />
-      <sub><b>Tableau de bord</b><br />Résumé de la semaine & activité sur 7 jours</sub>
+      <img src="docs/screenshots/01-accueil.png" width="240" alt="Dashboard" /><br />
+      <sub><b>Dashboard</b><br />Weekly summary & 7-day activity</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/04-session-velo.png" width="240" alt="Sortie vélo" /><br />
-      <sub><b>Sortie vélo</b><br />Carte du parcours, records & statistiques</sub>
+      <img src="docs/screenshots/04-session-velo.png" width="240" alt="Bike ride" /><br />
+      <sub><b>Bike ride</b><br />Route map, records & stats</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/05-session-velo-charts.png" width="240" alt="Vitesse & altitude" /><br />
-      <sub><b>Vitesse & altitude</b><br />Courbes détaillées de la séance</sub>
+      <img src="docs/screenshots/05-session-velo-charts.png" width="240" alt="Speed & elevation" /><br />
+      <sub><b>Speed & elevation</b><br />Detailed session charts</sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/screenshots/03-historique.png" width="240" alt="Historique" /><br />
-      <sub><b>Historique</b><br />Toutes les séances, filtrables par type</sub>
+      <img src="docs/screenshots/03-historique.png" width="240" alt="History" /><br />
+      <sub><b>History</b><br />Every session, filterable by type</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/06-progression.png" width="240" alt="Progression muscu" /><br />
-      <sub><b>Progression muscu</b><br />Suivi des charges, exercice par exercice</sub>
+      <img src="docs/screenshots/06-progression.png" width="240" alt="Strength progression" /><br />
+      <sub><b>Strength progression</b><br />Load tracking, exercise by exercise</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/10-reglages.png" width="240" alt="Capteurs" /><br />
-      <sub><b>Capteurs</b><br />Ceinture cardiaque & capteurs vélo Bluetooth</sub>
+      <img src="docs/screenshots/10-reglages.png" width="240" alt="Sensors" /><br />
+      <sub><b>Sensors</b><br />Bluetooth heart-rate strap & bike sensors</sub>
     </td>
   </tr>
 </table>
 
 ---
 
-## Fonctionnalités principales
+## Key features
 
-- **Séance vélo en direct** — Chronomètre, distance, vitesse instantanée et maximale, dénivelé positif, tracé GPS et calories estimées.
-- **Séance musculation en direct** — Exercices, séries (répétitions × charge), volume total soulevé et durée.
-- **Ceinture cardiaque Bluetooth** — Connexion automatique à votre capteur cardiaque et reconnexion au lancement.
-- **Capteur de cadence/vitesse vélo** — Prise en charge des capteurs Bluetooth de vélo (cadence et vitesse roue).
-- **Programmes de musculation** — Modèles de séances prêts à l'emploi (full-body, dos, cervicales) pour démarrer rapidement.
-- **Planning hebdomadaire** — Organisation de vos séances sur la semaine, avec rappels optionnels le jour prévu.
-- **Tableau de bord** — Résumé de la semaine et graphe d'activité sur 7 jours.
-- **Historique & détail** — Toutes les séances filtrables par type, avec page de détail (tracé, courbes, exercices).
-- **Progression** — Suivi des charges et des performances, exercice par exercice.
-- **Import de fichiers** — Reprise de vos anciennes sorties depuis des fichiers GPX, TCX ou FIT (Strava, autres apps).
-- **Partage d'image** — Génération d'une carte visuelle de séance à partager.
-- **Sauvegarde sur votre serveur** — Export chiffré en transit vers votre propre stockage compatible S3 (optionnel).
-- **Export « coach »** — Bilan d'entraînement lisible par une IA, à déposer dans votre propre outil de suivi.
+- **Live bike session** — Stopwatch, distance, instant and max speed, elevation gain, GPS trace and estimated calories.
+- **Live strength session** — Exercises, sets (reps × weight), total volume lifted and duration.
+- **Bluetooth heart-rate strap** — Automatic connection to your heart-rate sensor and reconnect on launch.
+- **Bike cadence/speed sensor** — Support for Bluetooth bike sensors (cadence and wheel speed).
+- **Strength programs** — Ready-to-use session templates (full-body, back, neck) to get started quickly.
+- **Weekly planning** — Organize your sessions across the week, with optional reminders on the scheduled day.
+- **Dashboard** — Weekly summary and 7-day activity chart.
+- **History & detail** — Every session filterable by type, with a detail page (trace, charts, exercises).
+- **Progression** — Load and performance tracking, exercise by exercise.
+- **File import** — Bring back your past rides from GPX, TCX or FIT files (Strava, other apps).
+- **Image sharing** — Generate a visual session card to share.
+- **Backup to your own server** — Export encrypted in transit to your own S3-compatible storage (optional).
+- **“Coach” export** — An AI-readable training report to drop into your own tracking tool.
 
 ---
 
-## Comment ça fonctionne
+## How it works
 
 ```mermaid
 graph LR
-    A[Capteurs GPS & Bluetooth] --> B[Application Élan]
-    F[Fichiers GPX / TCX / FIT] --> B
-    B --> C[(Base de données locale)]
-    C --> D[Sauvegarde S3 personnelle]
-    C --> E[Fond de carte en ligne opt-in]
-    C --> G[Export coach / partage]
+    A[GPS & Bluetooth sensors] --> B[Élan app]
+    F[GPX / TCX / FIT files] --> B
+    B --> C[(Local database)]
+    C --> D[Personal S3 backup]
+    C --> E[Opt-in online basemap]
+    C --> G[Coach export / sharing]
 ```
 
-L'application collecte les données pendant la séance grâce au GPS et aux capteurs Bluetooth. Tout est enregistré dans une **base locale** sur le téléphone. Vous pouvez aussi **importer** d'anciennes activités depuis des fichiers. Les connexions externes (sauvegarde, cartes) sont **optionnelles** et pointent vers **vos propres serveurs**.
+The app collects data during the session using GPS and Bluetooth sensors. Everything is stored in a **local database** on the phone. You can also **import** past activities from files. External connections (backup, maps) are **optional** and point to **your own servers**.
 
 ---
 
-## Environnements
+## Environments
 
-L'application est **locale** : elle ne dépend d'aucun serveur de l'éditeur. Les services réseau ci-dessous sont configurés par l'utilisateur et désactivés par défaut.
+The app is **local**: it depends on no vendor server. The network services below are configured by the user and disabled by default.
 
 | Service | Configuration | Description |
 |---------|---------------|-------------|
-| Base de données | Automatique | Stockage local sur l'appareil (aucune action requise) |
-| Sauvegarde S3 | Saisie par l'utilisateur | Serveur compatible S3 (par exemple MinIO ou SeaweedFS auto-hébergé) |
-| Fonds de carte | Opt-in (désactivé par défaut) | OpenFreeMap (gratuit, open source) ou serveur de tuiles MapLibre auto-hébergé |
+| Database | Automatic | Local storage on the device (no action required) |
+| S3 backup | User-provided | S3-compatible server (e.g. self-hosted MinIO or SeaweedFS) |
+| Map tiles | Opt-in (off by default) | OpenFreeMap (free, open source) or a self-hosted MapLibre tile server |
 
-> En l'absence de configuration, l'application reste pleinement fonctionnelle et la carte bascule sur un tracé vectoriel sans réseau.
+> With no configuration, the app remains fully functional and the map falls back to a network-free vector trace.
 
 ---
 
-## Déploiement
+## Deployment
 
 ```mermaid
 graph LR
-    A[Développeur] -->|Versionnement & tag| B[Build de production]
-    B -->|AAB signé| C{Méthode}
+    A[Developer] -->|Versioning & tag| B[Production build]
+    B -->|Signed AAB| C{Method}
     C -->|EAS Build| D[Play Console]
-    C -->|Build local Gradle| D
-    D -->|Test fermé puis production| E[Utilisateurs Android]
+    C -->|Local Gradle build| D
+    D -->|Closed test then production| E[Android users]
 ```
 
-La diffusion passe par le **Google Play Store**. Une version de production (App Bundle `.aab`) est produite soit dans le cloud via **EAS Build**, soit **localement** avec Gradle. L'application signée est ensuite envoyée à la **Play Console**, validée en test fermé, puis publiée. Le détail complet figure dans le [guide de publication](docs/PUBLISHING.md).
+Distribution goes through the **Google Play Store**. A production release (App Bundle `.aab`) is produced either in the cloud via **EAS Build** or **locally** with Gradle. The signed app is then uploaded to the **Play Console**, validated in closed testing, and published. The full details are in the [publishing guide](docs/PUBLISHING.md).
 
 ---
 
-## Stack technique
+## Tech stack
 
-- **Application :** Expo SDK 56, React Native 0.85, React 19, TypeScript
-- **Navigation :** Expo Router (routes typées)
-- **Stockage :** `expo-sqlite` (base locale, migrations versionnées)
-- **Capteurs :** `expo-location` (GPS), `react-native-ble-plx` (Bluetooth cardio & cadence)
-- **Cartes :** MapLibre — fond en ligne opt-in (OpenFreeMap ou serveur auto-hébergé) avec repli vectoriel `react-native-svg` hors-ligne
-- **Cible :** Android (iOS configuré mais secondaire)
+- **App:** Expo SDK 56, React Native 0.85, React 19, TypeScript
+- **Navigation:** Expo Router (typed routes)
+- **Storage:** `expo-sqlite` (local database, versioned migrations)
+- **Sensors:** `expo-location` (GPS), `react-native-ble-plx` (Bluetooth heart-rate & cadence)
+- **Maps:** MapLibre — opt-in online basemap (OpenFreeMap or self-hosted) with a `react-native-svg` vector fallback offline
+- **Target:** Android (iOS configured but secondary)
 
 ---
 
-## Documentation complémentaire
+## Further documentation
 
-- [Capteurs Bluetooth](docs/CAPTEURS.md) — Appairage ceinture cardiaque & capteur vélo.
-- [Importer vos sorties](docs/IMPORT.md) — Import de fichiers GPX, TCX et FIT.
-- [Sauvegarde des données](docs/SAUVEGARDE.md) — Sauvegarde S3 optionnelle.
-- [Export « coach » pour une IA](docs/EXPORT-COACH.md) — Bilan d'entraînement pour une IA.
-- [Guide de publication Play Store](docs/PUBLISHING.md) — Mise en ligne sur le Google Play Store.
-- [Sécurité des données](docs/DATA_SAFETY.md) — Questionnaire Play Console.
-- [Politique de confidentialité](PRIVACY.md) — Texte public de confidentialité.
-- [Système de design PULSE](DESIGN.md) — Règles visuelles de l'application.
-- [Journal des modifications](CHANGELOG.md) — Historique des versions.
+- [Bluetooth sensors](docs/CAPTEURS.md) — Pairing a heart-rate strap & bike sensor.
+- [Import your activities](docs/IMPORT.md) — Importing GPX, TCX and FIT files.
+- [Data backup](docs/SAUVEGARDE.md) — Optional S3 backup.
+- [“Coach” export for an AI](docs/EXPORT-COACH.md) — Training report for an AI.
+- [Play Store publishing guide](docs/PUBLISHING.md) — Publishing to the Google Play Store.
+- [Data safety](docs/DATA_SAFETY.md) — Play Console questionnaire.
+- [Privacy policy](PRIVACY.md) — The app's public privacy text.
+- [PULSE design system](DESIGN.md) — The app's visual rules.
+- [Changelog](CHANGELOG.md) — Version history.
 
-> **Note pour les développeurs :** le Bluetooth nécessite un *development build* (`npx expo run:android`), il ne fonctionne pas dans Expo Go. Les instructions techniques détaillées sont dans `CLAUDE.md` et `AGENTS.md`.
+> **Note for developers:** Bluetooth requires a *development build* (`npx expo run:android`); it does not work in Expo Go. Detailed technical instructions are in `CLAUDE.md` and `AGENTS.md`.
+</content>
+</invoke>
