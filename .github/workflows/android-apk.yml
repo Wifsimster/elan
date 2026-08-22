@@ -1,11 +1,13 @@
 # Build APK Android téléchargeable depuis GitHub.
 #
-# Deux usages :
+# Trois usages :
 #   • push d'un tag `v*` (créé par `npm run release`) → build + publication de
 #     l'APK en pièce jointe de la Release GitHub correspondante (créée si absente) ;
 #   • déclenchement manuel (workflow_dispatch) → build + artefact téléchargeable
 #     depuis l'exécution, et publication sur une release existante si un tag est
-#     fourni en entrée.
+#     fourni en entrée ;
+#   • PR modifiant ce workflow → build de vérification (artefact seulement), pour
+#     ne jamais découvrir une chaîne de build cassée le jour d'une release.
 #
 # Le build est 100 % local au runner (expo prebuild + Gradle) : pas d'EAS, pas de
 # compte requis. La signature suit `plugins/withReleaseSigning.js` : si les secrets
@@ -17,6 +19,10 @@ name: APK Android
 on:
   push:
     tags: ['v*']
+  # Vérification de la chaîne de build quand la recette elle-même change.
+  pull_request:
+    paths:
+      - '.github/workflows/android-apk.yml'
   workflow_dispatch:
     inputs:
       release_tag:

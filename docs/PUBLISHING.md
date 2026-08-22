@@ -184,9 +184,15 @@ entièrement sur le runner GitHub (pas d'EAS, pas de secret obligatoire).
 | Push d'un tag `v*` (créé par `npm run release && git push --follow-tags`) | Build, puis création de la Release `vX.Y.Z` si absente et ajout de l'APK `elan-X.Y.Z.apk` |
 | **Run workflow** manuel (onglet Actions) sans entrée | Build seul → APK en *artefact* de l'exécution (30 j, réservé aux personnes ayant accès au dépôt) |
 | **Run workflow** manuel avec `release_tag` | Build, puis ajout/remplacement de l'APK sur la release de ce tag |
+| PR touchant `.github/workflows/android-apk.yml` | Build de vérification (artefact seulement) : la chaîne de build est retestée dès que sa recette change |
 
 Les notes de release reprennent la section du `CHANGELOG.md` correspondant à la
 version, plus le **sha256** de l'APK.
+
+> Le bouton **Run workflow** n'apparaît (et l'API `workflow_dispatch` ne répond)
+> que si le fichier du workflow est présent sur la branche par défaut — règle
+> GitHub. Depuis une branche non fusionnée, c'est le déclencheur `pull_request`
+> ci-dessus qui permet de tester le build.
 
 ### Signature
 
