@@ -165,6 +165,53 @@ eas submit --platform android --profile production
 `autoIncrement` du profil `production`). Le **package** et la **clé de
 signature** ne doivent jamais changer.
 
+Pousser le tag (`git push --follow-tags`) déclenche en plus le workflow **APK
+Android**, qui attache l'APK de sideload à la Release GitHub — voir
+[APK téléchargeable depuis GitHub](#apk-téléchargeable-depuis-github).
+
+## APK téléchargeable depuis GitHub
+
+En parallèle du Play Store, chaque version taguée publie un **APK universel** en
+pièce jointe de la Release GitHub, installable en sideload sans compte ni store.
+Tout est fait par le workflow [`.github/workflows/android-apk.yml`](../.github/workflows/android-apk.yml)
+(« APK Android ») : `npm ci` → `expo prebuild -p android` → `./gradlew :app:assembleRelease`,
+entièrement sur le runner GitHub (pas d'EAS, pas de secret obligatoire).
+
+### Déclenchement
+
+| Déclencheur | Effet |
+|-------------|-------|
+| Push d'un tag `v*` (créé par `npm run release && git push --follow-tags`) | Build, puis création de la Release `vX.Y.Z` si absente et ajout de l'APK `elan-X.Y.Z.apk` |
+| **Run workflow** manuel (onglet Actions) sans entrée | Build seul → APK en *artefact* de l'exécution (30 j, réservé aux personnes ayant accès au dépôt) |
+| **Run workflow** manuel avec `release_tag` | Build, puis ajout/remplacement de l'APK sur la release de ce tag |
+
+Les notes de release reprennent la section du `CHANGELOG.md` correspondant à la
+version, plus le **sha256** de l'APK.
+
+### Signature
+
+Le workflow réutilise `plugins/withReleaseSigning.js` :
+
+- **Sans secret** (par défaut) : `assembleRelease` retombe sur la **clé debug
+  publique** d'Android. L'APK s'installe, mais n'importe qui peut en produire un
+  autre accepté comme « mise à jour » par Android — d'où l'empreinte sha256
+  publiée dans les notes, et l'avertissement affiché dans les logs du workflow.
+- **Avec secrets** : l'APK est signé avec ta clé d'upload. Renseigner dans
+  *Settings → Secrets and variables → Actions* :
+
+  | Secret | Contenu |
+  |--------|---------|
+  | `ANDROID_KEYSTORE_BASE64` | `base64 -w0 credentials/elan-upload.jks` |
+  | `ANDROID_KEYSTORE_PASSWORD` | mot de passe du keystore |
+  | `ANDROID_KEY_ALIAS` | `elan-upload` |
+  | `ANDROID_KEY_PASSWORD` | mot de passe de la clé |
+
+> ⚠️ Un APK signé localement (clé debug **ou** clé d'upload) n'a pas la signature
+> de **Play App Signing**. Une installation venant du Play Store et un APK GitHub
+> ne peuvent donc pas se mettre à jour l'un l'autre : désinstaller l'un avant
+> d'installer l'autre. La base SQLite locale est perdue à la désinstallation —
+> penser à la sauvegarde S3 (`docs/SAUVEGARDE.md`) ou à l'export avant.
+
 ## Aide-mémoire commandes
 
 ```bash
