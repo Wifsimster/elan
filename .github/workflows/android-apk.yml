@@ -136,9 +136,16 @@ jobs:
           sdkmanager="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
           [ -x "$sdkmanager" ] && yes | "$sdkmanager" --licenses > /dev/null || true
 
+      # ABI limitées aux deux architectures des téléphones réels : l'APK universel
+      # des 4 ABI du template pèse ~149 Mo, contre ~85 Mo ici, pour un build plus
+      # court. x86/x86_64 ne concernent que les émulateurs — qui se construisent
+      # en local. L'AAB Play Store (`bundleRelease`) n'est pas touché : il garde
+      # les 4 ABI de gradle.properties et split par architecture de son côté.
       - name: Gradle assembleRelease
         working-directory: android
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+        run: >-
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
 
       - name: Renomme et empreinte l'APK
         id: apk
@@ -181,7 +188,7 @@ jobs:
             echo
             echo '### 📦 Téléchargement'
             echo
-            echo "**\`$APK\`** — APK Android universel, à installer directement (sideload)."
+            echo "**\`$APK\`** — APK Android à installer directement (sideload), architectures \`arm64-v8a\` et \`armeabi-v7a\` (tous les téléphones ; pas les émulateurs x86)."
             echo
             echo "\`sha256: $SHA256\`"
             echo

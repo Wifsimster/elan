@@ -43,7 +43,7 @@ The Android **APK** of every tagged version is attached to the matching [GitHub 
 2. Check its `sha256` against the checksum printed in the release notes.
 3. Open the file on your phone and allow installation from this source when Android asks.
 
-> Requires **Android 8.0 (API 26)** or newer. If a Play Store build of Élan is already installed, uninstall it first — the two are signed with different keys.
+> Requires **Android 8.0 (API 26)** or newer, on an `arm64-v8a` or `armeabi-v7a` device — every real phone; x86 emulators are not covered, build those locally. If a Play Store build of Élan is already installed, uninstall it first — the two are signed with different keys.
 
 The APK is built by the [`APK Android` workflow](.github/workflows/android-apk.yml) (`expo prebuild` + Gradle, entirely on the GitHub runner). A manual run of that workflow also produces a downloadable build artifact for any branch. Signing details are covered in the [publishing guide](docs/PUBLISHING.md#apk-t%C3%A9l%C3%A9chargeable-depuis-github).
 

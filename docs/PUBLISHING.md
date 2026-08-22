@@ -189,6 +189,14 @@ entièrement sur le runner GitHub (pas d'EAS, pas de secret obligatoire).
 Les notes de release reprennent la section du `CHANGELOG.md` correspondant à la
 version, plus le **sha256** de l'APK.
 
+L'APK est construit pour **`arm64-v8a` + `armeabi-v7a`** uniquement
+(`-PreactNativeArchitectures`, qui alimente les `abiFilters` via le plugin Gradle
+React Native) : ~85 Mo au lieu de ~149 Mo pour l'APK universel des 4 ABI, et un
+build plus court. Les émulateurs x86/x86_64 ne sont donc pas couverts — ils se
+construisent en local (`npx expo run:android`). L'AAB du Play Store n'est pas
+concerné : `bundleRelease` garde les 4 ABI de `gradle.properties` et laisse Google
+livrer l'architecture voulue à chaque appareil.
+
 > Le bouton **Run workflow** n'apparaît (et l'API `workflow_dispatch` ne répond)
 > que si le fichier du workflow est présent sur la branche par défaut — règle
 > GitHub. Depuis une branche non fusionnée, c'est le déclencheur `pull_request`
