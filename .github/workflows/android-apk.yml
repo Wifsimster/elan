@@ -117,15 +117,19 @@ jobs:
       - name: Prebuild Android
         run: npx expo prebuild --platform android --no-install
 
-      # Le template Expo plafonne la heap à 2 Go, insuffisant pour R8 (minification
-      # release) sur ce projet : il tombe en OutOfMemoryError, y compris à 4 Go.
+      # Le template Expo plafonne la heap du démon à 2 Go, insuffisant pour R8
+      # (minification release) sur ce projet : OutOfMemoryError en fin de build.
       # Le runner ubuntu-latest a 16 Go — on lui en donne 8. La dernière valeur
-      # d'une clé gagne dans un .properties, d'où le simple append (et l'echo qui
-      # laisse la valeur effective dans les logs en cas de nouvelle OOM).
+      # d'une clé gagne dans un .properties, d'où l'append… mais le fichier
+      # généré par prebuild ne se termine PAS par un saut de ligne : sans le \n
+      # de tête, la propriété se colle à la précédente et n'est jamais lue (elle
+      # corrompt même la ligne d'accueil). Le grep final échoue le job si la
+      # valeur n'est pas relue proprement — une OOM silencieuse coûte 40 min.
       - name: Ajuste la heap Gradle du runner
         run: |
-          echo 'org.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m' >> android/gradle.properties
+          printf '\norg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m\n' >> android/gradle.properties
           tail -3 android/gradle.properties
+          grep -qx 'org.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m' android/gradle.properties
 
       - name: Licences SDK Android
         run: |
