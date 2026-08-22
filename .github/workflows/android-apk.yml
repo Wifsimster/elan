@@ -1,0 +1,209 @@
+# Build APK Android téléchargeable depuis GitHub.
+#
+# Trois usages :
+#   • push d'un tag `v*` (créé par `npm run release`) → build + publication de
+#     l'APK en pièce jointe de la Release GitHub correspondante (créée si absente) ;
+#   • déclenchement manuel (workflow_dispatch) → build + artefact téléchargeable
+#     depuis l'exécution, et publication sur une release existante si un tag est
+#     fourni en entrée ;
+#   • PR modifiant ce workflow → build de vérification (artefact seulement), pour
+#     ne jamais découvrir une chaîne de build cassée le jour d'une release.
+#
+# Le build est 100 % local au runner (expo prebuild + Gradle) : pas d'EAS, pas de
+# compte requis. La signature suit `plugins/withReleaseSigning.js` : si les secrets
+# ANDROID_KEYSTORE_* sont définis, l'APK est signé avec la clé d'upload ; sinon il
+# retombe sur la clé debug publique d'Android (installable, mais non vérifiable —
+# cf. docs/PUBLISHING.md).
+name: APK Android
+
+on:
+  push:
+    tags: ['v*']
+  # Vérification de la chaîne de build quand la recette elle-même change.
+  pull_request:
+    paths:
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Tag de release où publier l'APK (vide = artefact d'exécution seulement)"
+        required: false
+        default: ''
+
+# Nécessaire pour créer/mettre à jour la Release et y attacher l'APK.
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build APK (release)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java (AGP 8 → JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('package-lock.json', 'app.json', 'plugins/**') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Métadonnées de version
+        id: meta
+        run: |
+          version=$(node -p "require('./app.json').expo.version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "apk=elan-$version.apk" >> "$GITHUB_OUTPUT"
+          echo "Version app.json : $version"
+
+      # Signature : clé d'upload si les secrets existent, sinon repli clé debug.
+      # Les propriétés ELAN_UPLOAD_* sont celles attendues par withReleaseSigning.js.
+      - name: Clé de signature (optionnelle)
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_BASE64:-}" ]; then
+            echo "mode=debug" >> "$GITHUB_OUTPUT"
+            echo "::warning title=APK signé avec la clé debug::Secret ANDROID_KEYSTORE_BASE64 absent — l'APK est signé avec la clé debug publique d'Android (installable mais non vérifiable, et non interchangeable avec une version Play Store)."
+            exit 0
+          fi
+          for var in KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!var}" ]; then
+              echo "::error::ANDROID_KEYSTORE_BASE64 est défini mais ANDROID_${var} manque."
+              exit 1
+            fi
+          done
+          keystore="$RUNNER_TEMP/elan-upload.jks"
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > "$keystore"
+          [ -s "$keystore" ] || { echo "::error::Keystore vide — ANDROID_KEYSTORE_BASE64 mal encodé ?"; exit 1; }
+          mkdir -p ~/.gradle
+          {
+            echo "ELAN_UPLOAD_STORE_FILE=$keystore"
+            echo "ELAN_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
+            echo "ELAN_UPLOAD_STORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "ELAN_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> ~/.gradle/gradle.properties
+          echo "mode=upload" >> "$GITHUB_OUTPUT"
+
+      # android/ est gitignoré : on le régénère (les config plugins s'appliquent ici).
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --no-install
+
+      # Le template Expo plafonne la heap du démon à 2 Go, insuffisant pour R8
+      # (minification release) sur ce projet : OutOfMemoryError en fin de build.
+      # Le runner ubuntu-latest a 16 Go — on lui en donne 8. La dernière valeur
+      # d'une clé gagne dans un .properties, d'où l'append… mais le fichier
+      # généré par prebuild ne se termine PAS par un saut de ligne : sans le \n
+      # de tête, la propriété se colle à la précédente et n'est jamais lue (elle
+      # corrompt même la ligne d'accueil). Le grep final échoue le job si la
+      # valeur n'est pas relue proprement — une OOM silencieuse coûte 40 min.
+      - name: Ajuste la heap Gradle du runner
+        run: |
+          printf '\norg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m\n' >> android/gradle.properties
+          tail -3 android/gradle.properties
+          grep -qx 'org.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m' android/gradle.properties
+
+      - name: Licences SDK Android
+        run: |
+          sdkmanager="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$sdkmanager" ] && yes | "$sdkmanager" --licenses > /dev/null || true
+
+      # ABI limitées aux deux architectures des téléphones réels : l'APK universel
+      # des 4 ABI du template pèse ~149 Mo, contre ~85 Mo ici, pour un build plus
+      # court. x86/x86_64 ne concernent que les émulateurs — qui se construisent
+      # en local. L'AAB Play Store (`bundleRelease`) n'est pas touché : il garde
+      # les 4 ABI de gradle.properties et split par architecture de son côté.
+      - name: Gradle assembleRelease
+        working-directory: android
+        run: >-
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Renomme et empreinte l'APK
+        id: apk
+        run: |
+          set -euo pipefail
+          mv android/app/build/outputs/apk/release/app-release.apk "${{ steps.meta.outputs.apk }}"
+          sha=$(sha256sum "${{ steps.meta.outputs.apk }}" | cut -d' ' -f1)
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+          ls -lh "${{ steps.meta.outputs.apk }}"
+
+      - name: Artefact d'exécution
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.apk }}
+          path: ${{ steps.meta.outputs.apk }}
+          if-no-files-found: error
+          retention-days: 30
+
+      # Publication : tag poussé, ou tag fourni au déclenchement manuel.
+      - name: Publie l'APK sur la Release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.release_tag }}
+          APK: ${{ steps.meta.outputs.apk }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          SHA256: ${{ steps.apk.outputs.sha256 }}
+          SIGNING: ${{ steps.signing.outputs.mode }}
+        run: |
+          set -euo pipefail
+
+          # Notes : section du CHANGELOG correspondant à la version, si elle existe.
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { p = 1; next }
+            p && /^## / { exit }
+            p { print }
+          ' CHANGELOG.md > notes.md
+
+          {
+            echo
+            echo '### 📦 Téléchargement'
+            echo
+            echo "**\`$APK\`** — APK Android à installer directement (sideload), architectures \`arm64-v8a\` et \`armeabi-v7a\` (tous les téléphones ; pas les émulateurs x86)."
+            echo
+            echo "\`sha256: $SHA256\`"
+            echo
+            if [ "$SIGNING" = "debug" ]; then
+              echo "> ⚠️ APK signé avec la **clé debug publique** d'Android : vérifie l'empreinte ci-dessus avant d'installer, et désinstalle toute version issue du Play Store au préalable (signatures différentes)."
+            else
+              echo "> Signé avec la clé d'upload du projet. Désinstalle une éventuelle version issue du Play Store avant d'installer (signatures différentes)."
+            fi
+          } >> notes.md
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$APK" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Élan $VERSION" \
+              --notes-file notes.md
+          fi

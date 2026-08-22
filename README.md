@@ -1,5 +1,7 @@
 # Élan 🚴‍♂️🏋️
 
+[![Download the APK](https://img.shields.io/github/v/release/Wifsimster/elan?label=Download%20APK&sort=semver)](https://github.com/Wifsimster/elan/releases/latest)
+
 Élan is a personal **fitness-tracking** mobile app, built for **cycling** and **strength training**. It works **100% offline**: no data ever leaves your phone, with no account and no server.
 
 > 🔒 **Your data stays on your device.** Everything is stored in a local database. The only network connections are **optional** and configured by you (backup and map tiles on your own servers).
@@ -8,6 +10,7 @@
 
 ## Table of contents
 
+- [Download](#download)
 - [What is it for?](#what-is-it-for)
 - [Screenshots](#screenshots)
 - [Key features](#key-features)
@@ -29,6 +32,20 @@
 | [Data safety](docs/DATA_SAFETY.md) | Ready-to-use answers for the Play Console “Data safety” questionnaire |
 | [Privacy policy](PRIVACY.md) | The app's privacy commitment (public text) |
 | [PULSE design system](DESIGN.md) | Visual rules: colors, typography, components |
+
+---
+
+## Download
+
+The Android **APK** of every tagged version is attached to the matching [GitHub release](https://github.com/Wifsimster/elan/releases/latest) — no store account needed.
+
+1. Download `elan-<version>.apk` from the [latest release](https://github.com/Wifsimster/elan/releases/latest).
+2. Check its `sha256` against the checksum printed in the release notes.
+3. Open the file on your phone and allow installation from this source when Android asks.
+
+> Requires **Android 8.0 (API 26)** or newer, on an `arm64-v8a` or `armeabi-v7a` device — every real phone; x86 emulators are not covered, build those locally. If a Play Store build of Élan is already installed, uninstall it first — the two are signed with different keys.
+
+The APK is built by the [`APK Android` workflow](.github/workflows/android-apk.yml) (`expo prebuild` + Gradle, entirely on the GitHub runner). A manual run of that workflow also produces a downloadable build artifact for any branch. Signing details are covered in the [publishing guide](docs/PUBLISHING.md#apk-t%C3%A9l%C3%A9chargeable-depuis-github).
 
 ---
 
