@@ -47,7 +47,7 @@ export async function startGpsUpdates(): Promise<void> {
     activityType: Location.ActivityType.Fitness,
     showsBackgroundLocationIndicator: true,
     foregroundService: {
-      notificationTitle: 'Sortie vélo en cours',
+      notificationTitle: 'Sortie en cours',
       notificationBody: 'Élan enregistre ton tracé GPS.',
       notificationColor: '#0A0C10',
       // On garde `killServiceOnDestroy: true` : un balayage depuis les récents

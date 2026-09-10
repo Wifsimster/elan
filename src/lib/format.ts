@@ -51,6 +51,21 @@ export function speedParts(kmh: number | null | undefined): Measure {
   return { value: decimalFr(kmh), unit: 'km/h' };
 }
 
+/**
+ * Allure en minutes par kilomètre, dérivée d'une vitesse en km/h (« 5:12 » + « /km »).
+ * La base ne stocke que des km/h : l'allure est une présentation, pas une donnée.
+ * En dessous de 1 km/h (arrêt, capteur muet) l'allure part à l'infini — on affiche
+ * un tiret plutôt qu'un nombre absurde.
+ */
+export function paceParts(kmh: number | null | undefined): Measure {
+  if (kmh == null || kmh < 1) return { value: '—' };
+  const secPerKm = Math.round(3600 / kmh);
+  if (secPerKm >= 3600) return { value: '—' };
+  const min = Math.floor(secPerKm / 60);
+  const sec = secPerKm % 60;
+  return { value: `${min}:${sec.toString().padStart(2, '0')}`, unit: '/km' };
+}
+
 export function hrParts(bpm: number | null | undefined): Measure {
   if (bpm == null) return { value: '—' };
   return { value: String(Math.round(bpm)), unit: 'bpm' };
@@ -79,6 +94,11 @@ export function formatDistance(meters: number | null | undefined): string {
 
 export function formatSpeed(kmh: number | null | undefined): string {
   return joinMeasure(speedParts(kmh));
+}
+
+/** Allure prête à afficher : « 5:12 /km ». */
+export function formatPace(kmh: number | null | undefined): string {
+  return joinMeasure(paceParts(kmh));
 }
 
 export function formatHr(bpm: number | null | undefined): string {

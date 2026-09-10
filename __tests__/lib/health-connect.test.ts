@@ -134,3 +134,34 @@ describe('buildHealthRecords', () => {
     expect(other[0].metadata?.clientRecordId).not.toBe(a[0].metadata?.clientRecordId);
   });
 });
+
+describe('buildHealthRecords — activités à pied', () => {
+  const base = { startedAt: T0, endedAt: T1, distanceM: 8000, calories: 500, hrSamples: [] };
+
+  /** Extrait l'ExerciseSession de l'union d'enregistrements. */
+  const exerciseSession = (type: 'velo' | 'course' | 'marche' | 'muscu') => {
+    const record = buildHealthRecords({ ...base, type })[0];
+    if (record.recordType !== 'ExerciseSession') throw new Error('ExerciseSession attendue');
+    return record;
+  };
+
+  it('associe chaque activité à son type d’exercice Health Connect', () => {
+    // Constantes androidx ExerciseType : BIKING 8, RUNNING 56,
+    // STRENGTH_TRAINING 70, WALKING 79.
+    const typeOf = (type: 'velo' | 'course' | 'marche' | 'muscu') =>
+      exerciseSession(type).exerciseType;
+    expect(typeOf('velo')).toBe(8);
+    expect(typeOf('course')).toBe(56);
+    expect(typeOf('marche')).toBe(79);
+    expect(typeOf('muscu')).toBe(70);
+  });
+
+  it('titre l’enregistrement selon l’activité', () => {
+    expect(exerciseSession('course').title).toBe('Course à pied');
+    expect(exerciseSession('marche').title).toBe('Marche');
+  });
+
+  it('l’identifiant de déduplication porte le type', () => {
+    expect(exerciseSession('course').metadata?.clientRecordId).toBe(`elan-course-${T0}-session`);
+  });
+});

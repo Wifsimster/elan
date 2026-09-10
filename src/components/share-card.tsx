@@ -7,8 +7,8 @@ import { Image, Text, View } from 'react-native';
 import Svg, { Circle, Polyline } from 'react-native-svg';
 
 import { Gradient } from '@/components/gradient';
-import { Radius, Type } from '@/constants/theme';
-import { ACTIVITY_META } from '@/lib/activity';
+import { BRIGHT_GRADIENTS, OnBright, Radius, Type, type GradientName } from '@/constants/theme';
+import { ACTIVITY_META, isGpsActivity, usesPace } from '@/lib/activity';
 import type { SessionRecord } from '@/lib/db';
 import type { Effort } from '@/lib/effort';
 import {
@@ -17,6 +17,7 @@ import {
   formatDistance,
   formatDuration,
   formatHr,
+  formatPace,
   formatSpeed,
 } from '@/lib/format';
 import { decimateByDistance } from '@/lib/geo';
@@ -55,15 +56,20 @@ export const ShareCard = forwardRef<View, Props>(function ShareCard(
   const theme = useTheme();
   const meta = ACTIVITY_META[session.type];
   const color = theme[meta.colorKey];
-  const isVelo = session.type === 'velo';
-  const hasRoute = isVelo && points.length >= 2;
+  const isGps = isGpsActivity(session.type);
+  const pace = usesPace(session.type);
+  const hasRoute = isGps && points.length >= 2;
 
   const stats: StatItem[] = [];
-  if (isVelo) {
+  if (isGps) {
     stats.push({ label: 'Distance', value: formatDistance(session.distanceM), color });
     // Temps en mouvement (hors arrêts) s'il est connu, sinon durée totale.
     stats.push({ label: 'Durée', value: formatDuration(session.movingTimeSec ?? session.durationSec) });
-    stats.push({ label: 'Vitesse moy', value: formatSpeed(session.avgSpeedKmh) });
+    stats.push(
+      pace
+        ? { label: 'Allure moy', value: formatPace(session.avgSpeedKmh) }
+        : { label: 'Vitesse moy', value: formatSpeed(session.avgSpeedKmh) },
+    );
     stats.push({ label: 'Dénivelé +', value: `${Math.round(session.elevationGainM ?? 0)} m` });
     if (session.avgHr != null) stats.push({ label: 'FC moy', value: formatHr(session.avgHr), color: theme.heart });
     stats.push({ label: 'Calories', value: formatCalories(session.calories), color: theme.warning });
@@ -251,13 +257,18 @@ function IconHero({
   gradient,
   icon,
 }: {
-  gradient: 'velo' | 'muscu';
+  gradient: GradientName;
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
 }) {
   return (
     <Gradient colors={gradient} style={{ width: SHARE_CARD_WIDTH, height: 140 }}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <MaterialCommunityIcons name={icon} size={56} color="#FFFFFF" />
+        {/* Encre sombre sur les dégradés clairs (vélo, marche) : le blanc y est illisible. */}
+        <MaterialCommunityIcons
+          name={icon}
+          size={56}
+          color={BRIGHT_GRADIENTS.has(gradient) ? OnBright : '#FFFFFF'}
+        />
       </View>
     </Gradient>
   );

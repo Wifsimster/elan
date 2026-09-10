@@ -19,10 +19,12 @@ import {
   formatDuration,
   formatDurationShort,
   formatHr,
+  formatPace,
   formatSpeed,
   formatDateTime,
   formatDateShort,
 } from '@/lib/format';
+import { ACTIVITY_META, isGpsActivity, usesPace } from '@/lib/activity';
 import { goalLabel } from '@/lib/exercises';
 import { difficultyLabel } from '@/lib/progression-advice';
 import {
@@ -106,11 +108,7 @@ function programSection(): string {
   for (let i = 0; i < WEEK_PLAN.length; i++) {
     const p = WEEK_PLAN[i];
     const label =
-      p.kind === 'repos'
-        ? 'Repos'
-        : p.kind === 'velo'
-          ? `Vélo — ${p.label}`
-          : `Musculation — ${p.label}`;
+      p.kind === 'repos' ? 'Repos' : `${ACTIVITY_META[p.kind].label} — ${p.label}`;
     lines.push(`- ${JOURS_SEMAINE[i]} : ${label}`);
   }
 
@@ -231,24 +229,30 @@ function muscuDetailSection(
   return lines.join('\n');
 }
 
-function veloSection(sessions: Session[]): string {
+/**
+ * Historique des sorties tracées au GPS — vélo, course et marche réunis. Une
+ * colonne « Activité » les distingue, et l'allure remplace la vitesse pour les
+ * activités à pied, où c'est l'unité qui parle.
+ */
+function gpsSection(sessions: Session[]): string {
   if (sessions.length === 0) {
-    return '## Historique des sorties vélo\n\n_Aucune sortie vélo enregistrée._';
+    return '## Historique des sorties\n\n_Aucune sortie enregistrée._';
   }
   const lines: string[] = [
-    '## Historique des sorties vélo',
+    '## Historique des sorties',
     '',
-    '| Date | Durée | Distance | Vit. moy | Vit. max | FC moy | D+ | Calories | Source |',
-    '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| Date | Activité | Durée | Distance | Moy. | Max | FC moy | D+ | Calories | Source |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
   ];
   for (const s of sessions) {
     const dplus = s.elevationGainM != null ? `${Math.round(s.elevationGainM)} m` : '—';
+    const speed = usesPace(s.type) ? formatPace : formatSpeed;
     lines.push(
-      `| ${formatDateTime(s.startedAt)} | ${formatDuration(s.movingTimeSec ?? s.durationSec)} | ${formatDistance(
-        s.distanceM,
-      )} | ${formatSpeed(s.avgSpeedKmh)} | ${formatSpeed(s.maxSpeedKmh)} | ${formatHr(
-        s.avgHr,
-      )} | ${dplus} | ${formatCalories(s.calories)} | ${s.source ?? 'app'} |`,
+      `| ${formatDateTime(s.startedAt)} | ${ACTIVITY_META[s.type].label} | ${formatDuration(
+        s.movingTimeSec ?? s.durationSec,
+      )} | ${formatDistance(s.distanceM)} | ${speed(s.avgSpeedKmh)} | ${speed(
+        s.maxSpeedKmh,
+      )} | ${formatHr(s.avgHr)} | ${dplus} | ${formatCalories(s.calories)} | ${s.source ?? 'app'} |`,
     );
   }
   return lines.join('\n');
@@ -267,7 +271,7 @@ export async function buildCoachMarkdown(): Promise<string> {
   ]);
 
   const muscuSessions = sessions.filter((s) => s.type === 'muscu');
-  const veloSessions = sessions.filter((s) => s.type === 'velo');
+  const gpsSessions = sessions.filter((s) => isGpsActivity(s.type));
 
   // Séries par séance muscu (déjà triées de la plus récente à la plus ancienne).
   const muscuDetail = await Promise.all(
@@ -300,7 +304,7 @@ export async function buildCoachMarkdown(): Promise<string> {
     goalsSection(goals),
     progressionSection(history),
     muscuDetailSection(muscuDetail),
-    veloSection(veloSessions),
+    gpsSection(gpsSessions),
   ]
     .filter((s): s is string => s != null)
     .join('\n\n');

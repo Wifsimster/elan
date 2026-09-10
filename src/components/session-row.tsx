@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { Card } from '@/components/card';
 import { PressableScale } from '@/components/pressable-scale';
 import { Radius, Type } from '@/constants/theme';
-import { ACTIVITY_META } from '@/lib/activity';
+import { ACTIVITY_META, isGpsActivity } from '@/lib/activity';
 import { formatDateTime, formatDistance, formatDurationShort } from '@/lib/format';
 import type { Session } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -49,7 +49,7 @@ export function SessionRow({ session }: { session: Session }) {
               <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
                 {`${session.exerciseCount ?? 0} exercice${(session.exerciseCount ?? 0) > 1 ? 's' : ''}`}
               </Text>
-            ) : session.type === 'velo' && session.distanceM != null ? (
+            ) : isGpsActivity(session.type) && session.distanceM != null ? (
               <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
                 {formatDistance(session.distanceM)}
               </Text>

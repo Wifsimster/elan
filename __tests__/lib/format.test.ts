@@ -11,8 +11,10 @@ import {
   formatDuration,
   formatDurationShort,
   formatHr,
+  formatPace,
   formatSpeed,
   hrParts,
+  paceParts,
   speedParts,
 } from '@/lib/format';
 
@@ -170,5 +172,37 @@ describe('formatDateTime / formatDateShort', () => {
   it('padde l’heure à 2 chiffres', () => {
     const tot = new Date(2025, 0, 1, 9, 5, 0).getTime(); // mer. 1 janv., 09:05
     expect(formatDateTime(tot)).toBe('mer. 1 janv., 09:05');
+  });
+});
+
+describe('paceParts / formatPace', () => {
+  it('convertit une vitesse en minutes par kilomètre', () => {
+    expect(paceParts(12)).toEqual({ value: '5:00', unit: '/km' });
+    expect(paceParts(10)).toEqual({ value: '6:00', unit: '/km' });
+    expect(paceParts(5)).toEqual({ value: '12:00', unit: '/km' });
+  });
+
+  it('padde les secondes à deux chiffres', () => {
+    // 11,5 km/h → 313 s/km → 5 min 13 s
+    expect(paceParts(11.5).value).toBe('5:13');
+  });
+
+  it('rend un tiret à l’arrêt ou sans mesure', () => {
+    expect(paceParts(null)).toEqual({ value: '—' });
+    expect(paceParts(undefined)).toEqual({ value: '—' });
+    expect(paceParts(0)).toEqual({ value: '—' });
+    // Sous 1 km/h l'allure part à l'infini : un tiret plutôt qu'un nombre absurde.
+    expect(paceParts(0.4)).toEqual({ value: '—' });
+  });
+
+  it('formatPace joint valeur et unité', () => {
+    expect(formatPace(12)).toBe('5:00 /km');
+    expect(formatPace(null)).toBe('—');
+  });
+
+  it('plus on va vite, plus l’allure est basse', () => {
+    const lent = paceParts(8).value;
+    const rapide = paceParts(16).value;
+    expect(lent > rapide).toBe(true); // '7:30' > '3:45' en ordre lexical à minutes égales
   });
 });

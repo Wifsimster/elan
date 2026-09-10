@@ -158,3 +158,31 @@ describe('upsertGoal / removeGoal / makeGoal', () => {
     expect(a.id).toBeTruthy();
   });
 });
+
+describe('libellés des nouvelles activités', () => {
+  it('nomme la course et la marche dans le libellé d’objectif', () => {
+    expect(describeGoal({ id: 'a', metric: 'sessions', period: 'week', target: 3, activity: 'course' }))
+      .toContain('sorties course à pied');
+    expect(describeGoal({ id: 'b', metric: 'sessions', period: 'month', target: 8, activity: 'marche' }))
+      .toContain('sorties marche');
+  });
+
+  it('accepte course et marche à la relecture des réglages', () => {
+    const raw = JSON.stringify([
+      { id: 'a', metric: 'distance', period: 'month', target: 50, activity: 'course' },
+      { id: 'b', metric: 'sessions', period: 'week', target: 2, activity: 'marche' },
+    ]);
+    expect(parseGoals(raw)).toHaveLength(2);
+    expect(parseGoals(raw)[0].activity).toBe('course');
+  });
+
+  it('ramène une activité inconnue sur « toutes » sans perdre l’objectif', () => {
+    // Lecture défensive : un réglage restauré d'une autre version ne doit pas
+    // disparaître silencieusement — il retombe sur le comptage le plus large.
+    const raw = JSON.stringify([
+      { id: 'c', metric: 'sessions', period: 'week', target: 2, activity: 'natation' },
+    ]);
+    expect(parseGoals(raw)).toHaveLength(1);
+    expect(parseGoals(raw)[0].activity).toBe('all');
+  });
+});

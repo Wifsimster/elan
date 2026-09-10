@@ -169,3 +169,21 @@ describe('defaultReps', () => {
     expect(defaultReps({ ...base, repsMin: 10, repsMax: 10 })).toBe(10);
   });
 });
+
+describe('isValidWeekPlan — activités à pied', () => {
+  const plan = (entry: unknown) => [entry, ...Array(6).fill({ kind: 'repos' })];
+
+  it('accepte la course et la marche comme le vélo', () => {
+    expect(isValidWeekPlan(plan({ kind: 'course', label: 'Footing 45 min' }))).toBe(true);
+    expect(isValidWeekPlan(plan({ kind: 'marche', label: 'Marche 1 h' }))).toBe(true);
+  });
+
+  it('exige un libellé', () => {
+    expect(isValidWeekPlan(plan({ kind: 'course' }))).toBe(false);
+    expect(isValidWeekPlan(plan({ kind: 'marche', label: 42 }))).toBe(false);
+  });
+
+  it('rejette toujours un type inconnu', () => {
+    expect(isValidWeekPlan(plan({ kind: 'natation', label: 'Piscine' }))).toBe(false);
+  });
+});

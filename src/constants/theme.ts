@@ -33,6 +33,8 @@ export const Colors = {
     scrim: 'rgba(0,0,0,0.6)',
     velo: '#0BA59B',
     muscu: '#7C3AED',
+    course: '#0284C7',
+    marche: '#65A30D',
     heart: '#F43F5E',
     danger: '#DC2626',
     success: '#10B981',
@@ -58,6 +60,8 @@ export const Colors = {
     scrim: 'rgba(0,0,0,0.66)',
     velo: '#22D3C5',
     muscu: '#A78BFA',
+    course: '#38BDF8',
+    marche: '#A3E635',
     heart: '#FF5C7A',
     danger: '#FF4D4D',
     success: '#34D399',
@@ -76,6 +80,8 @@ export const Gradients = {
   accent: ['#6478FF', '#7A3BFF'],
   velo: ['#2DE0C0', '#0BA9B5'],
   muscu: ['#B07BFF', '#7A3BFF'],
+  course: ['#5AC8FF', '#3B7BFF'],
+  marche: ['#C7F04F', '#5FB828'],
   heart: ['#FF6B8B', '#F43F5E'],
   danger: ['#FF5A5A', '#D61F2E'],
   fire: ['#FFB020', '#FF6B35'],
@@ -85,6 +91,15 @@ export const Gradients = {
 } as const;
 
 export type GradientName = keyof typeof Gradients;
+
+/**
+ * Dégradés assez clairs pour qu'un texte ou une icône blanche y tombe sous le
+ * seuil WCAG (même la barre « grand texte » à 3:1) : on y pose `OnBright`.
+ */
+export const BRIGHT_GRADIENTS = new Set<GradientName>(['velo', 'success', 'fire', 'marche']);
+
+/** Encre posée sur un dégradé clair. */
+export const OnBright = '#0B0E13';
 
 /**
  * Rampe des zones cardiaques (1 → 5). Les zones sont **ordonnées** : on n'utilise

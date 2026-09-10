@@ -247,7 +247,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
 // Planning hebdomadaire (télétravail lun/mar/ven). Mardi et vendredi pour la
 // muscu (3-4 jours d'écart), vélo le lundi en récup active. Index 0 = lundi.
 export type PlannedSession =
-  | { kind: 'velo'; label: string }
+  | { kind: 'velo' | 'course' | 'marche'; label: string }
   | { kind: 'muscu'; label: string; templateId: WorkoutTemplate['id'] }
   | { kind: 'repos' };
 
@@ -284,7 +284,9 @@ export function isValidWeekPlan(value: unknown): value is PlannedSession[] {
     if (!entry || typeof entry !== 'object') return false;
     const e = entry as { kind?: unknown; label?: unknown; templateId?: unknown };
     if (e.kind === 'repos') return true;
-    if (e.kind === 'velo') return typeof e.label === 'string';
+    if (e.kind === 'velo' || e.kind === 'course' || e.kind === 'marche') {
+      return typeof e.label === 'string';
+    }
     if (e.kind === 'muscu') {
       return typeof e.label === 'string' && isKnownTemplateId(e.templateId);
     }

@@ -4,6 +4,7 @@ import { Alert, Text, View } from 'react-native';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
+import { ACTIVITY_META } from '@/lib/activity';
 import { SettingCardHeader } from '@/components/setting-card-header';
 import { Type } from '@/constants/theme';
 import { applyNotifications } from '@/lib/notifications';
@@ -24,12 +25,14 @@ const WEEK_DAY_LABELS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Sam
 /** Option proposée pour un jour : repos, vélo, ou muscu avec un template précis. */
 type WeekPlanOption =
   | { kind: 'repos'; label: string }
-  | { kind: 'velo'; label: string }
+  | { kind: 'velo' | 'course' | 'marche'; label: string }
   | { kind: 'muscu'; label: string; templateId: WorkoutTemplate['id'] };
 
 const WEEK_PLAN_OPTIONS: WeekPlanOption[] = [
   { kind: 'repos', label: 'Repos' },
   { kind: 'velo', label: 'Vélo' },
+  { kind: 'course', label: 'Course' },
+  { kind: 'marche', label: 'Marche' },
   { kind: 'muscu', label: 'Muscu A', templateId: 'fullbody-a' },
   { kind: 'muscu', label: 'Muscu B', templateId: 'fullbody-b' },
   { kind: 'muscu', label: 'Dos', templateId: 'dos-lombaire' },
@@ -39,7 +42,7 @@ const WEEK_PLAN_OPTIONS: WeekPlanOption[] = [
 /** Convertit une option d'UI en `PlannedSession` à persister. */
 function optionToPlanned(opt: WeekPlanOption): PlannedSession {
   if (opt.kind === 'repos') return { kind: 'repos' };
-  if (opt.kind === 'velo') return { kind: 'velo', label: 'Vélo' };
+  if (opt.kind !== 'muscu') return { kind: opt.kind, label: ACTIVITY_META[opt.kind].label };
   return {
     kind: 'muscu',
     label: templateById(opt.templateId)?.name ?? opt.label,
@@ -114,11 +117,9 @@ export function WeekPlanCard() {
             {WEEK_PLAN_OPTIONS.map((opt) => {
               const active = isOptionActive(opt, plan[i]);
               const color =
-                opt.kind === 'velo'
-                  ? theme.velo
-                  : opt.kind === 'muscu'
-                    ? theme.muscu
-                    : theme.textSecondary;
+                opt.kind === 'repos'
+                  ? theme.textSecondary
+                  : theme[ACTIVITY_META[opt.kind].colorKey];
               return (
                 <Chip
                   key={opt.label}

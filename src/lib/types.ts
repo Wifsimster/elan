@@ -1,6 +1,11 @@
 // Types du domaine — suivi d'activité physique personnel et local.
 
-export type ActivityType = 'velo' | 'muscu';
+/**
+ * Type d'activité. `velo`, `course` et `marche` produisent un tracé GPS (voir
+ * `isGpsActivity`) ; `muscu` non. La colonne `sessions.type` est un TEXT libre :
+ * ajouter un type ne demande aucune migration.
+ */
+export type ActivityType = 'velo' | 'muscu' | 'course' | 'marche';
 
 /** Une séance d'entraînement enregistrée. */
 export type Session = {

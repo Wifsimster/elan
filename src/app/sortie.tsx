@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, BackHandler, ScrollView, Text, View } from 'react-native';
@@ -11,6 +11,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { RouteMap } from '@/components/route-map';
 import { StatTile } from '@/components/stat-tile';
 import { Elevation, Radius, Type } from '@/constants/theme';
+import { ACTIVITY_META, toActivityType, usesPace } from '@/lib/activity';
 import { estimateCalories } from '@/lib/calories';
 import {
   createSession,
@@ -19,7 +20,14 @@ import {
   getProfile,
   insertTrackPoints,
 } from '@/lib/db';
-import { cadenceParts, distanceParts, formatDuration, hrParts, speedParts } from '@/lib/format';
+import {
+  cadenceParts,
+  distanceParts,
+  formatDuration,
+  hrParts,
+  paceParts,
+  speedParts,
+} from '@/lib/format';
 import { movingTimeSec } from '@/lib/moving-time';
 import { nearestSample, pushDownsampled, summarizeCadence, summarizeHr } from '@/lib/samples';
 import { ensureNotificationPermission } from '@/lib/live-notification';
@@ -40,9 +48,21 @@ const FLUSH_INTERVAL_MS = 20_000;
 
 type CadenceSample = { ts: number; cadence: number };
 
-export default function VeloScreen() {
+/**
+ * Écran de séance tracée au GPS — vélo, course à pied ou marche. Le type vient
+ * du paramètre de route (`/sortie?type=course`) et pilote la teinte, le libellé,
+ * la table MET des calories et l'unité d'effort (allure à pied, vitesse à vélo).
+ * Les capteurs vélo (cadence, vitesse roue) ne s'affichent qu'à vélo.
+ */
+export default function SortieScreen() {
   useKeepAwake();
   const theme = useTheme();
+  const { type: typeParam } = useLocalSearchParams<{ type?: string }>();
+  const type = toActivityType(typeParam);
+  const meta = ACTIVITY_META[type];
+  const color = theme[meta.colorKey];
+  // À pied, l'effort se lit en min/km ; à vélo en km/h.
+  const pace = usesPace(type);
   const insets = useSafeAreaInsets();
   const contentStyle = useScreenContentStyle();
   const router = useRouter();
@@ -130,7 +150,7 @@ export default function VeloScreen() {
     // vaut un refus clair qu'une sortie qu'on croit enregistrer sans filet.
     let id: number;
     try {
-      id = await createSession('velo', startedAt);
+      id = await createSession(type, startedAt);
     } catch {
       gps.stop();
       Alert.alert(
@@ -236,7 +256,7 @@ export default function VeloScreen() {
     const avgSpeedKmh =
       effectiveSec > 0 ? result.distanceM / 1000 / (effectiveSec / 3600) : 0;
     const calories = estimateCalories({
-      type: 'velo',
+      type,
       weightKg,
       durationSec: effectiveSec,
       avgSpeedKmh,
@@ -271,7 +291,7 @@ export default function VeloScreen() {
       );
 
       finalizeSavedSession({
-        type: 'velo',
+        type,
         startedAt: startedAtRef.current,
         endedAt,
         distanceM: result.distanceM,
@@ -357,7 +377,7 @@ export default function VeloScreen() {
   const liveAvgSpeedKmh =
     watch.elapsedSec > 0 ? gps.distanceM / 1000 / (watch.elapsedSec / 3600) : 0;
   const liveCalories = estimateCalories({
-    type: 'velo',
+    type,
     weightKg,
     durationSec: watch.elapsedSec,
     avgSpeedKmh: liveAvgSpeedKmh,
@@ -383,15 +403,15 @@ export default function VeloScreen() {
             <MaterialCommunityIcons name="close" size={26} color={theme.text} />
           </PressableScale>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <MaterialCommunityIcons name="bike" size={22} color={theme.velo} />
-            <Text style={{ ...Type.headline, color: theme.text }}>Vélo</Text>
+            <MaterialCommunityIcons name={meta.icon} size={22} color={color} />
+            <Text style={{ ...Type.headline, color: theme.text }}>{meta.label}</Text>
           </View>
           <View style={{ width: 26 }} />
         </View>
 
         {/* Chrono */}
         <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-          <Text style={{ ...Type.overline, color: theme.velo }}>Durée</Text>
+          <Text style={{ ...Type.overline, color }}>Durée</Text>
           <Text selectable maxFontSizeMultiplier={1.2} style={{ ...Type.metricLg, color: theme.text }}>
             {formatDuration(watch.elapsedSec)}
           </Text>
@@ -403,17 +423,17 @@ export default function VeloScreen() {
         <Card>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20 }}>
             <StatTile
-              label="Vitesse"
-              {...speedParts(gps.speedKmh)}
-              icon="speedometer"
-              color={theme.velo}
+              label={pace ? 'Allure' : 'Vitesse'}
+              {...(pace ? paceParts(gps.speedKmh) : speedParts(gps.speedKmh))}
+              icon={pace ? 'timer-outline' : 'speedometer'}
+              color={color}
               hero
             />
             <StatTile
               label="Distance"
               {...distanceParts(gps.distanceM)}
               icon="map-marker-distance"
-              color={theme.velo}
+              color={color}
             />
             <StatTile
               label="Cardio"
@@ -422,26 +442,26 @@ export default function VeloScreen() {
               color={theme.heart}
             />
             <StatTile
-              label="Vitesse max"
-              {...speedParts(gps.maxSpeedKmh)}
-              icon="speedometer-medium"
+              label={pace ? 'Meilleure allure' : 'Vitesse max'}
+              {...(pace ? paceParts(gps.maxSpeedKmh) : speedParts(gps.maxSpeedKmh))}
+              icon={pace ? 'timer-outline' : 'speedometer-medium'}
               compact
             />
-            {hasSpeedSensor ? (
+            {hasSpeedSensor && !pace ? (
               <StatTile
                 label="Vitesse roue"
                 {...speedParts(sensorSpeedKmh ?? 0)}
                 icon="bike-fast"
-                color={theme.velo}
+                color={color}
                 compact
               />
             ) : null}
-            {hasCadenceSensor ? (
+            {hasCadenceSensor && !pace ? (
               <StatTile
                 label="Cadence"
                 {...cadenceParts(cadenceRpm)}
                 icon="rotate-right"
-                color={theme.velo}
+                color={color}
                 compact
               />
             ) : null}
@@ -468,7 +488,7 @@ export default function VeloScreen() {
             plutôt que rien — sinon la carte semble absente à l'arrêt/en intérieur. */}
         {phase !== 'idle' ? (
           gps.livePath.length >= 2 ? (
-            <RouteMap points={gps.livePath} live color={theme.velo} height={220} />
+            <RouteMap points={gps.livePath} live color={color} height={220} />
           ) : (
             <MapPlaceholder status={gps.status} />
           )
@@ -498,7 +518,7 @@ export default function VeloScreen() {
             <Button
               title="Démarrer la sortie"
               icon="play"
-              color={theme.velo}
+              color={color}
               loading={gps.status === 'requesting'}
               onPress={begin}
             />
@@ -518,7 +538,7 @@ export default function VeloScreen() {
               />
             </View>
             <View style={{ flex: 1.4 }}>
-              <Button title="Réessayer" icon="refresh" color={theme.velo} onPress={save} />
+              <Button title="Réessayer" icon="refresh" color={color} onPress={save} />
             </View>
           </>
         ) : (
@@ -528,7 +548,7 @@ export default function VeloScreen() {
                 title={phase === 'paused' ? 'Reprendre' : 'Pause'}
                 icon={phase === 'paused' ? 'play' : 'pause'}
                 variant="secondary"
-                color={theme.velo}
+                color={color}
                 disabled={phase === 'saving'}
                 onPress={phase === 'paused' ? resume : pause}
               />
@@ -539,7 +559,7 @@ export default function VeloScreen() {
               <Button
                 title="Terminer"
                 icon="flag-checkered"
-                color={theme.velo}
+                color={color}
                 loading={phase === 'saving'}
                 onPress={finish}
               />
