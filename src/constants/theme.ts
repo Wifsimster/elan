@@ -86,6 +86,19 @@ export const Gradients = {
 
 export type GradientName = keyof typeof Gradients;
 
+/**
+ * Rampe des zones cardiaques (1 → 5). Les zones sont **ordonnées** : on n'utilise
+ * donc pas cinq teintes catégorielles mais cinq paliers d'une seule teinte — la
+ * teinte cardio — du plus sourd au plus vif, la zone 5 tombant exactement sur
+ * `heart`. Sur fond sombre la rampe monte en luminosité, sur fond clair elle
+ * descend, pour que « plus d'effort » se lise toujours « plus d'encre ».
+ * Indexée par 0 (l'entrée 0 est la zone 1).
+ */
+export const HrZoneColors = {
+  light: ['#FBC7D3', '#F59BB0', '#EE7091', '#E85C82', '#F43F5E'],
+  dark: ['#5C2A38', '#8A3A50', '#B84765', '#DC5170', '#FF5C7A'],
+} as const;
+
 /** Rayons — coins « continus » (squircle iOS) appliqués partout. */
 export const Radius = {
   sm: 12,

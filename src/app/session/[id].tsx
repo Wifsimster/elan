@@ -6,6 +6,7 @@ import Animated, { useAnimatedRef } from 'react-native-reanimated';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { HrZonesCard } from '@/components/hr-zones-card';
 import { LineChart } from '@/components/line-chart';
 import { PressableScale } from '@/components/pressable-scale';
 import { RouteMap } from '@/components/route-map';
@@ -25,6 +26,7 @@ import {
   type SessionRecord,
 } from '@/lib/db';
 import { sessionEffort } from '@/lib/effort';
+import { zoneDistribution } from '@/lib/hr-zones';
 import { difficultyLabel } from '@/lib/progression-advice';
 import { createRouteSnapshot, type RouteSnapshot } from '@/lib/static-map';
 import {
@@ -144,6 +146,9 @@ export default function SessionDetailScreen() {
   const speed = session.type === 'velo' ? speedProfile(points) : [];
   const elevation = session.type === 'velo' ? elevationProfile(points) : [];
   const hr = session.type === 'velo' ? hrProfile(points) : [];
+  // Temps par zone : lu sur les points GPS horodatés, donc disponible
+  // rétroactivement sur toutes les sorties enregistrées avec la ceinture.
+  const zones = zoneDistribution(points, maxHr);
   const fmtKm = (v: number) => (v >= 10 ? String(Math.round(v)) : v.toFixed(1).replace('.', ','));
 
   return (
@@ -376,6 +381,8 @@ export default function SessionDetailScreen() {
             />
           </ChartCard>
         ) : null}
+
+        {zones ? <HrZonesCard distribution={zones} /> : null}
 
         {/* Exercices (muscu) */}
         {session.type === 'muscu' ? <MuscuBreakdown sets={sets} color={color} /> : null}
