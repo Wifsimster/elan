@@ -163,3 +163,26 @@ describe('parseStravaFile — sécurité / robustesse', () => {
     expect(() => parseStravaFile('<html></html>')).toThrow(/Format non reconnu/);
   });
 });
+
+describe('détection du sport TCX', () => {
+  const tcxWithSport = (sport: string) =>
+    TCX_SAMPLE.replace('Sport="Biking"', `Sport="${sport}"`);
+
+  it('reconnaît la course', () => {
+    expect(parseStravaFile(tcxWithSport('Running')).activities[0].sport).toBe('running');
+  });
+
+  it('reconnaît la marche et la randonnée', () => {
+    expect(parseStravaFile(tcxWithSport('Walking')).activities[0].sport).toBe('walking');
+    expect(parseStravaFile(tcxWithSport('Hiking')).activities[0].sport).toBe('walking');
+  });
+
+  it('garde le vélo et l’indéterminé', () => {
+    expect(parseStravaFile(TCX_SAMPLE).activities[0].sport).toBe('cycling');
+    expect(parseStravaFile(tcxWithSport('Cycling')).activities[0].sport).toBe('cycling');
+  });
+
+  it('classe en « other » un sport identifié mais non supporté', () => {
+    expect(parseStravaFile(tcxWithSport('Swimming')).activities[0].sport).toBe('other');
+  });
+});

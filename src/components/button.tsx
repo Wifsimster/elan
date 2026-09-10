@@ -3,7 +3,14 @@ import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewSty
 
 import { Gradient } from '@/components/gradient';
 import { PressableScale } from '@/components/pressable-scale';
-import { Elevation, type GradientName, Gradients, Radius } from '@/constants/theme';
+import {
+  BRIGHT_GRADIENTS,
+  Elevation,
+  type GradientName,
+  Gradients,
+  OnBright,
+  Radius,
+} from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -24,17 +31,12 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-/**
- * Dégradés clairs sur lesquels un texte blanc tombe sous le seuil WCAG (même la
- * barre « grand texte » à 3:1) : on y pose un texte sombre pour rester lisible.
- */
-const BRIGHT_GRADIENTS = new Set<GradientName>(['velo', 'success', 'fire']);
-const ON_BRIGHT = '#0B0E13';
-
 /** Déduit le dégradé correspondant à une couleur d'activité du thème. */
 function gradientFor(color: string | undefined, theme: ReturnType<typeof useTheme>): GradientName {
   if (color === theme.velo) return 'velo';
   if (color === theme.muscu) return 'muscu';
+  if (color === theme.course) return 'course';
+  if (color === theme.marche) return 'marche';
   if (color === theme.heart) return 'heart';
   if (color === theme.warning) return 'fire';
   return 'accent';
@@ -63,7 +65,7 @@ export function Button({
   const fg =
     variant === 'primary' || variant === 'danger'
       ? BRIGHT_GRADIENTS.has(grad)
-        ? ON_BRIGHT
+        ? OnBright
         : '#FFFFFF'
       : variant === 'ghost'
         ? theme.textSecondary

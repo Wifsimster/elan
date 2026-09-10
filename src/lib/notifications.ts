@@ -115,10 +115,13 @@ export function planIndexToWeekday(index: number): number {
  */
 export function describeToday(plan: PlannedSession): { title: string; body: string } | null {
   if (plan.kind === 'repos') return null;
-  if (plan.kind === 'velo') {
+  if (plan.kind !== 'muscu') {
     return {
       title: `Aujourd'hui : ${plan.label}`,
-      body: 'Pense à préparer le vélo et la ceinture.',
+      body:
+        plan.kind === 'velo'
+          ? 'Pense à préparer le vélo et la ceinture.'
+          : 'Pense à préparer les chaussures et la ceinture.',
     };
   }
   // Muscu : on liste les exercices du programme du jour, pour rappeler

@@ -196,3 +196,55 @@ describe('ZONE_LABELS', () => {
     expect(ZONE_LABELS[5]).toBe('Maximal');
   });
 });
+
+describe('estimateCalories — activités à pied', () => {
+  const base = { weightKg: 70, durationSec: 3600 };
+
+  it('course : la dépense croît avec l’allure', () => {
+    const lent = estimateCalories({ ...base, type: 'course', avgSpeedKmh: 8 });
+    const rapide = estimateCalories({ ...base, type: 'course', avgSpeedKmh: 14 });
+    expect(lent).toBeGreaterThan(0);
+    expect(rapide).toBeGreaterThan(lent);
+  });
+
+  it('marche : moins coûteuse que la course à la même durée', () => {
+    const marche = estimateCalories({ ...base, type: 'marche', avgSpeedKmh: 5 });
+    const course = estimateCalories({ ...base, type: 'course', avgSpeedKmh: 10 });
+    expect(marche).toBeLessThan(course);
+  });
+
+  it('course : plus coûteuse que le vélo à vitesse égale (le corps se porte)', () => {
+    const course = estimateCalories({ ...base, type: 'course', avgSpeedKmh: 12 });
+    const velo = estimateCalories({ ...base, type: 'velo', avgSpeedKmh: 12 });
+    expect(course).toBeGreaterThan(velo);
+  });
+
+  it('extrapolation plate hors des bornes de la table', () => {
+    const tresLent = estimateCalories({ ...base, type: 'marche', avgSpeedKmh: 0.5 });
+    const borneBasse = estimateCalories({ ...base, type: 'marche', avgSpeedKmh: 3.2 });
+    expect(tresLent).toBeCloseTo(borneBasse, 5);
+  });
+
+  it('le dénivelé compte aussi à pied', () => {
+    const plat = estimateCalories({ ...base, type: 'course', avgSpeedKmh: 10, elevationGainM: 0 });
+    const montagne = estimateCalories({
+      ...base,
+      type: 'course',
+      avgSpeedKmh: 10,
+      elevationGainM: 500,
+    });
+    expect(montagne).toBeGreaterThan(plat);
+  });
+
+  it('la musculation ignore le dénivelé', () => {
+    const sans = estimateCalories({ ...base, type: 'muscu' });
+    const avec = estimateCalories({ ...base, type: 'muscu', elevationGainM: 500 });
+    expect(avec).toBeCloseTo(sans, 5);
+  });
+
+  it('sans vitesse fournie, chaque activité retombe sur une allure ordinaire', () => {
+    for (const type of ['velo', 'course', 'marche'] as const) {
+      expect(estimateCalories({ ...base, type })).toBeGreaterThan(0);
+    }
+  });
+});

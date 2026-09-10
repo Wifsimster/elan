@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
+import { ACTIVITY_META, ACTIVITY_TYPES, isGpsActivity } from '@/lib/activity';
 import { PressableScale } from '@/components/pressable-scale';
 import { SettingCardHeader } from '@/components/setting-card-header';
 import { SettingStepper } from '@/components/settings/setting-stepper';
@@ -31,8 +32,7 @@ const METRIC_OPTIONS: { value: GoalMetric; label: string }[] = [
 
 const ACTIVITY_OPTIONS: { value: GoalActivity; label: string }[] = [
   { value: 'all', label: 'Toutes' },
-  { value: 'velo', label: 'Vélo' },
-  { value: 'muscu', label: 'Muscu' },
+  ...ACTIVITY_TYPES.map((t) => ({ value: t as GoalActivity, label: ACTIVITY_META[t].shortLabel })),
 ];
 
 const PERIOD_OPTIONS: { value: GoalPeriod; label: string }[] = [
@@ -66,10 +66,19 @@ export function GoalsCard() {
   }, []);
 
   // Change de métrique : réinitialise la cible sur une valeur sensée pour l'unité.
+  // La musculation n'ayant pas de distance, un objectif de distance qui la visait
+  // retombe sur « toutes » plutôt que de se figer à zéro.
   const pickMetric = (m: GoalMetric) => {
     setMetric(m);
     setTarget(TARGET_SPEC[m].def);
+    if (m === 'distance' && activity !== 'all' && !isGpsActivity(activity)) setActivity('all');
   };
+
+  // Un objectif de distance ne peut viser qu'une activité tracée au GPS.
+  const activityOptions =
+    metric === 'distance'
+      ? ACTIVITY_OPTIONS.filter((o) => o.value === 'all' || isGpsActivity(o.value))
+      : ACTIVITY_OPTIONS;
 
   const persist = (next: Goal[]) => {
     setGoals(next);
@@ -138,15 +147,15 @@ export function GoalsCard() {
           ))}
         </View>
 
-        {/* Type d'activité : pertinent uniquement pour un objectif de séances. */}
-        {metric === 'sessions' ? (
+        {/* Type d'activité : séances et distance. Le tonnage n'existe qu'en muscu. */}
+        {metric === 'sessions' || metric === 'distance' ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {ACTIVITY_OPTIONS.map((o) => (
+            {activityOptions.map((o) => (
               <Chip
                 key={o.value}
                 label={o.label}
                 selected={activity === o.value}
-                color={theme.muscu}
+                color={o.value === 'all' ? theme.accent : theme[ACTIVITY_META[o.value].colorKey]}
                 onPress={() => setActivity(o.value)}
               />
             ))}

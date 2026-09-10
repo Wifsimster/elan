@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '@/components/pressable-scale';
 import { RouteMap } from '@/components/route-map';
 import { Elevation, Radius } from '@/constants/theme';
-import { ACTIVITY_META } from '@/lib/activity';
+import { ACTIVITY_META, isGpsActivity } from '@/lib/activity';
 import { getSession, getTrackPoints } from '@/lib/db';
 import type { Session, TrackPoint } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -34,7 +34,7 @@ export default function SessionMapScreen() {
     (async () => {
       const s = await getSession(sessionId);
       setSession(s);
-      if (s?.type === 'velo') setPoints(await getTrackPoints(sessionId));
+      if (s && isGpsActivity(s.type)) setPoints(await getTrackPoints(sessionId));
       setLoading(false);
     })();
   }, [sessionId]);

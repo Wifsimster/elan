@@ -22,7 +22,17 @@ const KEY = 'health_connect';
 // `buildHealthRecords` pur et testable sans charger le module natif.
 // Voir `ExerciseType` dans react-native-health-connect/constants.
 const EXERCISE_TYPE_BIKING = 8;
+const EXERCISE_TYPE_RUNNING = 56;
 const EXERCISE_TYPE_STRENGTH_TRAINING = 70;
+const EXERCISE_TYPE_WALKING = 79;
+
+/** Type d'exercice Health Connect et titre de l'enregistrement, par activité. */
+const HEALTH_EXERCISE: Record<ActivityType, { type: number; title: string }> = {
+  velo: { type: EXERCISE_TYPE_BIKING, title: 'Sortie vélo' },
+  course: { type: EXERCISE_TYPE_RUNNING, title: 'Course à pied' },
+  marche: { type: EXERCISE_TYPE_WALKING, title: 'Marche' },
+  muscu: { type: EXERCISE_TYPE_STRENGTH_TRAINING, title: 'Séance musculation' },
+};
 const SDK_AVAILABLE = 3; // SdkAvailabilityStatus.SDK_AVAILABLE
 
 // Écriture seule : Élan n'a pas besoin de lire les données des autres apps.
@@ -121,9 +131,8 @@ export function buildHealthRecords(data: HealthSessionData): HealthConnectRecord
   const records: HealthConnectRecord[] = [
     {
       recordType: 'ExerciseSession',
-      exerciseType:
-        data.type === 'velo' ? EXERCISE_TYPE_BIKING : EXERCISE_TYPE_STRENGTH_TRAINING,
-      title: data.type === 'velo' ? 'Sortie vélo' : 'Séance musculation',
+      exerciseType: HEALTH_EXERCISE[data.type].type,
+      title: HEALTH_EXERCISE[data.type].title,
       startTime,
       endTime,
       ...meta('session'),

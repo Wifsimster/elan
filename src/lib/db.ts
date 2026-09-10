@@ -1,6 +1,7 @@
 // Accès SQLite local. Toutes les données restent sur l'appareil.
 import * as SQLite from 'expo-sqlite';
 
+import { isGpsActivity } from '@/lib/activity';
 import { estimateCalories } from '@/lib/calories';
 import { movingTimeSec } from '@/lib/moving-time';
 import type {
@@ -1000,8 +1001,9 @@ function recordColumn(kind: RecordKind, s: Session): { expr: string; value: numb
  */
 export async function sessionRecords(s: Session): Promise<SessionRecord[]> {
   const db = await getDb();
-  const kinds: RecordKind[] =
-    s.type === 'velo' ? ['distance', 'elevation', 'duration', 'speed'] : ['duration'];
+  const kinds: RecordKind[] = isGpsActivity(s.type)
+    ? ['distance', 'elevation', 'duration', 'speed']
+    : ['duration'];
 
   const year = new Date(s.startedAt).getFullYear();
   const yearStart = new Date(year, 0, 1).getTime();

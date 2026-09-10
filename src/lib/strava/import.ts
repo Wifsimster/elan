@@ -8,12 +8,12 @@ import { haversineMeters } from '@/lib/geo';
 import { movingTimeSec } from '@/lib/moving-time';
 import { decodeStravaBytes } from '@/lib/strava/decode';
 import { type ParsedActivity, type ParsedPoint } from '@/lib/strava/parse';
-import type { TrackPoint } from '@/lib/types';
+import type { ActivityType, TrackPoint } from '@/lib/types';
 
 export type ImportedPoint = Omit<TrackPoint, 'id' | 'sessionId'>;
 
 export type ImportedSession = {
-  type: 'velo';
+  type: ActivityType;
   startedAt: number;
   endedAt: number;
   durationSec: number;
@@ -88,7 +88,12 @@ function computeGain(points: ParsedPoint[]): number | null {
 
 /** Normalise une activité ; renvoie un motif (string) si elle doit être ignorée. */
 function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | string {
-  if (act.sport === 'other') return 'activité non vélo ignorée';
+  // Sport identifié mais non couvert par l'app (natation, rameur…) : on ignore
+  // plutôt que de l'importer sous une mauvaise activité. Un sport non déclaré
+  // (GPX Strava) reste importé en vélo, comme avant.
+  if (act.sport === 'other') return 'activité non supportée ignorée';
+  const type: ActivityType =
+    act.sport === 'running' ? 'course' : act.sport === 'walking' ? 'marche' : 'velo';
 
   const timed = act.points.filter((p) => p.ts != null);
   if (timed.length === 0) return 'aucun horodatage exploitable';
@@ -168,7 +173,7 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
     act.calories != null
       ? act.calories
       : effectiveSec > 0
-        ? estimateCalories({ type: 'velo', weightKg, durationSec: effectiveSec, avgSpeedKmh })
+        ? estimateCalories({ type, weightKg, durationSec: effectiveSec, avgSpeedKmh })
         : null;
 
   const first = gps[0];
@@ -182,7 +187,7 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
 
   return {
     session: {
-      type: 'velo',
+      type,
       startedAt,
       endedAt,
       durationSec,

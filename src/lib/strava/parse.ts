@@ -20,8 +20,11 @@ export type ParsedPoint = {
 };
 
 export type ParsedActivity = {
-  /** 'cycling' = vélo, 'other' = sport non vélo identifié, 'unknown' = indéterminé. */
-  sport: 'cycling' | 'other' | 'unknown';
+  /**
+   * Sport déclaré par le fichier. 'other' = sport identifié mais non supporté,
+   * 'unknown' = non déclaré (le GPX de Strava n'expose pas le sport).
+   */
+  sport: 'cycling' | 'running' | 'walking' | 'other' | 'unknown';
   startedAt: number | null;
   points: ParsedPoint[];
   /** Distance fournie par le fichier (TCX), en mètres, si présente. */
@@ -121,11 +124,17 @@ function parseTcx(content: string): ParsedActivity[] {
     const open = m[1];
     const body = m[2];
     const sportAttr = attr(open, 'Sport') ?? '';
+    // TCX ne normalise que « Biking » / « Running » / « Other » ; on reconnaît en
+    // plus les libellés de marche que certains exports emploient.
     const sport: ParsedActivity['sport'] = /bik|cycl/i.test(sportAttr)
       ? 'cycling'
-      : sportAttr
-        ? 'other'
-        : 'unknown';
+      : /run|cours/i.test(sportAttr)
+        ? 'running'
+        : /walk|hik|march/i.test(sportAttr)
+          ? 'walking'
+          : sportAttr
+            ? 'other'
+            : 'unknown';
 
     const points: ParsedPoint[] = [];
     const tpRe = /<Trackpoint\b[^>]*>([\s\S]*?)<\/Trackpoint>/gi;

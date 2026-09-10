@@ -14,10 +14,13 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { ACTIVITY_META } from '@/lib/activity';
+import type { ActivityType } from '@/lib/types';
+
 const LIVE_CHANNEL_ID = 'session';
 const LIVE_NOTIFICATION_ID = 'live-session';
 
-export type LiveKind = 'velo' | 'muscu';
+export type LiveKind = ActivityType;
 
 /**
  * Demande (best-effort, une fois) la permission de notifications. Sur Android
@@ -62,11 +65,11 @@ export async function showLiveSessionNotification(kind: LiveKind): Promise<void>
     await Notifications.scheduleNotificationAsync({
       identifier: LIVE_NOTIFICATION_ID,
       content: {
-        title: kind === 'velo' ? 'Sortie vélo en cours' : 'Séance muscu en cours',
+        title: kind === 'muscu' ? 'Séance muscu en cours' : `${ACTIVITY_META[kind].label} en cours`,
         body: 'Touche pour revenir à ta séance.',
         sticky: true,
         autoDismiss: false,
-        data: { route: kind === 'velo' ? '/velo' : '/muscu' },
+        data: { route: kind === 'muscu' ? '/muscu' : '/sortie' },
       },
       // Canal seul = présentation immédiate et persistante (pas de planification).
       trigger: { channelId: LIVE_CHANNEL_ID },

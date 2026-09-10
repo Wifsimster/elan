@@ -123,9 +123,9 @@ export default function RootLayout() {
     const handle = (route: unknown) => {
       // Notification de séance muscu (retour à l'écran en cours) ou annonce de
       // progression auto (ouvre la revue sur la page Progression). Pas de branche
-      // « /velo » : le vélo n'émet pas de notification persistante applicative
-      // (seul le service GPS natif en affiche une, sans route) — y naviguer
-      // ouvrirait une NOUVELLE sortie.
+      // « /sortie » : les activités GPS n'émettent pas de notification
+      // persistante applicative (seul le service GPS natif en affiche une, sans
+      // route) — y naviguer ouvrirait une NOUVELLE sortie.
       if (route === '/muscu' || route === '/progression') {
         router.navigate(route);
       }
@@ -147,7 +147,7 @@ export default function RootLayout() {
               <Stack>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen
-                  name="velo"
+                  name="sortie"
                   options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }}
                 />
                 <Stack.Screen

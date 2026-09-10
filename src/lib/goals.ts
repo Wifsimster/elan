@@ -17,7 +17,7 @@ export type GoalMetric = 'sessions' | 'distance' | 'tonnage';
 /** Fenêtre de suivi : semaine (lundi→dimanche) ou mois calendaire. */
 export type GoalPeriod = 'week' | 'month';
 /** Type d'activité compté (pertinent pour la métrique `sessions` uniquement). */
-export type GoalActivity = 'all' | 'velo' | 'muscu';
+export type GoalActivity = 'all' | 'velo' | 'course' | 'marche' | 'muscu';
 
 export type Goal = {
   id: string;
@@ -25,7 +25,11 @@ export type Goal = {
   period: GoalPeriod;
   /** Cible dans l'unité naturelle : séances (n), km (distance), kg (tonnage). */
   target: number;
-  /** Restreint le comptage `sessions` à un type ; ignoré pour distance/tonnage. */
+  /**
+   * Restreint le comptage à un type d'activité — pour `sessions` comme pour
+   * `distance` (« 50 km de course par mois »). Ignoré pour `tonnage`, qui n'existe
+   * qu'en musculation. `all` = toutes activités confondues.
+   */
   activity: GoalActivity;
 };
 
@@ -34,7 +38,7 @@ const WEEK_MS = 7 * 86_400_000;
 
 const METRICS: GoalMetric[] = ['sessions', 'distance', 'tonnage'];
 const PERIODS: GoalPeriod[] = ['week', 'month'];
-const ACTIVITIES: GoalActivity[] = ['all', 'velo', 'muscu'];
+const ACTIVITIES: GoalActivity[] = ['all', 'velo', 'course', 'marche', 'muscu'];
 
 // ---------------------------------------------------------------------------
 // Logique pure (périodes, progression, libellés, parsing, opérations de liste)
@@ -80,6 +84,8 @@ const PERIOD_LABEL: Record<GoalPeriod, string> = { week: 'semaine', month: 'mois
 const ACTIVITY_NOUN: Record<GoalActivity, string> = {
   all: 'séances',
   velo: 'sorties vélo',
+  course: 'sorties course à pied',
+  marche: 'sorties marche',
   muscu: 'séances muscu',
 };
 
@@ -179,7 +185,9 @@ export async function measureGoal(goal: Goal, now: number = nowMs()): Promise<nu
     return s.sessionCount;
   }
   if (goal.metric === 'distance') {
-    const s = await statsBetween(fromMs, toMs, 'velo');
+    // `all` = toutes activités confondues : la musculation n'a pas de distance,
+    // elle contribue donc zéro et n'a pas besoin d'être exclue.
+    const s = await statsBetween(fromMs, toMs, goal.activity === 'all' ? undefined : goal.activity);
     // km arrondis au dixième, cohérent avec l'affichage des distances.
     return Math.round((s.totalDistanceM / 1000) * 10) / 10;
   }

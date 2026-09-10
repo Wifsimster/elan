@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/empty-state';
 import { PressableScale } from '@/components/pressable-scale';
 import { SessionRow } from '@/components/session-row';
 import { Radius, Type } from '@/constants/theme';
+import { ACTIVITY_META, ACTIVITY_TYPES } from '@/lib/activity';
 import { listSessions } from '@/lib/db';
 import type { ActivityType, Session } from '@/lib/types';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
@@ -20,8 +21,7 @@ type RangeKey = 'all' | '7' | '30' | '90';
 
 const TYPE_FILTERS: { key: TypeFilter; label: string }[] = [
   { key: 'all', label: 'Tout' },
-  { key: 'velo', label: 'Vélo' },
-  { key: 'muscu', label: 'Muscu' },
+  ...ACTIVITY_TYPES.map((t) => ({ key: t, label: ACTIVITY_META[t].shortLabel })),
 ];
 
 const RANGE_FILTERS: { key: RangeKey; label: string; days: number | null }[] = [
@@ -208,13 +208,7 @@ export default function HistoryScreen() {
                 key={f.key}
                 label={f.label}
                 selected={typeFilter === f.key}
-                color={
-                  f.key === 'velo'
-                    ? theme.velo
-                    : f.key === 'muscu'
-                      ? theme.muscu
-                      : theme.accent
-                }
+                color={f.key === 'all' ? theme.accent : theme[ACTIVITY_META[f.key].colorKey]}
                 onPress={() => setTypeFilter(f.key)}
               />
             ))}

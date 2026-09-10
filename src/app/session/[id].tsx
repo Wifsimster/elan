@@ -13,7 +13,7 @@ import { RouteMap } from '@/components/route-map';
 import { ShareCard, SHARE_CARD_WIDTH, SHARE_HERO_HEIGHT } from '@/components/share-card';
 import { StatTile } from '@/components/stat-tile';
 import { Radius, Type } from '@/constants/theme';
-import { ACTIVITY_META } from '@/lib/activity';
+import { ACTIVITY_META, isGpsActivity, usesPace } from '@/lib/activity';
 import { elevationProfile, hrProfile, speedProfile } from '@/lib/chart-data';
 import {
   deleteSession,
@@ -37,6 +37,7 @@ import {
   formatDateTime,
   formatDuration,
   hrParts,
+  paceParts,
   speedParts,
 } from '@/lib/format';
 import type { MuscuSet, Session, TrackPoint } from '@/lib/types';
@@ -77,9 +78,9 @@ export default function SessionDetailScreen() {
     if (gpx.error) Alert.alert('Export GPX', gpx.error);
   }, [gpx.error]);
 
-  // Pré-rend le fond de carte de la carte partageable (vélo avec tracé).
+  // Pré-rend le fond de carte de la carte partageable (activité GPS avec tracé).
   useEffect(() => {
-    if (session?.type !== 'velo' || points.length < 2) return;
+    if (!session?.type || !isGpsActivity(session.type) || points.length < 2) return;
     let cancelled = false;
     createRouteSnapshot(points, { width: SHARE_CARD_WIDTH, height: SHARE_HERO_HEIGHT }).then((s) => {
       if (!cancelled) setMapSnapshot(s);
@@ -93,7 +94,7 @@ export default function SessionDetailScreen() {
     (async () => {
       const s = await getSession(sessionId);
       setSession(s);
-      if (s?.type === 'velo') setPoints(await getTrackPoints(sessionId));
+      if (s && isGpsActivity(s.type)) setPoints(await getTrackPoints(sessionId));
       if (s?.type === 'muscu') setSets(await getMuscuSets(sessionId));
       if (s) {
         setRecords(await sessionRecords(s));
@@ -139,13 +140,16 @@ export default function SessionDetailScreen() {
 
   // Vélo : on met en avant le temps en mouvement (hors arrêts) ; le temps total
   // n'est montré que s'il en diffère nettement (chrono laissé tourner à l'arrêt).
-  const movingSec = session.type === 'velo' ? session.movingTimeSec : null;
+  const isGps = isGpsActivity(session.type);
+  // À pied, l'effort se lit en allure (min/km) plutôt qu'en vitesse.
+  const pace = usesPace(session.type);
+  const movingSec = isGps ? session.movingTimeSec : null;
   const showTotalTime = movingSec != null && session.durationSec - movingSec >= 60;
 
   // Profils de données (vélo) — calculés depuis les points GPS, 100 % local.
-  const speed = session.type === 'velo' ? speedProfile(points) : [];
-  const elevation = session.type === 'velo' ? elevationProfile(points) : [];
-  const hr = session.type === 'velo' ? hrProfile(points) : [];
+  const speed = isGps ? speedProfile(points) : [];
+  const elevation = isGps ? elevationProfile(points) : [];
+  const hr = isGps ? hrProfile(points) : [];
   // Temps par zone : lu sur les points GPS horodatés, donc disponible
   // rétroactivement sur toutes les sorties enregistrées avec la ceinture.
   const zones = zoneDistribution(points, maxHr);
@@ -212,7 +216,7 @@ export default function SessionDetailScreen() {
         <RecordsBanner records={records} year={new Date(session.startedAt).getFullYear()} />
 
         {/* Tracé GPS (vélo) — vignette tactile : ouvre la carte en plein écran. */}
-        {session.type === 'velo' && points.length >= 2 ? (
+        {isGps && points.length >= 2 ? (
           <PressableScale
             onPress={() =>
               router.push({ pathname: '/session/map', params: { id: String(sessionId) } })
@@ -273,7 +277,7 @@ export default function SessionDetailScreen() {
                 compact
               />
             ) : null}
-            {session.type === 'velo' ? (
+            {isGps ? (
               <>
                 <StatTile
                   label="Distance"
@@ -283,15 +287,15 @@ export default function SessionDetailScreen() {
                   compact
                 />
                 <StatTile
-                  label="Vitesse moy."
-                  {...speedParts(session.avgSpeedKmh)}
-                  icon="speedometer"
+                  label={pace ? 'Allure moy.' : 'Vitesse moy.'}
+                  {...(pace ? paceParts(session.avgSpeedKmh) : speedParts(session.avgSpeedKmh))}
+                  icon={pace ? 'timer-outline' : 'speedometer'}
                   compact
                 />
                 <StatTile
-                  label="Vitesse max"
-                  {...speedParts(session.maxSpeedKmh)}
-                  icon="speedometer-medium"
+                  label={pace ? 'Meilleure allure' : 'Vitesse max'}
+                  {...(pace ? paceParts(session.maxSpeedKmh) : speedParts(session.maxSpeedKmh))}
+                  icon={pace ? 'timer-outline' : 'speedometer-medium'}
                   compact
                 />
                 <StatTile
@@ -396,7 +400,7 @@ export default function SessionDetailScreen() {
           </Card>
         ) : null}
 
-        {session.type === 'velo' && points.length >= 2 ? (
+        {isGps && points.length >= 2 ? (
           <Button
             title="Exporter en GPX (Strava)"
             icon="cloud-upload-outline"

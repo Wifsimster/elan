@@ -164,15 +164,41 @@ export default function HomeScreen() {
         <Text style={{ ...Type.overline, color: theme.textSecondary }}>Démarrer une séance</Text>
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Button title="Vélo" icon="bike" size="lg" color={theme.velo} onPress={() => router.push('/velo')} />
+            <Button
+              title="Vélo"
+              icon={ACTIVITY_META.velo.icon}
+              size="lg"
+              color={theme.velo}
+              onPress={() => router.push({ pathname: '/sortie', params: { type: 'velo' } })}
+            />
           </View>
           <View style={{ flex: 1 }}>
             <Button
               title={resumable ? 'Reprendre' : 'Muscu'}
-              icon={resumable ? 'play' : 'dumbbell'}
+              icon={resumable ? 'play' : ACTIVITY_META.muscu.icon}
               size="lg"
               color={theme.muscu}
               onPress={() => router.push('/muscu')}
+            />
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              title={ACTIVITY_META.course.shortLabel}
+              icon={ACTIVITY_META.course.icon}
+              size="lg"
+              color={theme.course}
+              onPress={() => router.push({ pathname: '/sortie', params: { type: 'course' } })}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              title={ACTIVITY_META.marche.shortLabel}
+              icon={ACTIVITY_META.marche.icon}
+              size="lg"
+              color={theme.marche}
+              onPress={() => router.push({ pathname: '/sortie', params: { type: 'marche' } })}
             />
           </View>
         </View>
@@ -240,7 +266,6 @@ export default function HomeScreen() {
             label="Distance"
             {...distanceParts(stats?.totalDistanceM ?? 0)}
             icon="map-marker-distance"
-            color={theme.velo}
             compact
             trend={
               stats && lastStats
@@ -288,7 +313,7 @@ export default function HomeScreen() {
           <EmptyState
             icon="run-fast"
             title="Ta première séance t'attend"
-            subtitle="Démarre une sortie vélo ou une séance de muscu pour commencer."
+            subtitle="Démarre une sortie (vélo, course, marche) ou une séance de muscu pour commencer."
           />
         </Card>
       ) : (
@@ -365,20 +390,20 @@ function TodayCard({
     );
   }
 
-  const isVelo = plan.kind === 'velo';
   // Séance muscu du jour mise en pause : on propose de la reprendre.
   const isResumeMuscu = plan.kind === 'muscu' && resumable;
-  const color = isVelo ? theme.velo : theme.muscu;
-  const icon = isVelo ? 'bike' : 'dumbbell';
+  const meta = ACTIVITY_META[plan.kind];
+  const color = theme[meta.colorKey];
   const tmpl = plan.kind === 'muscu' ? templateById(plan.templateId) : undefined;
-  const subtitle = isVelo
-    ? 'Récup active / cardio'
-    : tmpl?.exercises.map((e) => e.name).join(' · ');
+  const subtitle =
+    plan.kind === 'muscu'
+      ? tmpl?.exercises.map((e) => e.name).join(' · ')
+      : 'Récup active / cardio';
 
   const start = () =>
-    isVelo
-      ? router.push('/velo')
-      : router.push({ pathname: '/muscu', params: { template: (plan as { templateId: string }).templateId } });
+    plan.kind === 'muscu'
+      ? router.push({ pathname: '/muscu', params: { template: plan.templateId } })
+      : router.push({ pathname: '/sortie', params: { type: plan.kind } });
 
   return (
     <Card style={{ gap: 12 }}>
@@ -393,7 +418,7 @@ function TodayCard({
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-          <MaterialCommunityIcons name={icon} size={24} color={color} />
+          <MaterialCommunityIcons name={meta.icon} size={24} color={color} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ ...Type.label, color: theme.textSecondary }}>Aujourd’hui · {dayName}</Text>
