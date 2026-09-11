@@ -21,8 +21,8 @@
     { "type": "ci", "hidden": true },
     { "type": "chore", "hidden": true }
   ],
-  "commitUrlFormat": "https://github.com/Wifsimster/tracker-activite/commit/{{hash}}",
-  "compareUrlFormat": "https://github.com/Wifsimster/tracker-activite/compare/{{previousTag}}...{{currentTag}}",
-  "issueUrlFormat": "https://github.com/Wifsimster/tracker-activite/issues/{{id}}",
+  "commitUrlFormat": "https://github.com/Wifsimster/elan/commit/{{hash}}",
+  "compareUrlFormat": "https://github.com/Wifsimster/elan/compare/{{previousTag}}...{{currentTag}}",
+  "issueUrlFormat": "https://github.com/Wifsimster/elan/issues/{{id}}",
   "releaseCommitMessageFormat": "chore(release): {{currentTag}}"
 }
