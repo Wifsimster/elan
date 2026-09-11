@@ -35,6 +35,32 @@ const HEALTH_EXERCISE: Record<ActivityType, { type: number; title: string }> = {
 };
 const SDK_AVAILABLE = 3; // SdkAvailabilityStatus.SDK_AVAILABLE
 
+/**
+ * Enregistrements écrits pour une séance, avec le suffixe de leur identifiant
+ * client. Sert à l'écriture comme à la suppression : une seule liste, donc pas
+ * de miroir orphelin qu'on aurait oublié d'effacer.
+ */
+const SESSION_RECORDS: { recordType: Permission['recordType']; suffix: string }[] = [
+  { recordType: 'ExerciseSession', suffix: 'session' },
+  { recordType: 'Distance', suffix: 'distance' },
+  { recordType: 'ActiveCaloriesBurned', suffix: 'calories' },
+  { recordType: 'HeartRate', suffix: 'hr' },
+];
+
+/**
+ * Identifiant stable d'un enregistrement : (séance × type d'enregistrement). Le
+ * type d'activité en fait partie — changer le type d'une séance change donc ses
+ * identifiants, d'où la suppression de l'ancien miroir avant réécriture
+ * (cf. `removeSessionFromHealthConnect`).
+ */
+export function healthClientRecordId(
+  type: ActivityType,
+  startedAt: number,
+  suffix: string,
+): string {
+  return `elan-${type}-${startedAt}-${suffix}`;
+}
+
 // Écriture seule : Élan n'a pas besoin de lire les données des autres apps.
 const WRITE_PERMISSIONS: Permission[] = [
   { accessType: 'write', recordType: 'ExerciseSession' },
@@ -125,7 +151,7 @@ export function buildHealthRecords(data: HealthSessionData): HealthConnectRecord
   // déduplique sur `clientRecordId`). La séance est identifiée par son instant de
   // début, unique. Sans lui, chaque ré-export doublait sessions et calories.
   const meta = (suffix: string) => ({
-    metadata: { clientRecordId: `elan-${data.type}-${data.startedAt}-${suffix}` },
+    metadata: { clientRecordId: healthClientRecordId(data.type, data.startedAt, suffix) },
   });
 
   const records: HealthConnectRecord[] = [
@@ -199,6 +225,37 @@ export async function exportSessionToHealthConnect(data: HealthSessionData): Pro
     // chacun en best-effort pour qu'un échec n'empêche pas les suivants.
     for (const record of records) {
       await hc.insertRecords([record]).catch(() => {});
+    }
+  } catch {
+    // Best-effort : jamais bloquant pour l'utilisateur.
+  }
+}
+
+/**
+ * Supprime le miroir Health Connect d'une séance enregistrée sous `type`.
+ *
+ * Appelé avant de réécrire une séance dont le TYPE a changé : l'identifiant
+ * client porte le type, donc sans cette suppression la réécriture créerait un
+ * doublon au lieu de remplacer. Best-effort et silencieux, comme l'export :
+ * Health Connect n'est qu'un miroir, la base locale reste la source de vérité.
+ */
+export async function removeSessionFromHealthConnect(
+  type: ActivityType,
+  startedAt: number,
+): Promise<void> {
+  try {
+    if (!(await getHealthConnectEnabled())) return;
+    const hc = await getModule();
+    if (!hc) return;
+    if ((await hc.getSdkStatus()) !== SDK_AVAILABLE) return;
+    if (!(await hc.initialize())) return;
+
+    for (const { recordType, suffix } of SESSION_RECORDS) {
+      // Suppression par identifiant client : aucun UUID à retenir de notre côté,
+      // et l'appel est inoffensif quand l'enregistrement n'existe pas.
+      await hc
+        .deleteRecordsByUuids(recordType, [], [healthClientRecordId(type, startedAt, suffix)])
+        .catch(() => {});
     }
   } catch {
     // Best-effort : jamais bloquant pour l'utilisateur.

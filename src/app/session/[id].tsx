@@ -10,6 +10,7 @@ import { HrZonesCard } from '@/components/hr-zones-card';
 import { LineChart } from '@/components/line-chart';
 import { PressableScale } from '@/components/pressable-scale';
 import { RouteMap } from '@/components/route-map';
+import { SessionTypeCard } from '@/components/session-type-card';
 import { ShareCard, SHARE_CARD_WIDTH, SHARE_HERO_HEIGHT } from '@/components/share-card';
 import { StatTile } from '@/components/stat-tile';
 import { Radius, Type } from '@/constants/theme';
@@ -58,6 +59,9 @@ export default function SessionDetailScreen() {
   const [sets, setSets] = useState<MuscuSet[]>([]);
   const [records, setRecords] = useState<SessionRecord[]>([]);
   const [maxHr, setMaxHr] = useState(0);
+  // Incrémenté après un changement de type : relit la séance et ses records,
+  // qui se comparent par type.
+  const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
   // Fond de carte pré-rendu pour la carte partageable (tuiles homelab). Généré
   // en arrière-plan dès l'ouverture pour être prêt au moment du partage ; reste
@@ -102,7 +106,7 @@ export default function SessionDetailScreen() {
       }
       setLoading(false);
     })();
-  }, [sessionId]);
+  }, [sessionId, reloadKey]);
 
   const confirmDelete = () => {
     Alert.alert('Supprimer la séance ?', 'Cette action est définitive.', [
@@ -398,6 +402,14 @@ export default function SessionDetailScreen() {
               {session.notes}
             </Text>
           </Card>
+        ) : null}
+
+        {isGps ? (
+          <SessionTypeCard
+            session={session}
+            points={points}
+            onChanged={() => setReloadKey((k) => k + 1)}
+          />
         ) : null}
 
         {isGps && points.length >= 2 ? (

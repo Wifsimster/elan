@@ -4,7 +4,12 @@
 // effets sont optionnels (opt-in) et ne doivent jamais bloquer la navigation.
 
 import { autoBackup } from '@/lib/backup';
-import { exportSessionToHealthConnect, type HealthSessionData } from '@/lib/health-connect';
+import {
+  exportSessionToHealthConnect,
+  removeSessionFromHealthConnect,
+  type HealthSessionData,
+} from '@/lib/health-connect';
+import type { ActivityType } from '@/lib/types';
 
 /**
  * Lance les effets post-enregistrement : sauvegarde homelab S3 (si configurée)
@@ -15,4 +20,19 @@ export function finalizeSavedSession(data: HealthSessionData): void {
   autoBackup(); // sauvegarde homelab best-effort (ne bloque pas la navigation)
   // Miroir Health Connect (opt-in) : best-effort, ne bloque pas la navigation.
   exportSessionToHealthConnect(data);
+}
+
+/**
+ * Effets après un CHANGEMENT DE TYPE d'une séance déjà enregistrée. Même contrat
+ * que `finalizeSavedSession` (best-effort, jamais bloquant), à une étape près :
+ * le miroir Health Connect de l'ancien type est d'abord supprimé, sans quoi la
+ * réécriture ajouterait un second enregistrement au lieu de remplacer le premier
+ * (l'identifiant client porte le type). L'ordre compte, d'où l'enchaînement.
+ */
+export function retypeSavedSession(previousType: ActivityType, data: HealthSessionData): void {
+  autoBackup(); // la séance a changé : la sauvegarde homelab repart
+  void (async () => {
+    await removeSessionFromHealthConnect(previousType, data.startedAt);
+    await exportSessionToHealthConnect(data);
+  })();
 }
