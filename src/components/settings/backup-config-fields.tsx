@@ -1,9 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
+import { Button } from '@/components/button';
+import { QrScanSheet } from '@/components/qr-scan-sheet';
 import { SettingField } from '@/components/settings/setting-field';
 import { DEFAULT_OBJECT_KEY, DEFAULT_REGION } from '@/lib/backup';
+import { describeQrPatch, parseBackupQr } from '@/lib/backup-qr';
 import { useBackup } from '@/hooks/use-backup';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -13,19 +16,56 @@ import { useTheme } from '@/hooks/use-theme';
  * les deux saisies restent identiques (mêmes libellés, mêmes placeholders,
  * même persistance).
  *
- * Quatre champs suffisent (endpoint, bucket, clés) : région et nom d'objet ont
- * des défauts qui conviennent à MinIO/SeaweedFS/Garage et restent modifiables
- * sous « Options avancées », dépliées d'office si une valeur y est déjà saisie.
+ * Quatre champs suffisent (endpoint, bucket, clés) : région et nom d'objet sont
+ * pré-remplis avec des défauts qui conviennent à MinIO/SeaweedFS/Garage et
+ * restent modifiables sous « Options avancées », dépliées d'office si la valeur
+ * stockée s'écarte du défaut.
  */
 export function BackupConfigFields() {
   const theme = useTheme();
   const backup = useBackup();
-  const hasAdvanced = Boolean(backup.config?.region || backup.config?.objectKey);
+  const hasAdvanced = Boolean(
+    backup.config &&
+      ((backup.config.region && backup.config.region !== DEFAULT_REGION) ||
+        (backup.config.objectKey && backup.config.objectKey !== DEFAULT_OBJECT_KEY)),
+  );
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const showAdvanced = advancedOpen || hasAdvanced;
+  const [scanning, setScanning] = useState(false);
+
+  // QR lu : on applique le fragment (les champs absents du QR sont conservés)
+  // et on dit lesquels ont été remplis — le secret reste masqué à l'écran.
+  const onScanned = (data: string) => {
+    setScanning(false);
+    const patch = parseBackupQr(data);
+    if (!patch) {
+      Alert.alert(
+        'QR code non reconnu',
+        'Ce QR ne contient pas de configuration S3 (JSON ou s3://…). Voir docs/SAUVEGARDE.md pour le format.',
+      );
+      return;
+    }
+    backup.update(patch);
+    Alert.alert('Configuration importée', `Champs remplis : ${describeQrPatch(patch)}.`);
+  };
 
   return (
     <View style={{ gap: 14 }}>
+      {/* Éviter de taper une clé secrète au clavier : QR généré sur le serveur. */}
+      <Button
+        title="Scanner un QR code de configuration"
+        icon="qrcode-scan"
+        variant="secondary"
+        color={theme.accent}
+        onPress={() => setScanning(true)}
+      />
+      <QrScanSheet
+        visible={scanning}
+        title="Configuration S3"
+        hint="Vise le QR code généré pour Élan : endpoint, bucket et clés seront remplis automatiquement."
+        onCancel={() => setScanning(false)}
+        onScanned={onScanned}
+      />
       <SettingField
         label="Endpoint"
         placeholder="https://s3.mon-homelab.tld"
@@ -74,7 +114,7 @@ export function BackupConfigFields() {
             </View>
           </View>
           <Text style={{ color: theme.textMuted, fontSize: 12 }}>
-            Vides = valeurs par défaut ({DEFAULT_REGION}, {DEFAULT_OBJECT_KEY}).
+            Vidés, ils reviennent aux défauts ({DEFAULT_REGION}, {DEFAULT_OBJECT_KEY}).
           </Text>
         </>
       ) : (

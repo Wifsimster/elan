@@ -98,15 +98,27 @@ const DEFAULT_CONFIG: BackupConfig = {
   // (les champs vides affichent les placeholders de l'écran Réglages) ; rien ne
   // part sur le réseau tant que l'utilisateur n'a pas saisi ses identifiants
   // (runBackup/autoBackup sont gardés par isConfigComplete()). Région et nom
-  // d'objet sont optionnels : vides, ils prennent les défauts ci-dessus.
+  // d'objet sont pré-remplis avec leurs défauts (non personnels) : l'utilisateur
+  // voit ce qui sera utilisé et n'a rien à inventer ; vidés, ils y reviennent.
   enabled: false,
   endpoint: '',
-  region: '',
+  region: DEFAULT_REGION,
   bucket: '',
   accessKeyId: '',
   secretAccessKey: '',
-  objectKey: '',
+  objectKey: DEFAULT_OBJECT_KEY,
 };
+
+/** Fusionne une config stockée avec les défauts, en re-remplissant les champs
+ *  optionnels laissés vides pour que l'écran montre la valeur effective. */
+function withDefaults(stored: Partial<BackupConfig>): BackupConfig {
+  const merged = { ...DEFAULT_CONFIG, ...stored };
+  return {
+    ...merged,
+    region: merged.region || DEFAULT_REGION,
+    objectKey: merged.objectKey || DEFAULT_OBJECT_KEY,
+  };
+}
 
 export async function getBackupConfig(): Promise<BackupConfig> {
   const raw = await getSetting(CONFIG_KEY);
@@ -121,7 +133,7 @@ export async function getBackupConfig(): Promise<BackupConfig> {
 
   if (!(await hasSecureStore())) {
     // Web / plateforme sans stockage sécurisé : comportement historique.
-    return { ...DEFAULT_CONFIG, ...stored };
+    return withDefaults(stored);
   }
 
   // Migration héritée : si une ancienne version a laissé les secrets dans le
@@ -135,7 +147,7 @@ export async function getBackupConfig(): Promise<BackupConfig> {
 
   const accessKeyId = (await SecureStore.getItemAsync(SECURE_AK_KEY)) ?? '';
   const secretAccessKey = (await SecureStore.getItemAsync(SECURE_SK_KEY)) ?? '';
-  return { ...DEFAULT_CONFIG, ...stored, accessKeyId, secretAccessKey };
+  return { ...withDefaults(stored), accessKeyId, secretAccessKey };
 }
 
 export async function saveBackupConfig(config: BackupConfig): Promise<void> {

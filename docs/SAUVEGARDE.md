@@ -43,16 +43,50 @@ auto-hébergées :
 
 ## Configuration
 
-Dans **Réglages → Sauvegarde**, renseignez les champs suivants :
+Dans **Réglages → Sauvegarde**, quatre champs suffisent :
 
 | Champ | Description |
 |-------|-------------|
-| Endpoint | Adresse de votre serveur (ex. `https://s3.exemple.com`) |
-| Région | Région S3 (souvent `us-east-1` par défaut) |
+| Endpoint | Adresse HTTPS de votre serveur (ex. `https://s3.exemple.com`), accès *path-style* |
 | Bucket | Nom du conteneur de stockage |
-| Clé d'accès | Identifiant d'accès S3 |
-| Clé secrète | Mot de passe d'accès S3 |
-| Clé d'objet | Nom du fichier de sauvegarde (ex. `elan-backup.json`) |
+| Access key | Identifiant d'accès S3 |
+| Secret key | Mot de passe d'accès S3 (« Afficher » permet de le relire) |
+
+Sous **Options avancées**, deux champs pré-remplis que vous pouvez laisser tels quels :
+
+| Champ | Défaut |
+|-------|--------|
+| Région | `us-east-1` (acceptée par MinIO, SeaweedFS, Garage…) |
+| Nom de l'objet | `elan-backup.json` |
+
+### Remplir par QR code
+
+Taper une clé secrète sur un clavier de téléphone est source d'erreurs
+(`SignatureDoesNotMatch`). Le bouton **Scanner un QR code de configuration**
+lit avec la caméra un QR généré depuis votre serveur et remplit les champs ;
+le décodage se fait sur l'appareil, rien n'est envoyé. Deux formats :
+
+- **JSON** (champs partiels acceptés, alias `access_key`/`secret_key`/`url` tolérés) :
+
+  ```json
+  {"endpoint":"https://s3.exemple.com","bucket":"elan","accessKeyId":"AK…","secretAccessKey":"SK…"}
+  ```
+
+- **URL** compacte (identifiants encodés en URL si besoin) :
+
+  ```
+  s3://AK…:SK…@s3.exemple.com/elan
+  ```
+
+Génération sur un poste avec `qrencode` (paquet `qrencode`), à afficher dans un
+terminal ou en image :
+
+```bash
+qrencode -t ANSIUTF8 '{"endpoint":"https://s3.exemple.com","bucket":"elan","accessKeyId":"AK…","secretAccessKey":"SK…"}'
+```
+
+> Un QR contient la clé secrète en clair : ne l'affichez qu'au moment de
+> scanner, et ne le laissez pas traîner en image.
 
 Une fois la configuration complète, deux modes existent :
 

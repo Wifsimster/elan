@@ -1,4 +1,4 @@
-import { putObject } from '@/lib/s3';
+import { describeNetworkFailure, describeS3Failure, putObject } from '@/lib/s3';
 
 // Référence indépendante : `crypto` de Node (pas de @types/node dans le projet,
 // d'où le require typé à la main, comme better-sqlite3 dans db.test.ts).
@@ -77,5 +77,35 @@ describe('s3 — signature SigV4', () => {
     expect(headers.Authorization).toBe(
       `AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/${scope}, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=${signature}`,
     );
+  });
+});
+
+describe('s3 — messages d’erreur', () => {
+  const cfg = { bucket: 'elan', accessKeyId: 'AK' };
+  const xml = (code: string, msg = 'x') => `<?xml version="1.0"?><Error><Code>${code}</Code><Message>${msg}</Message></Error>`;
+
+  it('oriente vers la clé secrète sur SignatureDoesNotMatch', () => {
+    expect(describeS3Failure('PUT', 403, xml('SignatureDoesNotMatch'), cfg)).toMatch(/clé secrète/);
+  });
+  it('nomme le bucket manquant et la clé inconnue', () => {
+    expect(describeS3Failure('PUT', 404, xml('NoSuchBucket'), cfg)).toMatch(/« elan »/);
+    expect(describeS3Failure('GET', 403, xml('InvalidAccessKeyId'), cfg)).toMatch(/« AK »/);
+  });
+  it('distingue lecture et écriture sur AccessDenied', () => {
+    expect(describeS3Failure('PUT', 403, xml('AccessDenied'), cfg)).toMatch(/d’écrire/);
+    expect(describeS3Failure('GET', 403, xml('AccessDenied'), cfg)).toMatch(/de lire/);
+  });
+  it('retombe sur un message générique lisible sans XML brut', () => {
+    const m = describeS3Failure('PUT', 400, xml('MalformedXML', 'bad body'), cfg);
+    expect(m).toMatch(/HTTP 400/);
+    expect(m).toMatch(/bad body/);
+    expect(m).not.toMatch(/</);
+    expect(describeS3Failure('PUT', 503, '', cfg)).toMatch(/serveur/);
+  });
+  it('traduit les échecs réseau', () => {
+    const timeout = Object.assign(new Error('timeout'), { name: 'TimeoutError' });
+    expect(describeNetworkFailure(timeout)).toMatch(/délai/);
+    expect(describeNetworkFailure(new TypeError('Network request failed'))).toMatch(/injoignable/);
+    expect(describeNetworkFailure(new Error('Trust anchor for certification path not found'))).toMatch(/Certificat/);
   });
 });

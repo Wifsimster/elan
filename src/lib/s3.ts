@@ -117,28 +117,101 @@ function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
   return fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
 }
 
+/** Extrait `<Code>` et `<Message>` d'une réponse d'erreur S3 (XML). */
+function parseS3Error(xml: string): { code: string; message: string } {
+  const pick = (tag: string) =>
+    xml.match(new RegExp(`<${tag}>([^<]*)</${tag}>`))?.[1]?.trim() ?? '';
+  return { code: pick('Code'), message: pick('Message') };
+}
+
+/**
+ * Traduit un échec HTTP S3 en phrase actionnable pour l'écran Réglages : le
+ * XML brut du serveur ne dit pas à l'utilisateur quel champ corriger.
+ */
+export function describeS3Failure(
+  method: 'PUT' | 'GET',
+  status: number,
+  body: string,
+  config: Pick<S3Config, 'bucket' | 'accessKeyId'>,
+): string {
+  const { code, message } = parseS3Error(body);
+  switch (code) {
+    case 'SignatureDoesNotMatch':
+      return 'Signature refusée : la clé secrète ne correspond pas à l’access key. Vérifie-la caractère par caractère (« Afficher »).';
+    case 'InvalidAccessKeyId':
+      return `Access key « ${config.accessKeyId} » inconnue du serveur.`;
+    case 'NoSuchBucket':
+      return `Le bucket « ${config.bucket} » n’existe pas sur ce serveur.`;
+    case 'AccessDenied':
+      return `Accès refusé : cette clé n’a pas le droit ${method === 'PUT' ? 'd’écrire' : 'de lire'} dans le bucket « ${config.bucket} ».`;
+    case 'RequestTimeTooSkewed':
+      return 'Horloge du téléphone trop décalée par rapport au serveur (signature expirée).';
+  }
+  if (status === 401 || status === 403) return 'Identifiants refusés par le serveur (HTTP ' + status + ').';
+  if (status === 404) return `Le bucket « ${config.bucket} » ou le chemin de l’endpoint est introuvable (HTTP 404).`;
+  if (status >= 500) return `Erreur côté serveur (HTTP ${status}) : réessaie plus tard.`;
+  const detail = message || code || body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+  return `Le serveur a refusé la requête (HTTP ${status})${detail ? ` : ${detail}` : '.'}`;
+}
+
+/** Traduit un échec réseau (fetch rejeté) : endpoint injoignable, TLS, délai. */
+export function describeNetworkFailure(e: unknown): string {
+  const name = e instanceof Error ? e.name : '';
+  const msg = e instanceof Error ? e.message : String(e);
+  if (name === 'TimeoutError' || name === 'AbortError') {
+    return 'Le serveur ne répond pas (délai dépassé). Vérifie l’endpoint et que le serveur est joignable depuis ce réseau.';
+  }
+  if (/certificate|ssl|tls|trust anchor/i.test(msg)) {
+    return 'Certificat HTTPS refusé par le téléphone. Le serveur doit présenter un certificat valide (Let’s Encrypt par ex.).';
+  }
+  if (/network request failed|unable to resolve|failed to connect|econnrefused|enotfound/i.test(msg)) {
+    return 'Serveur injoignable : vérifie l’endpoint (nom de domaine, port) et la connexion réseau.';
+  }
+  return msg || 'Échec réseau.';
+}
+
+async function request(
+  config: S3Config,
+  method: 'PUT' | 'GET',
+  body: string,
+  extraHeaders: Record<string, string> = {},
+): Promise<Response> {
+  const { url, headers } = sign(config, method, body);
+  try {
+    return await fetchWithTimeout(url, {
+      method,
+      headers: { ...headers, ...extraHeaders },
+      body: method === 'PUT' ? body : undefined,
+    });
+  } catch (e) {
+    throw new Error(describeNetworkFailure(e));
+  }
+}
+
 /** Téléverse `body` comme objet dans le bucket. Lève en cas d'échec HTTP. */
 export async function putObject(config: S3Config, body: string): Promise<void> {
-  const { url, headers } = sign(config, 'PUT', body);
-  const res = await fetchWithTimeout(url, {
-    method: 'PUT',
-    headers: { ...headers, 'Content-Type': 'application/json' },
-    body,
-  });
+  const res = await request(config, 'PUT', body, { 'Content-Type': 'application/json' });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
-    throw new Error(`S3 PUT ${res.status} ${res.statusText}${detail ? ` — ${detail.slice(0, 200)}` : ''}`);
+    throw new Error(describeS3Failure('PUT', res.status, detail, config));
   }
 }
 
 /** Récupère le contenu de l'objet, ou `null` s'il n'existe pas (404). */
 export async function getObject(config: S3Config): Promise<string | null> {
-  const { url, headers } = sign(config, 'GET', '');
-  const res = await fetchWithTimeout(url, { method: 'GET', headers });
-  if (res.status === 404) return null;
+  const res = await request(config, 'GET', '');
+  if (res.status === 404) {
+    // 404 = objet absent (première restauration) — sauf si c'est le bucket qui
+    // manque, auquel cas l'utilisateur doit corriger sa config.
+    const detail = await res.text().catch(() => '');
+    if (parseS3Error(detail).code === 'NoSuchBucket') {
+      throw new Error(describeS3Failure('GET', 404, detail, config));
+    }
+    return null;
+  }
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
-    throw new Error(`S3 GET ${res.status} ${res.statusText}${detail ? ` — ${detail.slice(0, 200)}` : ''}`);
+    throw new Error(describeS3Failure('GET', res.status, detail, config));
   }
   return res.text();
 }

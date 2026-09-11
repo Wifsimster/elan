@@ -110,7 +110,13 @@
         }
       ],
       "expo-image",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Élan utilise la caméra uniquement pour lire un QR code de configuration (sauvegarde S3)."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

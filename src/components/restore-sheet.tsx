@@ -3,6 +3,7 @@ import { Modal, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { ErrorNotice } from '@/components/error-notice';
 import { BackupConfigFields } from '@/components/settings/backup-config-fields';
 import { Radius, Type } from '@/constants/theme';
 import { useBackup } from '@/hooks/use-backup';
@@ -83,9 +84,7 @@ export function RestoreSheet({ visible, onCancel, onRestored }: Props) {
 
           <BackupConfigFields />
 
-          {backup.error ? (
-            <Text style={{ color: theme.danger, fontSize: 13 }}>{backup.error}</Text>
-          ) : null}
+          {backup.error ? <ErrorNotice message={backup.error} /> : null}
 
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <MaterialCommunityIcons name="autorenew" size={18} color={theme.success} />

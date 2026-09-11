@@ -4,6 +4,7 @@ import { Alert, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { ErrorNotice } from '@/components/error-notice';
 import { SettingCardHeader } from '@/components/setting-card-header';
 import { BackupConfigFields } from '@/components/settings/backup-config-fields';
 import { formatDateTime } from '@/lib/format';
@@ -66,7 +67,7 @@ export function BackupCard() {
 
       <BackupConfigFields />
 
-      {backup.error ? <Text style={{ color: theme.danger, fontSize: 13 }}>{backup.error}</Text> : null}
+      {backup.error ? <ErrorNotice message={backup.error} /> : null}
 
       <Button
         title="Sauvegarder maintenant"
