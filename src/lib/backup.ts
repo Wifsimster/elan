@@ -87,15 +87,21 @@ export type BackupSnapshot = {
 
 export type BackupLast = { at: number; ok: boolean; error?: string };
 
+/** Région par défaut : celle qu'acceptent MinIO/SeaweedFS/Garage sans config. */
+export const DEFAULT_REGION = 'us-east-1';
+/** Nom d'objet par défaut dans le bucket. */
+export const DEFAULT_OBJECT_KEY = 'elan-backup.json';
+
 const DEFAULT_CONFIG: BackupConfig = {
   // Sauvegarde désactivée et non configurée par défaut : c'est une fonction
   // opt-in « votre propre serveur ». Aucune valeur personnelle n'est pré-remplie
   // (les champs vides affichent les placeholders de l'écran Réglages) ; rien ne
   // part sur le réseau tant que l'utilisateur n'a pas saisi ses identifiants
-  // (runBackup/autoBackup sont gardés par isConfigComplete()).
+  // (runBackup/autoBackup sont gardés par isConfigComplete()). Région et nom
+  // d'objet sont optionnels : vides, ils prennent les défauts ci-dessus.
   enabled: false,
   endpoint: '',
-  region: 'us-east-1',
+  region: '',
   bucket: '',
   accessKeyId: '',
   secretAccessKey: '',
@@ -158,11 +164,29 @@ export async function getBackupLast(): Promise<BackupLast | null> {
   }
 }
 
-/** Vrai si la config contient le minimum requis pour contacter le serveur. */
+/**
+ * Config prête à signer : champs nettoyés des espaces parasites (collage sur
+ * mobile — une clé secrète avec un espace final donne un SignatureDoesNotMatch
+ * incompréhensible) et défauts appliqués aux champs optionnels.
+ */
+export function effectiveConfig(c: BackupConfig): BackupConfig {
+  const t = (v: string) => v.trim();
+  return {
+    ...c,
+    endpoint: t(c.endpoint),
+    bucket: t(c.bucket),
+    accessKeyId: t(c.accessKeyId),
+    secretAccessKey: t(c.secretAccessKey),
+    region: t(c.region) || DEFAULT_REGION,
+    objectKey: t(c.objectKey) || DEFAULT_OBJECT_KEY,
+  };
+}
+
+/** Vrai si la config contient le minimum requis pour contacter le serveur :
+ *  endpoint, bucket et le couple de clés (région et objet ont des défauts). */
 export function isConfigComplete(c: BackupConfig): boolean {
-  return Boolean(
-    c.endpoint && c.bucket && c.accessKeyId && c.secretAccessKey && c.objectKey && c.region,
-  );
+  const e = effectiveConfig(c);
+  return Boolean(e.endpoint && e.bucket && e.accessKeyId && e.secretAccessKey);
 }
 
 async function recordLast(last: BackupLast): Promise<void> {
@@ -172,7 +196,7 @@ async function recordLast(last: BackupLast): Promise<void> {
 /** Téléverse une sauvegarde complète. Lève en cas d'erreur réseau/HTTP. */
 export async function runBackup(config?: BackupConfig): Promise<BackupLast> {
   return withBackupLock(async () => {
-    const cfg = config ?? (await getBackupConfig());
+    const cfg = effectiveConfig(config ?? (await getBackupConfig()));
     if (!isConfigComplete(cfg)) throw new Error('Configuration S3 incomplète.');
 
     const snapshot: BackupSnapshot = {
@@ -220,7 +244,7 @@ export async function restoreBackup(config?: BackupConfig): Promise<number> {
 }
 
 async function restoreBackupInner(config?: BackupConfig): Promise<number> {
-  const cfg = config ?? (await getBackupConfig());
+  const cfg = effectiveConfig(config ?? (await getBackupConfig()));
   if (!isConfigComplete(cfg)) throw new Error('Configuration S3 incomplète.');
 
   const raw = await getObject(cfg);
