@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BarChart, type Bar } from '@/components/bar-chart';
@@ -13,6 +13,7 @@ import { HrBadge } from '@/components/hr-badge';
 import { PlanUpdateBanner } from '@/components/plan-update-banner';
 import { OnboardingSheet } from '@/components/onboarding-sheet';
 import { PressableScale } from '@/components/pressable-scale';
+import { RestoreSheet } from '@/components/restore-sheet';
 import { StatTile, type Trend } from '@/components/stat-tile';
 import { Radius, Type } from '@/constants/theme';
 import { ACTIVITY_META } from '@/lib/activity';
@@ -69,6 +70,8 @@ export default function HomeScreen() {
   // Accueil premier lancement : capture le profil (sinon calories/zones cardio
   // et charges conseillées tournent sur les valeurs par défaut, fausses en silence).
   const [onboarding, setOnboarding] = useState<Profile | null>(null);
+  // Restauration S3 proposée depuis l'onboarding (réinstallation).
+  const [restoring, setRestoring] = useState(false);
 
   const load = useCallback(async () => {
     const now = nowMs();
@@ -125,18 +128,38 @@ export default function HomeScreen() {
     [load, onboarding],
   );
 
+  // Le snapshot restauré contient le profil et, en général, `onboarding_done` ;
+  // on le force quand même (sauvegarde antérieure à l'onboarding) pour ne pas
+  // redemander un profil qui vient d'être rechargé.
+  const finishRestore = useCallback(
+    async (count: number) => {
+      await setSetting('onboarding_done', '1');
+      setRestoring(false);
+      setOnboarding(null);
+      load();
+      Alert.alert('Restauration terminée', `${count} séance(s) restaurée(s) depuis le serveur.`);
+    },
+    [load],
+  );
+
   return (
     <>
       {onboarding ? (
         <OnboardingSheet
-          visible
+          visible={!restoring}
           initialWeightKg={onboarding.weightKg}
           initialHeightCm={onboarding.heightCm}
           initialMaxHr={onboarding.maxHr}
           initialGoal={onboarding.goal}
           onDone={finishOnboarding}
+          onRestore={() => setRestoring(true)}
         />
       ) : null}
+      <RestoreSheet
+        visible={restoring}
+        onCancel={() => setRestoring(false)}
+        onRestored={finishRestore}
+      />
       <ScrollView
         style={{ backgroundColor: theme.background }}
         contentContainerStyle={{

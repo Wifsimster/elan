@@ -23,6 +23,8 @@ type Props = {
     maxHr: number;
     goal: TrainingGoal;
   }) => void;
+  /** « J'ai déjà une sauvegarde » : ouvre la restauration depuis un S3 perso. */
+  onRestore: () => void;
 };
 
 /**
@@ -38,6 +40,7 @@ export function OnboardingSheet({
   initialMaxHr,
   initialGoal,
   onDone,
+  onRestore,
 }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -135,6 +138,15 @@ export function OnboardingSheet({
             title="C'est parti"
             icon="arrow-right"
             onPress={() => onDone({ weightKg, heightCm, maxHr, goal })}
+          />
+          {/* Réinstallation : la base (config S3 comprise) est vide, on propose
+              de tout recharger depuis le serveur plutôt que de repartir de zéro. */}
+          <Button
+            title="J'ai déjà une sauvegarde — restaurer"
+            icon="cloud-download-outline"
+            variant="ghost"
+            color={theme.accent}
+            onPress={onRestore}
           />
         </View>
       </ScrollView>
