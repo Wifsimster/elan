@@ -4,6 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import { isGpsActivity } from '@/lib/activity';
 import { estimateCalories } from '@/lib/calories';
 import { movingTimeSec } from '@/lib/moving-time';
+import { retypeChanges } from '@/lib/session-retype';
 import type {
   ActivityType,
   BodyMeasurement,
@@ -383,6 +384,36 @@ export async function updateSession(id: number, patch: SessionUpdate): Promise<v
   const assignments = keys.map((k) => `${k} = ?`).join(', ');
   const values = keys.map((k) => patch[k] ?? null);
   await db.runAsync(`UPDATE sessions SET ${assignments} WHERE id = ?;`, ...values, id);
+}
+
+/**
+ * Change le type d'une séance déjà enregistrée (vélo ↔ course ↔ marche).
+ *
+ * Le type n'est pas qu'une étiquette : les calories sont ré-estimées avec la
+ * table MET de la nouvelle activité et la cadence du capteur vélo est effacée
+ * si on passe à pied (cf. `lib/session-retype.ts`). Tout part dans un seul
+ * UPDATE, donc pas d'état intermédiaire incohérent.
+ *
+ * Renvoie la séance mise à jour, ou `null` si elle n'existe pas ou si le
+ * changement n'est pas permis (même type, ou musculation impliquée) — l'appelant
+ * n'a alors rien à rafraîchir.
+ */
+export async function changeSessionType(id: number, to: ActivityType): Promise<Session | null> {
+  const session = await getSession(id);
+  if (!session) return null;
+  const changes = retypeChanges(session, to, await getProfile());
+  if (!changes) return null;
+
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE sessions SET type = ?, calories = ?, avgCadence = ?, maxCadence = ? WHERE id = ?;',
+    changes.type,
+    changes.calories,
+    changes.avgCadence,
+    changes.maxCadence,
+    id,
+  );
+  return { ...session, ...changes };
 }
 
 export async function getSession(id: number): Promise<Session | null> {

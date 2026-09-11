@@ -5,7 +5,7 @@
 // on le neutralise, buildHealthRecords ne touche jamais la base.
 jest.mock('expo-sqlite', () => ({ openDatabaseAsync: jest.fn() }));
 
-import { buildHealthRecords } from '@/lib/health-connect';
+import { buildHealthRecords, healthClientRecordId } from '@/lib/health-connect';
 
 const T0 = Date.UTC(2026, 5, 1, 10, 0, 0); // 2026-06-01T10:00:00Z
 const T1 = T0 + 3600_000; // +1 h
@@ -163,5 +163,33 @@ describe('buildHealthRecords — activités à pied', () => {
 
   it('l’identifiant de déduplication porte le type', () => {
     expect(exerciseSession('course').metadata?.clientRecordId).toBe(`elan-course-${T0}-session`);
+  });
+});
+
+describe('healthClientRecordId', () => {
+  it('porte le type d’activité, l’instant de début et le rôle', () => {
+    expect(healthClientRecordId('course', T0, 'session')).toBe(`elan-course-${T0}-session`);
+    expect(healthClientRecordId('velo', T0, 'distance')).toBe(`elan-velo-${T0}-distance`);
+  });
+
+  it('change avec le type — c’est pourquoi un retype doit supprimer l’ancien miroir', () => {
+    expect(healthClientRecordId('velo', T0, 'session')).not.toBe(
+      healthClientRecordId('marche', T0, 'session'),
+    );
+  });
+
+  it('est bien l’identifiant écrit par buildHealthRecords', () => {
+    const records = buildHealthRecords({
+      type: 'marche',
+      startedAt: T0,
+      endedAt: T1,
+      distanceM: 5000,
+      calories: 200,
+    });
+    expect(records.map((r) => r.metadata?.clientRecordId)).toEqual([
+      healthClientRecordId('marche', T0, 'session'),
+      healthClientRecordId('marche', T0, 'distance'),
+      healthClientRecordId('marche', T0, 'calories'),
+    ]);
   });
 });
