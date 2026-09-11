@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.7.0](https://github.com/Wifsimster/tracker-activite/compare/v1.6.0...v1.7.0) (2026-09-11)
+
+
+### ✨ Fonctionnalités
+
+* **activites:** sorties à pied — course et marche en plus du vélo ([#71](https://github.com/Wifsimster/tracker-activite/issues/71)) ([6d48102](https://github.com/Wifsimster/tracker-activite/commit/6d481028b07a7860c2844ea71d00935e9ca04d46))
+* **cardio:** temps passé par zone cardiaque sur le détail de séance ([#70](https://github.com/Wifsimster/tracker-activite/issues/70)) ([e877da8](https://github.com/Wifsimster/tracker-activite/commit/e877da83be398666b70c6e028841281f611472cf))
+* **ci:** publie un APK Android téléchargeable sur les Releases GitHub ([#69](https://github.com/Wifsimster/tracker-activite/issues/69)) ([edf3b71](https://github.com/Wifsimster/tracker-activite/commit/edf3b7125732b691979a3f66b22530e347cce14b))
+* **muscu:** progression auto du programme selon le ressenti ([#62](https://github.com/Wifsimster/tracker-activite/issues/62)) ([dd05951](https://github.com/Wifsimster/tracker-activite/commit/dd05951fcb66648656025e2b77132ec942aeb498))
+* **seance:** corriger après coup le type d'une sortie (vélo ↔ course ↔ marche) ([#72](https://github.com/Wifsimster/tracker-activite/issues/72)) ([513edea](https://github.com/Wifsimster/tracker-activite/commit/513edea4369e45383911ebd55e0de5553851501a))
+
 ## [1.6.0](https://github.com/Wifsimster/tracker-activite/compare/v1.5.0...v1.6.0) (2026-06-08)
 
 
