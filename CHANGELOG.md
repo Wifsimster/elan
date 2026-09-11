@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.8.0](https://github.com/Wifsimster/elan/compare/v1.7.0...v1.8.0) (2026-09-11)
+
+
+### ✨ Fonctionnalités
+
+* **sauvegarde:** config S3 par QR code, erreurs lisibles, défauts pré-remplis ([76984bf](https://github.com/Wifsimster/elan/commit/76984bfcd7b7ff1f983fc19baefacba8c2055b18))
+* **sauvegarde:** formulaire S3 réduit à quatre champs, secret affichable ([6ec650c](https://github.com/Wifsimster/elan/commit/6ec650c406ff4e95e3b77e9b31ef3a561d751a47))
+* **sauvegarde:** proposer la restauration S3 au premier lancement ([f6d0d52](https://github.com/Wifsimster/elan/commit/f6d0d521c40efc0af936855401f9e3e92076cc69))
+
 ## [1.7.0](https://github.com/Wifsimster/tracker-activite/compare/v1.6.0...v1.7.0) (2026-09-11)
 
 
