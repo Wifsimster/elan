@@ -36,15 +36,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import ovh.battistella.elan.R
 import ovh.battistella.elan.common.SnackbarController
 import ovh.battistella.elan.ui.screens.history.HistoryScreen
 import ovh.battistella.elan.ui.screens.home.HomeScreen
 import ovh.battistella.elan.ui.screens.outing.OutingScreen
-import ovh.battistella.elan.ui.screens.placeholder.SoonScreen
+import ovh.battistella.elan.ui.screens.catalog.CatalogScreen
+import ovh.battistella.elan.ui.screens.exercise.ExerciseScreen
+import ovh.battistella.elan.ui.screens.progression.ProgressionScreen
 import ovh.battistella.elan.ui.screens.session.SessionDetailScreen
 import ovh.battistella.elan.ui.screens.session.SessionMapScreen
 import ovh.battistella.elan.ui.screens.settings.SettingsScreen
+import ovh.battistella.elan.ui.screens.strength.StrengthScreen
 import ovh.battistella.elan.ui.screens.weight.WeightScreen
 
 /**
@@ -159,13 +161,22 @@ fun ElanRoot(
             }
             composable(
                 route = Routes.MUSCU,
-                arguments = listOf(navArgument("template") { type = NavType.StringType; nullable = true; defaultValue = null }),
+                arguments = listOf(
+                    navArgument("template") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("add") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
                 enterTransition = { fadeIn() },
             ) {
-                SoonScreen(
-                    title = stringResource(R.string.muscu_title),
+                StrengthScreen(
                     contentPadding = innerPadding,
-                    onBack = { navController.popBackStack() },
+                    viewModel = screenViewModel(viewModelFactory),
+                    onExit = { navController.popBackStack() },
+                    // `router.replace(détail)` : la séance quitte la pile.
+                    onSaved = { id ->
+                        navController.navigate(Routes.session(id)) {
+                            popUpTo(Routes.MUSCU) { inclusive = true }
+                        }
+                    },
                 )
             }
 
@@ -199,16 +210,32 @@ fun ElanRoot(
                 )
             }
             composable(Routes.PROGRESSION) {
-                SoonScreen(stringResource(R.string.progression_title), innerPadding) { navController.popBackStack() }
+                ProgressionScreen(
+                    contentPadding = innerPadding,
+                    viewModel = screenViewModel(viewModelFactory),
+                    onBack = { navController.popBackStack() },
+                    onOpenExercise = { navController.navigate(Routes.exercise(it)) },
+                    onStartMuscu = { navController.navigate(Routes.muscu()) },
+                )
             }
             composable(Routes.CATALOG) {
-                SoonScreen(stringResource(R.string.catalog_title), innerPadding) { navController.popBackStack() }
+                CatalogScreen(
+                    contentPadding = innerPadding,
+                    viewModel = screenViewModel(viewModelFactory),
+                    onBack = { navController.popBackStack() },
+                    onAddToSession = { navController.navigate(Routes.muscuAdd(it)) },
+                )
             }
             composable(
                 route = Routes.EXERCISE,
                 arguments = listOf(navArgument("name") { type = NavType.StringType }),
-            ) { entry ->
-                SoonScreen(entry.arguments?.getString("name") ?: "", innerPadding) { navController.popBackStack() }
+            ) {
+                ExerciseScreen(
+                    contentPadding = innerPadding,
+                    viewModel = screenViewModel(viewModelFactory),
+                    onBack = { navController.popBackStack() },
+                    onOpenSession = { navController.navigate(Routes.session(it)) },
+                )
             }
         }
     }

@@ -75,6 +75,7 @@ class HomeViewModelTest {
         clock = Clock.fixed(java.time.Instant.ofEpochMilli(now), zone),
         snackbar = SnackbarController(),
         context = ApplicationProvider.getApplicationContext<Context>(),
+        progression = TestSupport.progressionRunner(repos),
     )
 
     private suspend fun seed(type: ActivityType, startedAt: Long, distanceM: Double? = null, calories: Double? = null): Long =

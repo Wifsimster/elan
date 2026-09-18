@@ -18,6 +18,8 @@ import ovh.battistella.elan.data.repository.TrackPointInput
 import ovh.battistella.elan.data.settings.SettingsRepository
 import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.domain.Difficulty
+import ovh.battistella.elan.sync.AutoProgressionRunner
+import ovh.battistella.elan.sync.ProgressionNotify
 import java.util.concurrent.Executor
 
 /**
@@ -63,6 +65,10 @@ object TestSupport {
             snapshot = SnapshotRepository(db, io),
         )
     }
+
+    /** Progression auto sur les mêmes dépôts, notification remplacée par [notify] (muette par défaut). */
+    fun progressionRunner(repos: Repositories, notify: ProgressionNotify = ProgressionNotify { _, _ -> }): AutoProgressionRunner =
+        AutoProgressionRunner(repos.settings, repos.sessions, notify)
 
     // --- fixtures ---
 

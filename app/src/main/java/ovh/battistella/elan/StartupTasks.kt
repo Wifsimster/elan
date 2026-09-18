@@ -7,6 +7,7 @@ import kotlinx.coroutines.CancellationException
 import ovh.battistella.elan.data.legacy.LegacyDatabaseImporter
 import ovh.battistella.elan.data.legacy.MigrationGate
 import ovh.battistella.elan.data.legacy.MigrationState
+import ovh.battistella.elan.sync.AutoProgressionRunner
 import ovh.battistella.elan.tracking.LiveNotification
 import ovh.battistella.elan.tracking.SessionRecovery
 import java.time.Clock
@@ -35,6 +36,7 @@ class StartupTasks @Inject constructor(
     private val migrationGate: MigrationGate,
     private val legacyImporter: LegacyDatabaseImporter,
     private val sessionRecovery: SessionRecovery,
+    private val progression: AutoProgressionRunner,
     private val clock: Clock,
 ) {
     suspend fun run() {
@@ -47,8 +49,9 @@ class StartupTasks @Inject constructor(
         bestEffort { sessionRecovery.recoverOrphans() }
         bestEffort { sessionRecovery.reconcileOrphanService(context) }
 
-        // TODO(port-spec 02-interface §1) : applyNotifications() + runWeeklyProgressionIfDue(now)
-        //   — rappels hebdomadaires (canal `routine`) et progression automatique.
+        // TODO(port-spec 02-interface §1) : applyNotifications() — rappels
+        //   hebdomadaires (canal `routine`), jalon M3.
+        bestEffort { progression.runWeeklyProgressionIfDue(clock.millis()) }
     }
 
     /** Une étape ratée est journalisée, jamais propagée ; l'annulation, elle, passe. */

@@ -1,10 +1,12 @@
 package ovh.battistella.elan.ui.screens.home
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -40,6 +42,7 @@ import ovh.battistella.elan.domain.isoWeekKey
 import ovh.battistella.elan.domain.periodRange
 import ovh.battistella.elan.domain.planForDay
 import ovh.battistella.elan.domain.startOfWeekMs
+import ovh.battistella.elan.sync.AutoProgressionRunner
 import ovh.battistella.elan.ui.components.Tone
 import ovh.battistella.elan.ui.components.Trend
 import ovh.battistella.elan.ui.screens.common.HeartRatePort
@@ -98,6 +101,7 @@ class HomeViewModel @Inject constructor(
     private val clock: Clock,
     private val snackbar: SnackbarController,
     @ApplicationContext private val context: Context,
+    private val progression: AutoProgressionRunner,
 ) : ViewModel() {
 
     // Un tick par (re)prise de l'écran : rejoue les lectures en base, comme le
@@ -112,7 +116,23 @@ class HomeViewModel @Inject constructor(
         HeartUi(bpm, connected)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HeartUi())
 
-    fun refresh() = refreshTick.update { it + 1 }
+    /**
+     * À chaque (re)prise de l'écran : évaluation hebdomadaire de la progression
+     * auto (idempotente, best-effort — son écriture éventuelle rejoue le flux de
+     * réglages) puis relecture des séances.
+     */
+    fun refresh() {
+        viewModelScope.launch {
+            try {
+                progression.runWeeklyProgressionIfDue(clock.millis())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("HomeViewModel", "progression hebdomadaire ignorée", e)
+            }
+        }
+        refreshTick.update { it + 1 }
+    }
 
     private suspend fun load(s: ElanSettings): HomeUi {
         val now = clock.millis()

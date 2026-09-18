@@ -189,19 +189,26 @@ class ElanNavigationTest {
     }
 
     @Test
-    fun placeholdersAreReachable() {
+    fun catalogAndMuscuAreReachable() {
         setRoot()
 
+        // Catalogue autonome, puis retour.
         compose.onNodeWithText(label(R.string.home_catalog_title)).performScrollTo().performClick()
         compose.waitForIdle()
-        compose.onNodeWithText(label(R.string.common_soon)).assertIsDisplayed()
+        compose.onNodeWithText(label(R.string.catalog_title)).assertIsDisplayed()
         compose.onNodeWithContentDescription(label(R.string.common_back)).performClick()
         compose.waitForIdle()
 
+        // Séance muscu plein écran (pas de barre d'onglets), sélecteur de programme visible.
         compose.onNodeWithText("Muscu").performScrollTo().performClick()
         compose.waitForIdle()
         compose.onNodeWithText(label(R.string.muscu_title)).assertIsDisplayed()
-        compose.onNodeWithText(label(R.string.common_soon)).assertIsDisplayed()
+        compose.onNodeWithText(label(R.string.muscu_load_program)).assertIsDisplayed()
         compose.onAllNodesWithText(label(R.string.nav_history)).assertCountEquals(0)
+
+        // Séance vide : la croix ramène à l'accueil sans dialogue.
+        compose.onNodeWithContentDescription(label(R.string.muscu_quit)).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(label(R.string.home_greeting)).assertIsDisplayed()
     }
 }

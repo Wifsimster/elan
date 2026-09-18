@@ -24,7 +24,15 @@ import ovh.battistella.elan.ui.screens.outing.OutingViewModel
 import ovh.battistella.elan.ui.screens.session.SessionDetailViewModel
 import ovh.battistella.elan.ui.screens.session.SessionMapViewModel
 import ovh.battistella.elan.ui.screens.weight.WeightViewModel
+import ovh.battistella.elan.ui.screens.catalog.CatalogViewModel
+import ovh.battistella.elan.ui.screens.exercise.ExerciseViewModel
+import ovh.battistella.elan.ui.screens.progression.ProgressionViewModel
+import ovh.battistella.elan.ui.screens.strength.StrengthViewModel
+import ovh.battistella.elan.tracking.SessionFinalizer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import java.time.Clock
+import java.util.Optional
 
 /** Suivi GPS piloté par le test : l'état est posé à la main, les appels sont journalisés. */
 class FakeOutingPort(initial: OutingUi = OutingUi()) : OutingPort {
@@ -67,18 +75,24 @@ class TestViewModelFactory(
     private val snackbar: SnackbarController = SnackbarController(),
 ) : ViewModelProvider.Factory {
     private val repos = TestSupport.repositories(db)
+    private val progression = TestSupport.progressionRunner(repos)
+    private val finalizer = SessionFinalizer(Optional.empty(), Optional.empty(), CoroutineScope(Dispatchers.Unconfined))
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
         val handle: SavedStateHandle by lazy { extras.createSavedStateHandle() }
         return when (modelClass) {
-            HomeViewModel::class.java -> HomeViewModel(repos.sessions, repos.settings, heart, clock, snackbar, context)
+            HomeViewModel::class.java -> HomeViewModel(repos.sessions, repos.settings, heart, clock, snackbar, context, progression)
             HistoryViewModel::class.java -> HistoryViewModel(repos.sessions, clock)
             OutingViewModel::class.java -> OutingViewModel(handle, outing, cadence)
             SessionDetailViewModel::class.java -> SessionDetailViewModel(handle, repos.sessions, repos.settings, snackbar, context)
             SessionMapViewModel::class.java -> SessionMapViewModel(handle, repos.sessions)
             WeightViewModel::class.java -> WeightViewModel(repos.bodyWeight, repos.settings, clock)
+            StrengthViewModel::class.java -> StrengthViewModel(handle, repos.sessions, repos.settings, progression, finalizer, heart, clock, context)
+            ProgressionViewModel::class.java -> ProgressionViewModel(repos.sessions, repos.settings, clock)
+            ExerciseViewModel::class.java -> ExerciseViewModel(handle, repos.sessions)
+            CatalogViewModel::class.java -> CatalogViewModel(repos.settings)
             else -> throw IllegalArgumentException("ViewModel inconnu : ${modelClass.name}")
         } as T
     }

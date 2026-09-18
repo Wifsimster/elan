@@ -25,10 +25,13 @@ object Routes {
     const val OUTING = "outing/{type}"
     fun outing(type: ActivityType): String = "outing/${type.key}"
 
-    /** `muscu?template=` — séance de musculation (plein écran). */
-    const val MUSCU = "muscu?template={template}"
+    /** `muscu?template=&add=` — séance de musculation (plein écran). */
+    const val MUSCU = "muscu?template={template}&add={add}"
     fun muscu(template: TemplateId? = null): String =
         if (template == null) "muscu" else "muscu?template=${template.key}"
+
+    /** Séance muscu démarrée avec un exercice du catalogue (`catalogId`) ajouté. */
+    fun muscuAdd(catalogId: String): String = "muscu?add=${Uri.encode(catalogId)}"
 
     const val SESSION = "session/{id}"
     fun session(id: Long): String = "session/$id"

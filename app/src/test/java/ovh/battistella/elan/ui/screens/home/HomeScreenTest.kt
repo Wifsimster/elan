@@ -62,6 +62,7 @@ class HomeScreenTest {
 
     private fun vm(now: Long = wednesday, heart: FakeHeartRatePort = FakeHeartRatePort()) = HomeViewModel(
         repos.sessions, repos.settings, heart, Clock.fixed(Instant.ofEpochMilli(now), zone), SnackbarController(), context,
+        TestSupport.progressionRunner(repos),
     )
 
     @Test
