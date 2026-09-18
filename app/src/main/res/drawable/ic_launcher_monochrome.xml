@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Silhouette monochrome de la courbe pour les icônes thématiques d'Android
+     13+ ; le système applique sa propre teinte, la couleur ici est un
+     placeholder. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:name="elan">
+        <path android:strokeColor="#FF000000" android:strokeWidth="8"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M26,74 L42,54 L56,64 L82,34" />
+        <path android:strokeColor="#FF000000" android:strokeWidth="8"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M66,34 L82,34 L82,50" />
+    </group>
+</vector>

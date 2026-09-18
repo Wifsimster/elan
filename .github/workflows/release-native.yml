@@ -1,0 +1,64 @@
+name: Release native
+
+# Runs semantic-release on every push to main: analyzes Conventional Commits,
+# computes the next semver, bumps VERSION_NAME in gradle.properties, updates
+# CHANGELOG.md, builds the release APK, creates the GitHub release + tag, and
+# attaches the APK and its checksum. Remplace android-apk.yml à la fusion de
+# la branche `native` dans main.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+# Run JavaScript-based actions on Node.js 24 (the current LTS runtime) rather
+# than the deprecated Node 20.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Grant execute permissions
+        run: chmod +x ./gradlew scripts/set-version.sh
+
+      - name: Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx --yes \
+            -p semantic-release@24 \
+            -p @semantic-release/changelog \
+            -p @semantic-release/exec \
+            -p @semantic-release/git \
+            -p conventional-changelog-conventionalcommits \
+            semantic-release

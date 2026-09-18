@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Règles Auto Backup pour API < 31 (équivalent de data_extraction_rules.xml
+  sur les appareils plus récents). Élan promet que les séances, mesures et
+  réglages restent sur l'appareil : chaque domaine de stockage est exclu.
+  `allowBackup="false"` dans le manifeste coupe déjà tout ; ceci est la
+  ceinture en plus des bretelles, et le contrat lisible dans le code.
+  Le DataStore (réglages) vit sous files/datastore, couvert par le domaine file.
+-->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>
