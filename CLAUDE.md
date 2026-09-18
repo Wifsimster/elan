@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
-**Expo SDK 56 — APIs changed.** Read the versioned docs at https://docs.expo.dev/versions/v56.0.0/ before writing any Expo/React Native code; do not rely on memory of older SDKs.
+**Expo SDK 57 — APIs changed.** Read the versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any Expo/React Native code; do not rely on memory of older SDKs.
 
 ## Commands
 
