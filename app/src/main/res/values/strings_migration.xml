@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Écran de reprise des anciennes données (premier lancement d'Élan 2.0). -->
+<resources>
+    <string name="migration_title">Mise à jour de vos données…</string>
+    <string name="migration_keep_open">Ne fermez pas l\'application</string>
+    <string name="migration_progress">%1$s points sur %2$s</string>
+    <string name="migration_failed_title">La reprise de vos données a échoué</string>
+    <string name="migration_failed_hint">Vos anciennes données sont intactes. Vous pouvez réessayer, ou continuer sans elles : elles seront conservées un mois sur l\'appareil.</string>
+    <string name="migration_retry">Réessayer</string>
+    <string name="migration_skip">Continuer sans mes anciennes données</string>
+    <string name="migration_skip_confirm_title">Continuer sans vos anciennes données ?</string>
+    <string name="migration_skip_confirm_text">Vos séances, mesures et réglages ne seront pas repris. Vous pourrez toujours restaurer une sauvegarde S3 depuis les réglages.</string>
+    <string name="migration_skip_confirm_again_title">Vraiment ?</string>
+    <string name="migration_skip_confirm_again_text">L\'application démarrera vide. Cette décision ne se rejoue pas automatiquement.</string>
+    <string name="migration_confirm">Continuer</string>
+    <string name="migration_cancel">Annuler</string>
+</resources>

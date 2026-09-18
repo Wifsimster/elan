@@ -98,6 +98,7 @@ fun ElanTheme(
     CompositionLocalProvider(
         LocalPulseColors provides pulseColors,
         LocalHrZoneColors provides hrZones,
+        LocalReducedMotion provides rememberSystemReducedMotion(),
     ) {
         MaterialExpressiveTheme(
             colorScheme = colorSchemeFrom(pulseColors, darkTheme),

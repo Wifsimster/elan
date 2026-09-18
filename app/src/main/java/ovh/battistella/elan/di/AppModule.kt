@@ -9,8 +9,11 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import okhttp3.OkHttpClient
+import ovh.battistella.elan.data.legacy.FreeSpaceProbe
 import ovh.battistella.elan.data.local.BodyMeasurementDao
 import ovh.battistella.elan.data.local.ElanDatabase
 import ovh.battistella.elan.data.local.MuscuSetDao
@@ -19,8 +22,19 @@ import ovh.battistella.elan.data.local.SettingsDao
 import ovh.battistella.elan.data.local.TrackPointDao
 import ovh.battistella.elan.data.secrets.KeystoreSecretStore
 import ovh.battistella.elan.data.secrets.SecretStore
+import java.time.Clock
 import java.util.concurrent.TimeUnit
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+/**
+ * Portée de coroutines liée à la vie du processus, pour les travaux qui ne
+ * doivent pas mourir avec une activité (tâches de démarrage, import de
+ * l'ancienne base). `SupervisorJob` : un échec n'annule pas les voisins.
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ApplicationScope
 
 /**
  * Module Hilt unique de l'application : dispatcher d'E/S, OkHttp, Room et ses
@@ -41,6 +55,20 @@ object AppModule {
     @Provides
     @Singleton
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @Singleton
+    @ApplicationScope
+    fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /** Horloge injectée : les tests figent le temps (purge à J+30, horodatages). */
+    @Provides
+    @Singleton
+    fun provideClock(): Clock = Clock.systemUTC()
+
+    @Provides
+    @Singleton
+    fun provideFreeSpaceProbe(): FreeSpaceProbe = FreeSpaceProbe.STAT_FS
 
     @Provides
     @Singleton

@@ -84,20 +84,66 @@ class SettingsRepository @Inject constructor(
         const val REST_SECONDS = "rest_seconds"
         const val ONBOARDING_DONE = "onboarding_done"
 
+        // ---- clés propres à Élan 2.0 (jamais dans l'app d'origine) ----------
+
+        /**
+         * `"1"` quand les identifiants S3 n'ont pas pu être repris de l'app
+         * d'origine alors qu'une config S3 existait : l'écran de sauvegarde
+         * invite à les ressaisir.
+         */
+        const val BACKUP_SECRETS_MISSING = "backup_secrets_missing"
+
+        /** `"1"` une fois l'import de `suivi-sport.db` fait (ou sans objet). */
+        const val LEGACY_IMPORT_DONE = "legacy_import_done"
+
+        /** Horodatage (ms) de la fin de l'import ; déclenche la purge à J+30. */
+        const val LEGACY_IMPORT_AT = "legacy_import_at"
+
+        /** JSON des lignes importées par table (diagnostic). */
+        const val LEGACY_IMPORT_COUNTS = "legacy_import_counts"
+
+        /** Nombre de tentatives d'import échouées. */
+        const val LEGACY_IMPORT_ATTEMPTS = "legacy_import_attempts"
+
+        /** Raison du dernier échec d'import. */
+        const val LEGACY_IMPORT_ERROR = "legacy_import_error"
+
+        /** `"1"` quand l'utilisateur a choisi de continuer sans ses anciennes données. */
+        const val LEGACY_IMPORT_SKIPPED = "legacy_import_skipped"
+
+        /** `"1"` une fois les restes de l'app d'origine supprimés. */
+        const val LEGACY_CLEANUP_DONE = "legacy_cleanup_done"
+
+        /** Marqueurs de migration : l'état de CET appareil, jamais d'une sauvegarde. */
+        val LEGACY_KEYS: Set<String> = setOf(
+            LEGACY_IMPORT_DONE,
+            LEGACY_IMPORT_AT,
+            LEGACY_IMPORT_COUNTS,
+            LEGACY_IMPORT_ATTEMPTS,
+            LEGACY_IMPORT_ERROR,
+            LEGACY_IMPORT_SKIPPED,
+            LEGACY_CLEANUP_DONE,
+        )
+
         /**
          * Clés exclues des sauvegardes (secrets, propres à l'appareil) — ni
          * exportées ni restaurées. `map_style_url` y figure car c'est un puits
          * réseau sensible : une sauvegarde falsifiée pourrait y injecter un hôte
          * qui recevrait la zone du parcours + l'IP au prochain affichage de carte.
+         * Les marqueurs de migration décrivent l'appareil, pas les données :
+         * restaurés sur un autre téléphone, ils y sauteraient l'import.
          */
-        val BACKUP_EXCLUDED: Set<String> = setOf(BACKUP_S3, BACKUP_LAST, MAP_STYLE_URL)
+        val BACKUP_EXCLUDED: Set<String> =
+            setOf(BACKUP_S3, BACKUP_LAST, MAP_STYLE_URL, BACKUP_SECRETS_MISSING) + LEGACY_KEYS
 
         /**
          * Clés préservées par une réinitialisation complète : la config de
-         * sauvegarde locale, pour ne pas la casser. `map_style_url` n'en fait
-         * pas partie : exclue des sauvegardes, mais bien effacée par un reset.
+         * sauvegarde locale, pour ne pas la casser, et les marqueurs de
+         * migration (un reset ne doit pas rejouer l'import ni oublier la purge
+         * planifiée). `map_style_url` n'en fait pas partie : exclue des
+         * sauvegardes, mais bien effacée par un reset.
          */
-        val RESET_KEEP: Set<String> = setOf(BACKUP_S3, BACKUP_LAST)
+        val RESET_KEEP: Set<String> = setOf(BACKUP_S3, BACKUP_LAST, BACKUP_SECRETS_MISSING) + LEGACY_KEYS
     }
 
     val settings: Flow<ElanSettings> = settingsDao.observeAll()
