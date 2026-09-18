@@ -5,6 +5,36 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Capteurs BLE (ceinture cardiaque, cadence/vitesse). Android 12+ :
+         BLUETOOTH_SCAN sans dérivation de position + BLUETOOTH_CONNECT ;
+         avant : BLUETOOTH/BLUETOOTH_ADMIN (installation) + ACCESS_FINE_LOCATION
+         (exigée pour le scan BLE, déjà déclarée pour le GPS ci-dessous). La radio
+         BLE n'est pas obligatoire : l'app reste installable sans, les cartes
+         capteurs affichent « non pris en charge ». -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="false" />
+
+    <!-- Suivi GPS d'une sortie : position précise + service de premier plan de
+         type « location » (le GPS reste actif écran éteint) + verrou de veille.
+         Pas de localisation en arrière-plan : le service est démarré app visible. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:name=".ElanApp"
         android:allowBackup="false"
@@ -37,6 +67,12 @@
                 <data android:scheme="elan" />
             </intent-filter>
         </activity>
+
+        <!-- Service de premier plan d'une sortie GPS (tracking/TrackingService). -->
+        <service
+            android:name=".tracking.TrackingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <!-- WorkManager est initialisé par ElanApp (Configuration.Provider avec
              HiltWorkerFactory) : on retire l'initialiseur automatique. -->
