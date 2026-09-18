@@ -1,7 +1,7 @@
 {
   "name": "tracker-activite",
   "main": "expo-router/entry",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "dependencies": {
     "@expo/ui": "~57.0.19",
     "@expo/vector-icons": "^15.0.2",

@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.9.0](https://github.com/Wifsimster/elan/compare/v1.8.0...v1.9.0) (2026-09-18)
+
 ## [1.8.0](https://github.com/Wifsimster/elan/compare/v1.7.0...v1.8.0) (2026-09-11)
 
 
