@@ -56,13 +56,25 @@ import ovh.battistella.elan.ui.screens.weight.WeightScreen
  * ne sert qu'aux tests et aux aperçus, où aucun émetteur n'existe.
  * [viewModelFactory] permet aux tests de construire les ViewModels sans Hilt
  * (`null` en production : `hiltViewModel()`).
+ * [pendingRoute] est une route demandée de l'extérieur (notification de séance,
+ * lien profond) : ouverte dès qu'elle est fournie, puis signalée consommée
+ * par [onPendingRouteConsumed] pour ne pas être rejouée.
  */
 @Composable
 fun ElanRoot(
     snackbar: SnackbarController = remember { SnackbarController() },
     viewModelFactory: ViewModelProvider.Factory? = null,
+    pendingRoute: String? = null,
+    onPendingRouteConsumed: () -> Unit = {},
 ) {
     val navController = rememberNavController()
+    LaunchedEffect(pendingRoute) {
+        if (pendingRoute != null) {
+            // `launchSingleTop` : revenir à la sortie déjà ouverte plutôt que l'empiler.
+            navController.navigate(pendingRoute) { launchSingleTop = true }
+            onPendingRouteConsumed()
+        }
+    }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
     // La barre d'onglets n'existe que sur les onglets : les écrans empilés

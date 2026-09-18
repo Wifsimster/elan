@@ -8,38 +8,41 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import ovh.battistella.elan.domain.ActivityType
+import ovh.battistella.elan.ui.screens.common.BleCadencePort
+import ovh.battistella.elan.ui.screens.common.BleHeartRatePort
 import ovh.battistella.elan.ui.screens.common.CadencePort
 import ovh.battistella.elan.ui.screens.common.HeartRatePort
 import ovh.battistella.elan.ui.screens.outing.OutingPort
 import ovh.battistella.elan.ui.screens.outing.OutingUi
-import javax.inject.Inject
+import ovh.battistella.elan.ui.screens.outing.TrackingOutingPort
 import javax.inject.Singleton
 
 /**
- * Liaisons des ports consommés par les écrans. Les implémentations ci-dessous
- * sont INERTES : elles laissent l'interface compiler et se tester tant que le
- * suivi GPS (`tracking/`) et les capteurs BLE (`sensors/ble/`) ne sont pas
- * branchés. À remplacer par les adaptateurs réels sans toucher aux écrans.
+ * Liaisons des ports consommés par les écrans : le suivi GPS (`tracking/`) et
+ * les capteurs BLE (`sensors/ble/`) derrière leurs adaptateurs. Une seule
+ * liaison par port dans le graphe Hilt.
  */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class ScreensModule {
     @Binds
     @Singleton
-    abstract fun bindOutingPort(impl: NoOpOutingPort): OutingPort
+    abstract fun bindOutingPort(impl: TrackingOutingPort): OutingPort
 
     @Binds
     @Singleton
-    abstract fun bindHeartRatePort(impl: NoOpHeartRatePort): HeartRatePort
+    abstract fun bindHeartRatePort(impl: BleHeartRatePort): HeartRatePort
 
     @Binds
     @Singleton
-    abstract fun bindCadencePort(impl: NoOpCadencePort): CadencePort
+    abstract fun bindCadencePort(impl: BleCadencePort): CadencePort
 }
 
-/** Suivi GPS inerte : reste en `Idle`, aucune action n'a d'effet. */
-@Singleton
-class NoOpOutingPort @Inject constructor() : OutingPort {
+/**
+ * Implémentations inertes, hors graphe Hilt : aperçus et tests qui n'ont
+ * besoin ni de GPS ni de capteurs.
+ */
+class NoOpOutingPort : OutingPort {
     private val _state = MutableStateFlow(OutingUi())
     override val state: StateFlow<OutingUi> = _state.asStateFlow()
     override fun begin(type: ActivityType) = Unit
@@ -51,15 +54,13 @@ class NoOpOutingPort @Inject constructor() : OutingPort {
 }
 
 /** Ceinture jamais connectée. */
-@Singleton
-class NoOpHeartRatePort @Inject constructor() : HeartRatePort {
+class NoOpHeartRatePort : HeartRatePort {
     override val bpm: StateFlow<Int?> = MutableStateFlow(null)
     override val connected: StateFlow<Boolean> = MutableStateFlow(false)
 }
 
 /** Aucun capteur vélo. */
-@Singleton
-class NoOpCadencePort @Inject constructor() : CadencePort {
+class NoOpCadencePort : CadencePort {
     override val cadenceRpm: StateFlow<Int?> = MutableStateFlow(null)
     override val speedKmh: StateFlow<Double?> = MutableStateFlow(null)
     override val hasSensor: StateFlow<Boolean> = MutableStateFlow(false)

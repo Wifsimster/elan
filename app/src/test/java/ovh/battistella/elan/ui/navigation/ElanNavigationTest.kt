@@ -1,6 +1,9 @@
 package ovh.battistella.elan.ui.navigation
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -17,6 +20,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -101,6 +105,39 @@ class ElanNavigationTest {
         compose.waitForIdle()
         compose.onNodeWithText(label(R.string.home_greeting)).assertIsDisplayed()
         compose.onAllNodesWithText(label(R.string.nav_history)).assertCountEquals(1)
+    }
+
+    @Test
+    fun pendingRouteOpensTheOutingOnceAndIsConsumed() {
+        var pending by mutableStateOf<String?>(null)
+        var consumed = 0
+        compose.setContent {
+            ElanTheme {
+                ElanRoot(
+                    viewModelFactory = TestViewModelFactory(db, outing = outing),
+                    pendingRoute = pending,
+                    onPendingRouteConsumed = { consumed++; pending = null },
+                )
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText(label(R.string.home_greeting)).assertIsDisplayed()
+        assertEquals(0, consumed)
+
+        // Notification de sortie : l'écran de sortie s'ouvre, la route est consommée.
+        pending = Routes.outing(ActivityType.VELO)
+        compose.waitForIdle()
+        compose.onNodeWithText(label(R.string.outing_start)).assertIsDisplayed()
+        assertEquals(1, consumed)
+
+        // Nouvel appui alors que la sortie est déjà ouverte : pas d'empilement,
+        // la croix ramène directement à l'accueil.
+        pending = Routes.outing(ActivityType.VELO)
+        compose.waitForIdle()
+        assertEquals(2, consumed)
+        compose.onNodeWithContentDescription(label(R.string.outing_quit)).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(label(R.string.home_greeting)).assertIsDisplayed()
     }
 
     @Test

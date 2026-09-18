@@ -59,7 +59,9 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Liens profonds elan:// (import de séance, partage, retour d'OAuth). -->
+            <!-- Liens profonds elan:// : `elan://outing/{velo|course|marche}` et
+                 `elan://muscu` ouvrent l'écran live (ui/navigation/OpenRoute.kt) ;
+                 import de séance, partage et retour d'OAuth viendront ensuite. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

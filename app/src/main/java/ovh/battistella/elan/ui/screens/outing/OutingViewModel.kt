@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -108,15 +109,22 @@ class OutingViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OutingScreenUi(type = type, meta = type.meta, pace = usesPace(type)))
 
     init {
+        // Le port est un singleton de processus : son état à la création de
+        // l'écran (id de la dernière séance enregistrée, dernière erreur) est
+        // de l'histoire ancienne et s'ignore tant qu'il n'a pas bougé — sinon
+        // un nouvel écran sauterait aussitôt vers le détail précédent ou
+        // ré-alerterait.
+        val initial = port.state.value
         // Enregistrement réussi → détail de la séance (une seule fois par id).
         viewModelScope.launch {
-            port.state.map { it.savedSessionId }.filterNotNull().distinctUntilChanged().collect { id ->
+            port.state.map { it.savedSessionId }.dropWhile { it == initial.savedSessionId }.filterNotNull().distinctUntilChanged().collect { id ->
                 _events.emit(OutingEvent.Saved(id))
             }
         }
         // Échecs remontés par le contrôleur : alerte adaptée à la phase.
+        val initialError = initial.errorMessage to initial.phase
         viewModelScope.launch {
-            port.state.map { it.errorMessage to it.phase }.distinctUntilChanged().collect { (message, phase) ->
+            port.state.map { it.errorMessage to it.phase }.dropWhile { it == initialError }.distinctUntilChanged().collect { (message, phase) ->
                 if (message == null) return@collect
                 alert.value = if (phase == OutingPhase.SaveFailed) OutingAlert.SaveFailed else OutingAlert.StartFailed
             }
