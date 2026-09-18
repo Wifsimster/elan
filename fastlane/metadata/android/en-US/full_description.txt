@@ -1,29 +1,31 @@
-Élan is a personal, local-first activity tracker built for cycling and strength training. Your data never leaves your phone: no account, no server, no cloud, no ads.
+Élan tracks your cycling, running and walking outings and your strength workouts, with no account and no cloud. Everything stays on your phone.
 
-LIVE CYCLING TRACKING
-• Stopwatch, distance, instant and max speed
-• Elevation gain and GPS route of your ride
-• Live heart rate and estimated calories
-• Route map (optional self-hosted tiles, otherwise a network-free vector trace)
+🚴 GPS OUTINGS (cycling, running, walking)
+• Reliable GPS recording, even with the screen off
+• Distance, speed or pace, elevation gain, moving time
+• Bluetooth heart-rate strap and cadence/speed sensor, automatic reconnection
+• Time in each heart-rate zone, calories and effort level
+• Personal records and speed, altitude and heart-rate charts
+• Route on a map (optional online basemap) and GPX export for Strava
 
-STRENGTH TRAINING
-• Customizable programs and a daily workout
-• Sets (reps × weight), total volume lifted
-• Rest timer and estimated 1RM
-• Progression tracking, exercise by exercise
+🏋️ STRENGTH TRAINING
+• Ready-made programs and a customizable weekly plan
+• Catalog of 40+ illustrated exercises with suggested loads and reps for your goal
+• Sets, loads, rest timer, estimated 1RM
+• Per-exercise effort rating and automatic weekly program progression
+• Pause a workout and resume it whenever you want
 
-BLUETOOTH SENSORS
-• Heart rate chest strap (standard Heart Rate profile)
-• Cycling cadence/speed sensor
-• Automatic reconnection to your last sensor
+📈 PROGRESS
+• Full history with search and filters
+• Weekly summary, goals (sessions, distance, tonnage)
+• Body-weight journal and workout reminders
+• Share a session as an image
 
-YOUR DATA, YOURS
-• Everything is stored in a local database on the device
-• Optional backup to YOUR own S3-compatible server (self-hosted) — your credentials are never shared
-• Import Strava / GPX / TCX / FIT files from your phone
-• Export your data (Markdown / JSON) via the Android share sheet
+🔒 YOUR DATA IS YOURS
+• No account, no ads, no trackers
+• 100% offline by default: your data never leaves your phone
+• Import Strava files (GPX, TCX, FIT)
+• Optional backup to your own S3 server, configurable with a QR code
+• Optional export to Health Connect and a Markdown/JSON report for your coach
 
-PRIVACY
-Élan contains no trackers, no analytics, and sends no data to the publisher. Network access is strictly optional and configured by you.
-
-Note: calorie estimates use the MET method. They are rough estimates, not a medical measurement.
+Note: calories are estimates (MET method), not a medical measurement.

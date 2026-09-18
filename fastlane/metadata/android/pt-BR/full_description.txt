@@ -1,29 +1,31 @@
-Élan é um registrador de atividade física pessoal e local, feito para ciclismo e musculação. Seus dados nunca saem do seu telefone: sem conta, sem servidor, sem nuvem, sem anúncios.
+O Élan registra seus treinos de bike, corrida e caminhada e suas sessões de musculação, sem conta e sem nuvem. Tudo fica no seu celular.
 
-ACOMPANHAMENTO DE CICLISMO AO VIVO
-• Cronômetro, distância, velocidade instantânea e máxima
-• Ganho de elevação e traçado GPS do seu percurso
-• Frequência cardíaca ao vivo e calorias estimadas
-• Mapa do percurso (tiles auto-hospedados opcionais, ou traçado vetorial sem rede)
+🚴 ATIVIDADES GPS (bike, corrida, caminhada)
+• Gravação GPS confiável, mesmo com a tela apagada
+• Distância, velocidade ou ritmo, ganho de elevação, tempo em movimento
+• Cinta cardíaca e sensor de cadência/velocidade Bluetooth, reconexão automática
+• Tempo em cada zona de frequência cardíaca, calorias e nível de esforço
+• Recordes pessoais e gráficos de velocidade, altitude e frequência cardíaca
+• Percurso no mapa (mapa base online opcional) e exportação GPX para o Strava
 
-MUSCULAÇÃO
-• Programas personalizáveis e treino do dia
-• Séries (repetições × carga), volume total levantado
-• Timer de descanso e 1RM estimado
-• Acompanhamento de progresso, exercício por exercício
+🏋️ MUSCULAÇÃO
+• Programas prontos e planejamento semanal personalizável
+• Catálogo com mais de 40 exercícios ilustrados, cargas e repetições sugeridas conforme seu objetivo
+• Séries, cargas, timer de descanso, 1RM estimado
+• Percepção de esforço por exercício e progressão automática do programa a cada semana
+• Pause uma sessão e retome quando quiser
 
-SENSORES BLUETOOTH
-• Cinta de frequência cardíaca (perfil padrão Heart Rate)
-• Sensor de cadência/velocidade de ciclismo
-• Reconexão automática com o seu último sensor
+📈 PROGRESSÃO
+• Histórico completo com busca e filtros
+• Resumo semanal, metas (sessões, distância, tonelagem)
+• Diário de peso e lembretes de treino
+• Compartilhe uma sessão como imagem
 
-SEUS DADOS, SEUS
-• Tudo é armazenado em um banco de dados local no dispositivo
-• Backup opcional para o SEU próprio servidor compatível com S3 (auto-hospedado) — suas credenciais nunca são compartilhadas
-• Importe arquivos Strava / GPX / TCX / FIT do seu telefone
-• Exporte seus dados (Markdown / JSON) pelo menu de compartilhamento do Android
+🔒 SEUS DADOS SÃO SEUS
+• Sem conta, sem anúncios, sem rastreadores
+• 100% offline por padrão: seus dados nunca saem do seu celular
+• Importação de arquivos Strava (GPX, TCX, FIT)
+• Backup opcional no seu próprio servidor S3, configurável por QR code
+• Exportação opcional para o Health Connect e relatório Markdown/JSON para seu treinador
 
-PRIVACIDADE
-Élan não contém rastreadores nem análises e não envia nenhum dado ao desenvolvedor. O acesso à rede é estritamente opcional e configurado por você.
-
-Observação: as estimativas de calorias usam o método MET. São aproximações, não uma medição médica.
+Observação: as calorias são estimativas (método MET), não uma medida médica.
