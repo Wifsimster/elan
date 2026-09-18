@@ -159,7 +159,7 @@ Distribution goes through the **Google Play Store**. A production release (App B
 
 ## Tech stack
 
-- **App:** Expo SDK 56, React Native 0.85, React 19, TypeScript
+- **App:** Expo SDK 57, React Native 0.86, React 19, TypeScript
 - **Navigation:** Expo Router (typed routes)
 - **Storage:** `expo-sqlite` (local database, versioned migrations)
 - **Sensors:** `expo-location` (GPS), `react-native-ble-plx` (Bluetooth heart-rate & cadence)
