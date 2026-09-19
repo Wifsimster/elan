@@ -397,6 +397,7 @@ class SettingsViewModelTest {
     fun `import Strava - bilan en dialogue et dernier import persisté hors sauvegarde`() = runTest(mainDispatcher.dispatcher) {
         val vm = vm()
         assertNull(ui(vm).stravaLast)
+        strava.report = strava.report.copy(skipped = 1, details = listOf("natation.tcx : ignorée"))
 
         vm.importStrava(listOf(Uri.parse("content://docs/a.gpx"), Uri.parse("content://docs/b.gpx")))
         advanceUntilIdle()
@@ -408,8 +409,13 @@ class SettingsViewModelTest {
         assertEquals(2, last.imported)
         assertEquals(1, last.duplicates)
         assertEquals(now, last.at)
+        // Les motifs détaillés sont montrés pour cet import, mais pas persistés.
+        assertEquals(listOf("natation.tcx : ignorée"), last.details)
         assertTrue(SettingsRepository.Keys.STRAVA_LAST_IMPORT in SettingsRepository.Keys.BACKUP_EXCLUDED)
-        assertEquals(last, parseStravaLastImport(repos.settings.getSetting(SettingsRepository.Keys.STRAVA_LAST_IMPORT)))
+        assertEquals(
+            last.copy(details = emptyList()),
+            parseStravaLastImport(repos.settings.getSetting(SettingsRepository.Keys.STRAVA_LAST_IMPORT)),
+        )
 
         strava.failure = IllegalStateException("Fichier illisible.")
         vm.dismissDialog()

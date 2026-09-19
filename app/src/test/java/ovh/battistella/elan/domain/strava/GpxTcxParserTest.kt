@@ -61,6 +61,30 @@ class GpxTcxParserTest {
     }
 
     @Test
+    fun `GPX — le type de la trace est relu, toute valeur inconnue reste indéterminée`() {
+        fun sport(type: String?): ParsedSport {
+            val trk = if (type == null) "<trk>" else "<trk><name>x</name><type>$type</type>"
+            val gpx = """<?xml version="1.0"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1">
+  $trk<trkseg>
+    <trkpt lat="48.8566" lon="2.3522"><time>2025-06-02T08:00:00Z</time><type>running</type></trkpt>
+  </trkseg></trk>
+</gpx>"""
+            return GpxTcxParser.parse(gpx).activities[0].sport
+        }
+        assertEquals(ParsedSport.CYCLING, sport("cycling"))
+        assertEquals(ParsedSport.CYCLING, sport(" Biking "))
+        assertEquals(ParsedSport.RUNNING, sport("running"))
+        assertEquals(ParsedSport.WALKING, sport("walking"))
+        assertEquals(ParsedSport.WALKING, sport("hiking"))
+        // Codes Garmin, sports non couverts, absence : jamais OTHER (importé en vélo, comme l'app d'origine).
+        assertEquals(ParsedSport.UNKNOWN, sport("9"))
+        assertEquals(ParsedSport.UNKNOWN, sport("swimming"))
+        assertEquals(ParsedSport.UNKNOWN, sport(""))
+        assertEquals("le <type> d'un trkpt n'est pas celui de la trace", ParsedSport.UNKNOWN, sport(null))
+    }
+
+    @Test
     fun `GPX — préfixes de namespace et casse ignorés`() {
         val gpx = """<?xml version="1.0"?>
 <gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:g="urn:g" xmlns:x="urn:x">

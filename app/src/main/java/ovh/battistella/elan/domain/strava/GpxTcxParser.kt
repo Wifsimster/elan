@@ -154,6 +154,8 @@ object GpxTcxParser {
         private val points = ArrayList<ParsedPoint>()
         private var startedAt: Long? = null
         private var startedAtSeen = false
+        private var sport = ParsedSport.UNKNOWN
+        private var sportSeen = false
         private var point: PointBuilder? = null
         private val text = StringBuilder()
 
@@ -162,6 +164,19 @@ object GpxTcxParser {
             if (local(qName).equals("trkpt", ignoreCase = true) && point == null) {
                 point = PointBuilder(lat = num(attr(attributes, "lat")), lon = num(attr(attributes, "lon")))
             }
+        }
+
+        /**
+         * `<trk><type>` : Strava ne l'écrit pas, mais l'export GPX d'Élan (et
+         * d'autres apps) oui. Seul le vocabulaire Strava est reconnu, pour que
+         * course / marche round-trippent ; toute autre valeur (codes numériques
+         * Garmin…) reste indéterminée → vélo, comme dans l'app d'origine.
+         */
+        private fun sportOf(type: String): ParsedSport = when (type.trim().lowercase()) {
+            "cycling", "biking" -> ParsedSport.CYCLING
+            "running" -> ParsedSport.RUNNING
+            "walking", "hiking" -> ParsedSport.WALKING
+            else -> ParsedSport.UNKNOWN
         }
 
         override fun characters(ch: CharArray, start: Int, length: Int) {
@@ -185,12 +200,16 @@ object GpxTcxParser {
                     "hr" -> p.once("hr") { p.hr = num(value) }
                     "cad" -> p.once("cad") { p.cad = num(value) }
                 }
+            } else if (!sportSeen && tag.equals("type", ignoreCase = true)) {
+                // Premier <type> hors point (celui de <trk>) ; un <trkpt> peut aussi en porter un.
+                sportSeen = true
+                sport = sportOf(value)
             }
             text.setLength(0)
         }
 
-        // Strava n'expose pas le sport dans le corps GPX → indéterminé (importé en vélo).
-        fun activity() = ParsedActivity(ParsedSport.UNKNOWN, startedAt, points, distanceM = null, calories = null)
+        // Sans <type> reconnu (GPX Strava) : sport indéterminé → importé en vélo.
+        fun activity() = ParsedActivity(sport, startedAt, points, distanceM = null, calories = null)
     }
 
     // ---- TCX -------------------------------------------------------------

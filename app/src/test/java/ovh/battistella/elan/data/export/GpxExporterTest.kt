@@ -17,6 +17,7 @@ import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.domain.Session
 import ovh.battistella.elan.domain.TrackPoint
 import ovh.battistella.elan.domain.strava.GpxTcxParser
+import ovh.battistella.elan.domain.strava.ParsedSport
 import ovh.battistella.elan.domain.strava.StravaFormat
 import ovh.battistella.elan.testing.TestSupport
 import java.time.LocalDateTime
@@ -44,8 +45,8 @@ class GpxExporterTest {
     private fun localMs(y: Int, m: Int, d: Int, h: Int, min: Int) =
         LocalDateTime.of(y, m, d, h, min).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-    private fun session(startedAt: Long = localMs(2026, 6, 9, 14, 30)) = Session(
-        id = 1, type = ActivityType.VELO, startedAt = startedAt, endedAt = startedAt + 60_000, durationSec = 60,
+    private fun session(startedAt: Long = localMs(2026, 6, 9, 14, 30), type: ActivityType = ActivityType.VELO) = Session(
+        id = 1, type = type, startedAt = startedAt, endedAt = startedAt + 60_000, durationSec = 60,
         movingTimeSec = null, notes = null, avgHr = null, maxHr = null, distanceM = null, avgSpeedKmh = null,
         maxSpeedKmh = null, elevationGainM = null, avgCadence = null, maxCadence = null, calories = null,
         source = null, externalId = null,
@@ -65,6 +66,26 @@ class GpxExporterTest {
         assertEquals("Sortie vélo — Soir", rideName(session(localMs(2026, 1, 1, 18, 0))))
         assertEquals("elan-velo-2026-06-09-1430.gpx", rideFileName(session()))
         assertEquals("a&lt;b&gt;c&amp;d&apos;e&quot;f", escapeXml("a<b>c&d'e\"f"))
+    }
+
+    @Test
+    fun `course et marche — nom, fichier et type GPX suivent l'activité, relus à l'import`() {
+        val course = session(type = ActivityType.COURSE)
+        val marche = session(localMs(2026, 1, 1, 6, 0), ActivityType.MARCHE)
+        assertEquals("Course à pied — Après-midi", rideName(course))
+        assertEquals("Marche — Matin", rideName(marche))
+        assertEquals("elan-course-2026-06-09-1430.gpx", rideFileName(course))
+        assertEquals("elan-marche-2026-01-01-0600.gpx", rideFileName(marche))
+
+        fun typeOf(s: Session) = Regex("<type>(\\w+)</type>").find(buildRideGpx(s, points(s.startedAt)))!!.groupValues[1]
+        assertEquals("cycling", typeOf(session()))
+        assertEquals("running", typeOf(course))
+        assertEquals("walking", typeOf(marche))
+
+        fun sportOf(s: Session) = GpxTcxParser.parse(buildRideGpx(s, points(s.startedAt))).activities.single().sport
+        assertEquals(ParsedSport.CYCLING, sportOf(session()))
+        assertEquals(ParsedSport.RUNNING, sportOf(course))
+        assertEquals(ParsedSport.WALKING, sportOf(marche))
     }
 
     @Test

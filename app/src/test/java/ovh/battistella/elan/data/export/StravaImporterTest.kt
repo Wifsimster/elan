@@ -15,6 +15,7 @@ import org.robolectric.RobolectricTestRunner
 import ovh.battistella.elan.data.local.ElanDatabase
 import ovh.battistella.elan.domain.Profile
 import ovh.battistella.elan.domain.strava.GpxTcxParserTest
+import ovh.battistella.elan.domain.strava.StravaImport
 import ovh.battistella.elan.testing.TestSupport
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -86,7 +87,7 @@ class StravaImporterTest {
         assertEquals(4, r.details.size)
         assertEquals("bidule.txt : Format non reconnu (ni GPX ni TCX).", r.details[0])
         assertTrue(r.details[1].startsWith("xxe.gpx : Fichier refusé"))
-        assertEquals("natation.tcx : activité non supportée ignorée", r.details[2])
+        assertEquals("natation.tcx : ${StravaImport.SKIPPED_UNSUPPORTED_TYPE}", r.details[2])
         assertTrue(r.details[3].startsWith("absent.gpx : "))
     }
 

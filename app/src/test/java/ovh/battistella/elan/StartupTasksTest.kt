@@ -9,9 +9,12 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import ovh.battistella.elan.data.export.FileShare
 import ovh.battistella.elan.data.legacy.ImportOutcome
 import ovh.battistella.elan.data.legacy.LegacyDatabaseImporter
 import ovh.battistella.elan.data.legacy.MigrationGate
@@ -20,6 +23,7 @@ import ovh.battistella.elan.sync.AutoProgressionRunner
 import ovh.battistella.elan.sync.ReminderScheduler
 import ovh.battistella.elan.tracking.RecoveryOutcome
 import ovh.battistella.elan.tracking.SessionRecovery
+import java.io.File
 import java.time.Clock
 
 @RunWith(RobolectricTestRunner::class)
@@ -78,6 +82,19 @@ class StartupTasksTest {
         assertEquals(MigrationState.Failed("boum", canRetry = false), gate.state.value)
         coVerify(exactly = 0) { importer.cleanupIfDue(any()) }
         coVerify(exactly = 0) { recovery.recoverOrphans() }
+    }
+
+    @Test
+    fun `les exports partagés du processus précédent sont purgés, même si la migration échoue`() = runTest {
+        coEvery { importer.runIfNeeded(any()) } returns ImportOutcome.Failed("boum", 1, retriable = false)
+        val gate = MigrationGate(importer, this)
+        val stale = File(FileShare.shareDir(context), "elan-velo-2026-06-09-1430.gpx").apply { writeText("<gpx/>") }
+        assertTrue(stale.exists())
+
+        tasks(gate).run()
+
+        assertFalse(stale.exists())
+        assertEquals(MigrationState.Failed("boum", canRetry = false), gate.state.value)
     }
 
     @Test

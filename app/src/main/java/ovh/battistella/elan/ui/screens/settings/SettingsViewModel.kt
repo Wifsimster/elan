@@ -101,8 +101,20 @@ fun isOptionActive(opt: WeekPlanOption, entry: PlannedSession): Boolean = when (
 
 // ---- import Strava ---------------------------------------------------------
 
-/** Bilan du dernier import, persisté sous `strava_last_import`. */
-data class StravaLastImport(val imported: Int, val duplicates: Int, val skipped: Int, val errors: Int, val at: Long)
+/**
+ * Bilan du dernier import, persisté sous `strava_last_import` (compteurs et
+ * date, format de l'app d'origine). [details] — motifs par fichier des
+ * activités ignorées / en erreur — n'est montré que pour l'import qui vient
+ * d'avoir lieu : non persisté, vide après relecture.
+ */
+data class StravaLastImport(
+    val imported: Int,
+    val duplicates: Int,
+    val skipped: Int,
+    val errors: Int,
+    val at: Long,
+    val details: List<String> = emptyList(),
+)
 
 internal fun parseStravaLastImport(raw: String?): StravaLastImport? {
     if (raw.isNullOrEmpty()) return null
@@ -498,7 +510,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val report = strava.importUris(uris)
-                val last = StravaLastImport(report.imported, report.duplicates, report.skipped, report.errors, clock.millis())
+                val last = StravaLastImport(report.imported, report.duplicates, report.skipped, report.errors, clock.millis(), report.details)
                 settings.setSetting(SettingsRepository.Keys.STRAVA_LAST_IMPORT, serializeStravaLastImport(last))
                 local.update { it.copy(stravaLast = last, dialog = SettingsDialog.StravaResult(report)) }
             } catch (e: CancellationException) {

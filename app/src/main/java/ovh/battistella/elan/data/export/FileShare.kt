@@ -42,7 +42,11 @@ object FileShare {
         context.startActivity(chooser)
     }
 
-    /** Supprime tous les fichiers du dossier partagé (à appeler une fois le partage terminé). */
+    /**
+     * Supprime tous les fichiers du dossier partagé. La feuille de partage ne
+     * signale pas la fin de la lecture par l'app destinataire : la purge se fait
+     * au lancement suivant (`StartupTasks`), quand plus aucun partage n'est en cours.
+     */
     fun purgeShared(context: Context) {
         File(context.cacheDir, SHARE_DIR).listFiles()?.forEach { it.delete() }
     }

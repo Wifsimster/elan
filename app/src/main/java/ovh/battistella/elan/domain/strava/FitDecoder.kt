@@ -37,10 +37,14 @@ object FitDecoder {
     private class MsgDef(val globalNum: Int, val littleEndian: Boolean, val fields: List<FieldDef>, val devSize: Int)
 
     /** Mappe l'enum `sport` FIT vers la catégorie du domaine. */
+    // Codes du profil FIT (enum `sport`). La 1.x ne reconnaissait que le vélo ;
+    // course et marche/randonnée sont alignées sur l'import TCX.
     fun mapSport(sport: Long?): ParsedSport = when (sport) {
         null -> ParsedSport.UNKNOWN
-        2L -> ParsedSport.CYCLING // 2 = cycling
         0L -> ParsedSport.UNKNOWN // 0 = generic
+        1L -> ParsedSport.RUNNING // 1 = running
+        2L -> ParsedSport.CYCLING // 2 = cycling
+        11L, 17L -> ParsedSport.WALKING // 11 = walking, 17 = hiking
         else -> ParsedSport.OTHER
     }
 

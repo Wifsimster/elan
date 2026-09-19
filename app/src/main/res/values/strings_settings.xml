@@ -143,6 +143,7 @@
     <string name="settings_strava_result_errors">\n%1$d fichier(s) en erreur</string>
     <string name="settings_strava_last">Dernier import : %1$d importée(s), %2$d doublon(s), %3$d ignorée(s)</string>
     <string name="settings_strava_last_errors">, %1$d erreur(s)</string>
+    <string name="settings_strava_details_more">… et %1$d autre(s)</string>
     <string name="settings_strava_failed">Import impossible.</string>
 
     <!-- Sauvegarde -->

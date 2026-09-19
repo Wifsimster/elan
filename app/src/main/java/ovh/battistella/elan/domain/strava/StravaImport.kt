@@ -62,6 +62,9 @@ object StravaImport {
     const val SOURCE = "strava"
     const val NOTES = "Importé depuis Strava"
 
+    /** Motif (FR) d'une activité ignorée pour son sport, affiché dans le bilan d'import. */
+    const val SKIPPED_UNSUPPORTED_TYPE = "ignorée, type d'activité non pris en charge"
+
     /** Décode un fichier (octets : GPX/TCX/FIT, éventuellement gzip) et construit les séances importables. */
     fun buildDrafts(bytes: ByteArray, weightKg: Double): ImportBuild {
         val parsed = StravaDecoder.decode(bytes)
@@ -121,10 +124,12 @@ object StravaImport {
 
     /** Normalise une activité ; renvoie un motif si elle doit être ignorée. */
     private fun normalize(act: ParsedActivity, weightKg: Double): Normalized {
-        // Sport identifié mais non couvert par l'app (natation, rameur…) : on
-        // ignore plutôt que de l'importer sous une mauvaise activité. Un sport
-        // non déclaré (GPX Strava) reste importé en vélo.
-        if (act.sport == ParsedSport.OTHER) return Normalized.Skipped("activité non supportée ignorée")
+        // Sport identifié mais non couvert par l'app : on ignore plutôt que de
+        // l'importer sous une mauvaise activité. Comme dans l'app d'origine,
+        // le FIT ne reconnaît que le vélo (course / marche FIT sont donc
+        // ignorées) et le TCX vélo / course / marche ; un sport non déclaré
+        // (GPX Strava, FIT « generic ») reste importé en vélo.
+        if (act.sport == ParsedSport.OTHER) return Normalized.Skipped(SKIPPED_UNSUPPORTED_TYPE)
         val type = when (act.sport) {
             ParsedSport.RUNNING -> ActivityType.COURSE
             ParsedSport.WALKING -> ActivityType.MARCHE

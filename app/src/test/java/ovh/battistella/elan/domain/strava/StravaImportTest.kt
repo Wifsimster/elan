@@ -138,7 +138,7 @@ class StravaImportTest {
         assertEquals(listOf("séance trop courte ou incomplète"), StravaImport.buildDrafts(bytes(unPoint), weightKg).skipped)
 
         val natation = GpxTcxParserTest.TCX_SAMPLE.replace("Sport=\"Biking\"", "Sport=\"Swimming\"")
-        assertEquals(listOf("activité non supportée ignorée"), StravaImport.buildDrafts(bytes(natation), weightKg).skipped)
+        assertEquals(listOf(StravaImport.SKIPPED_UNSUPPORTED_TYPE), StravaImport.buildDrafts(bytes(natation), weightKg).skipped)
     }
 
     @Test

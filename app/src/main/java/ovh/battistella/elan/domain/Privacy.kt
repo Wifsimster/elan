@@ -1,11 +1,13 @@
-// Zone de confidentialité pour les exports GPS.
+// Zone de confidentialité de l'export GPX.
 //
 // Un tracé commence et finit presque toujours au domicile : exporter le tracé
 // brut révèle l'adresse. Cette zone retire les points situés dans un rayon
-// donné autour du premier et du dernier point avant tout export hors-appareil.
-// Le rognage n'altère jamais les données stockées : il ne s'applique qu'au
-// moment de construire un artefact partagé (GPX, etc.). La lecture/écriture du
-// réglage (`privacy_zone_m`, 0 = désactivé) vit dans la couche données.
+// donné autour du premier et du dernier point avant d'écrire le fichier GPX.
+// Comme dans l'app d'origine, seul l'export GPX (`GpxExporter`) l'applique :
+// l'export coach (Markdown / JSON, `CoachExporter`) et la sauvegarde
+// restituent la base telle quelle, tracés compris. Le rognage n'altère jamais
+// les données stockées. La lecture/écriture du réglage (`privacy_zone_m`,
+// 0 = désactivé) vit dans la couche données.
 package ovh.battistella.elan.domain
 
 /** Rayons proposés dans les Réglages (mètres). 0 = aucune zone (tracé complet). */

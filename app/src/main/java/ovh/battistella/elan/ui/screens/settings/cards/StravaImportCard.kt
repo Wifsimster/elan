@@ -23,6 +23,9 @@ import ovh.battistella.elan.ui.screens.settings.STRAVA_IMPORT_MIME_TYPES
 import ovh.battistella.elan.ui.screens.settings.StravaLastImport
 import ovh.battistella.elan.ui.theme.ElanTheme
 
+/** Nombre maximal de motifs détaillés affichés sous le bilan du dernier import. */
+private const val STRAVA_DETAILS_MAX = 5
+
 /** Carte Réglages : import de séances depuis des fichiers Strava (GPX/TCX/FIT), choisis via le sélecteur système. */
 @Composable
 fun StravaImportCard(
@@ -56,6 +59,15 @@ fun StravaImportCard(
         last?.let { r ->
             val errors = if (r.errors > 0) stringResource(R.string.settings_strava_last_errors, r.errors) else ""
             CardText(stringResource(R.string.settings_strava_last, r.imported, r.duplicates, r.skipped) + errors)
+            // Motifs des activités ignorées / fichiers en erreur de l'import qui
+            // vient d'avoir lieu, plafonnés : un export en masse peut en produire des dizaines.
+            if (r.details.isNotEmpty()) {
+                val shown = r.details.take(STRAVA_DETAILS_MAX)
+                val more = r.details.size - shown.size
+                val lines = shown.joinToString("\n") { "• $it" } +
+                    if (more > 0) "\n" + stringResource(R.string.settings_strava_details_more, more) else ""
+                CardText(lines, muted = true, size = 12)
+            }
         }
     }
 }

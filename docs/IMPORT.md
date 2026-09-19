@@ -66,8 +66,8 @@ ajoute la séance — sauf si elle existe déjà.
   | Format | Sport détecté | Séance créée |
   |--------|---------------|--------------|
   | TCX | `Biking` / `Running` / `Walking` (ou `Other`) | vélo / course / marche (ignorée) |
-  | FIT | `cycling` | vélo ; les autres sports sont ignorés |
-  | GPX | non indiqué par le format | toujours vélo |
+  | FIT | `cycling` / `running` / `walking`, `hiking` | vélo / course / marche ; les autres sports sont ignorés |
+  | GPX | `<type>` du tracé (`cycling`, `running`, `walking`, `hiking`) | vélo / course / marche ; sans `<type>` reconnu : vélo |
 
 - Données reprises quand elles sont présentes : tracé GPS, altitude, fréquence
   cardiaque, cadence, distance et calories déclarées par le fichier.

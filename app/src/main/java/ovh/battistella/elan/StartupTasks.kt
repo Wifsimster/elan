@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import ovh.battistella.elan.data.export.FileShare
 import ovh.battistella.elan.data.legacy.LegacyDatabaseImporter
 import ovh.battistella.elan.data.legacy.MigrationGate
 import ovh.battistella.elan.data.legacy.MigrationState
@@ -19,6 +20,9 @@ import javax.inject.Singleton
  * Effets exécutés une fois par processus, au lancement (voir
  * `docs/port-spec/02-interface.md` §1 « Effets au démarrage »), dans l'ordre :
  *
+ * 0. purge des exports partagés (`cache/share/`) laissés par le processus
+ *    précédent — ils contiennent le tracé GPS complet et n'ont plus de
+ *    lecteur ; indépendant de la base, donc avant la barrière ;
  * 1. reprise de l'ancienne base (`MigrationGate`) — tout le reste attend
  *    qu'elle soit réglée, car les étapes suivantes lisent la base ;
  * 2. effacement de la notification « séance en cours » laissée par un
@@ -42,6 +46,8 @@ class StartupTasks @Inject constructor(
     private val clock: Clock,
 ) {
     suspend fun run() {
+        bestEffort { FileShare.purgeShared(context) }
+
         migrationGate.start()
         if (migrationGate.state.value != MigrationState.Ready) return
 

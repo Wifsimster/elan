@@ -64,7 +64,7 @@ class FitDecoderTest {
     private fun sample(): ByteArray = Fit()
         // Message `sport` (12) avec un champ développeur de 2 octets à sauter.
         .definition(3, 12, listOf(Triple(0, 1, 0x00)), dev = listOf(2))
-        .u8(0x03).u8(1).u8(0xAA).u8(0xBB) // sport = 1 (running → other) + 2 octets dev
+        .u8(0x03).u8(1).u8(0xAA).u8(0xBB) // sport = 1 (running) + 2 octets dev
         .definition(0, 20, recordFields)
         // Point 1 : complet.
         .u8(0x00).u32(T0).s32(semi(48.8566)).s32(semi(2.3522)).u16((35 + 500) * 5).u8(120).u8(80)
@@ -141,7 +141,9 @@ class FitDecoderTest {
         assertEquals(ParsedSport.UNKNOWN, FitDecoder.mapSport(null))
         assertEquals(ParsedSport.UNKNOWN, FitDecoder.mapSport(0))
         assertEquals(ParsedSport.CYCLING, FitDecoder.mapSport(2))
-        assertEquals(ParsedSport.OTHER, FitDecoder.mapSport(1))
+        assertEquals(ParsedSport.RUNNING, FitDecoder.mapSport(1))
+        assertEquals(ParsedSport.WALKING, FitDecoder.mapSport(11))
+        assertEquals(ParsedSport.WALKING, FitDecoder.mapSport(17))
         assertEquals(ParsedSport.OTHER, FitDecoder.mapSport(5))
     }
 
