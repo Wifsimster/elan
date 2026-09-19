@@ -4,7 +4,7 @@ name: Build native APK
 # les pull requests ; remplacera ci.yml et android-apk.yml à la fusion dans main.
 on:
   push:
-    branches: [native]
+    branches: [main, native]
   pull_request:
   workflow_dispatch:
 
