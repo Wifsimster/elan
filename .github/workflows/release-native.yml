@@ -60,5 +60,5 @@ jobs:
             -p @semantic-release/changelog \
             -p @semantic-release/exec \
             -p @semantic-release/git \
-            -p conventional-changelog-conventionalcommits \
+            -p conventional-changelog-conventionalcommits@8 \
             semantic-release
