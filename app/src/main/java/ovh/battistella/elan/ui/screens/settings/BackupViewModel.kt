@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -11,9 +12,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import ovh.battistella.elan.data.settings.BackupLast
 import ovh.battistella.elan.data.settings.SettingsRepository
 import javax.inject.Inject
@@ -54,6 +58,27 @@ private data class BackupLocal(
     val status: BackupStatus = BackupStatus.Idle,
     val error: String? = null,
     val dialog: BackupDialog = BackupDialog.None,
+    /**
+     * Saisies pas encore reflétées par la config persistée : appliquées
+     * par-dessus dans [BackupUi.config] pour que les champs texte suivent la
+     * frappe sans attendre l'aller-retour Room (sinon des caractères tapés
+     * pendant l'écriture sont perdus). Vidées, dans le `combine` de l'état,
+     * dès que le persisté les a rejointes.
+     */
+    val draft: BackupPatch = BackupPatch(),
+    /** Écritures en cours (le brouillon n'est pas vidé tant qu'il en reste). */
+    val pending: Int = 0,
+)
+
+/** Fusion de deux patchs : les champs de [top] priment. */
+private fun BackupPatch.under(top: BackupPatch) = BackupPatch(
+    enabled = top.enabled ?: enabled,
+    endpoint = top.endpoint ?: endpoint,
+    region = top.region ?: region,
+    bucket = top.bucket ?: bucket,
+    objectKey = top.objectKey ?: objectKey,
+    accessKeyId = top.accessKeyId ?: accessKeyId,
+    secretAccessKey = top.secretAccessKey ?: secretAccessKey,
 )
 
 /**
@@ -70,17 +95,33 @@ class BackupViewModel @Inject constructor(
 
     private val local = MutableStateFlow(BackupLocal())
 
+    /** Sérialise les écritures de config : chaque patch lit-modifie-écrit la config complète. */
+    private val persistLock = Mutex()
+
     private val _events = MutableSharedFlow<BackupEvent>(extraBufferCapacity = 4)
     val events: SharedFlow<BackupEvent> = _events.asSharedFlow()
 
-    val ui: StateFlow<BackupUi> = combine(backup.config, settings.settings, local) { config, s, l ->
+    // Pas d'accès base dans le `combine` : chaque frappe passe par `local` et
+    // doit atteindre l'écran avant la frame suivante, sinon le champ texte est
+    // recomposé avec l'ancienne valeur et le curseur recule.
+    private val secretsMissing: Flow<Boolean> =
+        settings.observeSetting(SettingsRepository.Keys.BACKUP_SECRETS_MISSING).map { it == "1" }
+
+    val ui: StateFlow<BackupUi> = combine(backup.config, settings.settings, secretsMissing, local) { config, s, missing, l ->
+        val effective = l.draft.applyTo(config)
+        // Le persisté a rejoint le brouillon : on le vide ici, contre la valeur
+        // exacte que ce `combine` détient — un collecteur séparé verrait une
+        // autre émission et pourrait faire réapparaître un texte périmé.
+        if (l.pending == 0 && !l.draft.isEmpty && effective == config) {
+            local.update { cur -> if (cur.draft == l.draft && cur.pending == 0) cur.copy(draft = BackupPatch()) else cur }
+        }
         BackupUi(
             loaded = true,
-            config = config,
+            config = effective,
             last = s.backupLast,
             status = l.status,
             error = l.error,
-            secretsMissing = settings.getSetting(SettingsRepository.Keys.BACKUP_SECRETS_MISSING) == "1",
+            secretsMissing = missing,
             dialog = l.dialog,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BackupUi())
@@ -90,11 +131,18 @@ class BackupViewModel @Inject constructor(
     /** Fusion partielle persistée ; ignorée tant que la config n'est pas lue. */
     fun update(patch: BackupPatch) {
         if (!ui.value.loaded || patch.isEmpty) return
+        local.update { it.copy(draft = it.draft.under(patch), pending = it.pending + 1) }
         viewModelScope.launch {
-            backup.updateConfig(patch)
-            // Une clé ressaisie lève l'invitation héritée de la migration.
-            if (patch.accessKeyId != null || patch.secretAccessKey != null) {
-                settings.deleteSetting(SettingsRepository.Keys.BACKUP_SECRETS_MISSING)
+            try {
+                persistLock.withLock {
+                    backup.updateConfig(patch)
+                    // Une clé ressaisie lève l'invitation héritée de la migration.
+                    if (patch.accessKeyId != null || patch.secretAccessKey != null) {
+                        settings.deleteSetting(SettingsRepository.Keys.BACKUP_SECRETS_MISSING)
+                    }
+                }
+            } finally {
+                local.update { it.copy(pending = it.pending - 1) }
             }
         }
     }

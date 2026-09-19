@@ -157,6 +157,11 @@ class SettingsRepository @Inject constructor(
 
     suspend fun getSetting(key: String): String? = withContext(io) { settingsDao.get(key) }
 
+    /** Valeur brute d'une clé, réactive (`null` si absente). */
+    fun observeSetting(key: String): Flow<String?> = settingsDao.observeAll()
+        .map { rows -> rows.firstOrNull { it.key == key }?.value }
+        .distinctUntilChanged()
+
     suspend fun setSetting(key: String, value: String) =
         withContext(io) { settingsDao.upsert(SettingEntity(key, value)) }
 

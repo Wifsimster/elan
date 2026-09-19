@@ -1,5 +1,9 @@
 package ovh.battistella.elan.ui.screens.settings
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -15,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import ovh.battistella.elan.data.backup.BackupManager
 import ovh.battistella.elan.data.local.ElanDatabase
 import ovh.battistella.elan.data.secrets.InMemorySecretStore
 import ovh.battistella.elan.data.secrets.SecretStore
@@ -22,6 +27,7 @@ import ovh.battistella.elan.data.settings.BackupLast
 import ovh.battistella.elan.data.settings.SettingsRepository
 import ovh.battistella.elan.testing.MainDispatcherRule
 import ovh.battistella.elan.testing.TestSupport
+import java.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -79,6 +85,35 @@ class BackupViewModelTest {
     }
 
     @Test
+    fun `saisie - le champ suit la frappe pendant l'écriture, puis le persisté reprend la main`() = runTest(mainDispatcher.dispatcher) {
+        // Port dont chaque écriture attend un feu vert : simule l'aller-retour Room.
+        val gate = CompletableDeferred<Unit>()
+        val port = object : FakeBackupPort() {
+            override suspend fun updateConfig(patch: BackupPatch) {
+                gate.await()
+                super.updateConfig(patch)
+            }
+        }
+        val vm = vm(port)
+
+        vm.update(BackupPatch(endpoint = "h"))
+        vm.update(BackupPatch(endpoint = "ht"))
+        vm.update(BackupPatch(bucket = "e"))
+        advanceUntilIdle()
+        // Rien n'est encore persisté, mais l'écran montre déjà la saisie complète.
+        assertEquals("", port.state.value.endpoint)
+        assertEquals("ht", ui(vm).config.endpoint)
+        assertEquals("e", ui(vm).config.bucket)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(listOf(BackupPatch(endpoint = "h"), BackupPatch(endpoint = "ht"), BackupPatch(bucket = "e")), port.patches)
+        assertEquals("ht", port.state.value.endpoint)
+        assertEquals("e", port.state.value.bucket)
+        assertEquals("ht", ui(vm).config.endpoint)
+    }
+
+    @Test
     fun `QR - patch appliqué et champs listés, QR inconnu signalé`() = runTest(mainDispatcher.dispatcher) {
         val port = FakeBackupPort()
         val vm = vm(port)
@@ -100,7 +135,7 @@ class BackupViewModelTest {
 
     @Test
     fun `décodage QR - URL s3 et alias JSON`() {
-        val url = parseBackupQrText("s3://AK:S%2FK@minio.lan/elan/backup.json")!!
+        val url = parseBackupQrPatch("s3://AK:S%2FK@minio.lan/elan/backup.json")!!
         assertEquals("https://minio.lan", url.endpoint)
         assertEquals("elan", url.bucket)
         assertEquals("backup.json", url.objectKey)
@@ -108,14 +143,14 @@ class BackupViewModelTest {
         assertEquals("S/K", url.secretAccessKey)
         assertNull(url.region)
 
-        val json = parseBackupQrText("""{"url":" https://x.y ","aws_access_key_id":"A","region":"eu-west-3","object":""}""")!!
+        val json = parseBackupQrPatch("""{"url":" https://x.y ","aws_access_key_id":"A","region":"eu-west-3","object":""}""")!!
         assertEquals("https://x.y", json.endpoint)
         assertEquals("A", json.accessKeyId)
         assertEquals("eu-west-3", json.region)
         assertNull(json.objectKey)
-        assertNull(parseBackupQrText("{}"))
-        assertNull(parseBackupQrText("s3://"))
-        assertNull(parseBackupQrText(""))
+        assertNull(parseBackupQrPatch("{}"))
+        assertNull(parseBackupQrPatch("s3://"))
+        assertNull(parseBackupQrPatch(""))
     }
 
     @Test
@@ -186,10 +221,11 @@ class BackupViewModelTest {
     }
 
     @Test
-    fun `port de transition - config lue des réglages et secrets du SecretStore, clé ressaisie lève l'invitation`() = runTest(mainDispatcher.dispatcher) {
+    fun `port réel - config lue des réglages et secrets du SecretStore, clé ressaisie lève l'invitation`() = runTest(mainDispatcher.dispatcher) {
         val secrets: SecretStore = InMemorySecretStore()
         repos.settings.setSetting(SettingsRepository.Keys.BACKUP_SECRETS_MISSING, "1")
-        val port = TransitionalBackupPort(repos.settings, secrets)
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val port = BackupManagerPort(BackupManager(context, repos.settings, secrets, repos.snapshot, mockk(), Clock.systemUTC()))
         val vm = vm(port)
         assertTrue(ui(vm).secretsMissing)
 

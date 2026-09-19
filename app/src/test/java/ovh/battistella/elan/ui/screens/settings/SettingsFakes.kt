@@ -3,13 +3,14 @@
 package ovh.battistella.elan.ui.screens.settings
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContract
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
 
-class FakeBackupPort(initial: BackupFormConfig = BackupFormConfig()) : BackupPort {
+open class FakeBackupPort(initial: BackupFormConfig = BackupFormConfig()) : BackupPort {
     val state = MutableStateFlow(initial)
     override val config: Flow<BackupFormConfig> = state
     val patches = mutableListOf<BackupPatch>()
@@ -35,9 +36,9 @@ class FakeBackupPort(initial: BackupFormConfig = BackupFormConfig()) : BackupPor
         return restoreCount
     }
 
-    override fun parseQr(text: String): BackupPatch? = qrPatch ?: parseBackupQrText(text)
+    override fun parseQr(text: String): BackupPatch? = qrPatch ?: parseBackupQrPatch(text)
 
-    override fun describeQrPatch(patch: BackupPatch): String = describeBackupPatch(patch)
+    override fun describeQrPatch(patch: BackupPatch): String = describeBackupQrPatch(patch)
 }
 
 class FakeExportPort : ExportPort {
@@ -78,6 +79,14 @@ class FakeStravaImportPort(var report: ImportReport = ImportReport(imported = 2,
         failure?.let { throw it }
         return report
     }
+}
+
+/** Contrat inerte : aucune activité lancée, résultat vide immédiat. */
+object NoOpPermissionContract : ActivityResultContract<Set<String>, Set<String>>() {
+    override fun createIntent(context: Context, input: Set<String>): Intent = Intent()
+    override fun parseResult(resultCode: Int, intent: Intent?): Set<String> = emptySet()
+    override fun getSynchronousResult(context: Context, input: Set<String>): SynchronousResult<Set<String>> =
+        SynchronousResult(emptySet())
 }
 
 class FakeHealthConnectPort(
