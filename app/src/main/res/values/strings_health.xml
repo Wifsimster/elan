@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Health Connect : justification des permissions (écran health/rationale). -->
+<resources>
+    <string name="health_rationale_title">Health Connect</string>
+    <string name="health_rationale_intro">Élan peut recopier tes séances dans Health Connect, la base de données santé de ton téléphone. C\'est optionnel : rien n\'est écrit tant que tu n\'actives pas l\'export dans les réglages.</string>
+    <string name="health_rationale_writes_title">Ce qu\'Élan écrit</string>
+    <string name="health_rationale_writes">À la fin de chaque séance : la session d\'exercice (type, début, fin), la distance, les calories actives et la série de fréquence cardiaque si une ceinture était connectée. Une séance ré-exportée remplace la précédente, jamais de doublon.</string>
+    <string name="health_rationale_reads_title">Ce qu\'Élan ne lit jamais</string>
+    <string name="health_rationale_reads">Élan ne demande aucune permission de lecture : il n\'accède ni à tes autres données santé ni aux séances d\'autres applications.</string>
+    <string name="health_rationale_control">Tu peux retirer ces permissions à tout moment depuis Health Connect, ou désactiver l\'export dans les réglages d\'Élan. Tes séances restent dans Élan, sur ton téléphone.</string>
+</resources>

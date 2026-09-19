@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Écrans : Accueil, Historique, Sortie, Détail de séance, Carte, Poids. -->
+<resources>
+    <!-- Commun -->
+    <string name="common_ok">OK</string>
+    <string name="common_cancel">Annuler</string>
+    <string name="common_delete">Supprimer</string>
+    <string name="common_continue">Continuer</string>
+    <string name="common_back">Retour</string>
+    <string name="common_trend_stable">stable</string>
+
+    <!-- Accueil -->
+    <string name="home_greeting">Bonjour 👋</string>
+    <string name="home_today">Aujourd\'hui · %1$s</string>
+    <string name="home_rest">Repos</string>
+    <string name="home_rest_hint">Récupération — pas de séance prévue.</string>
+    <string name="home_active_recovery">Récup active / cardio</string>
+    <string name="home_last_session">Dernière séance %1$s</string>
+    <string name="home_start_session">Démarrer la séance</string>
+    <string name="home_resume">Reprendre</string>
+    <string name="home_start_overline">Démarrer une séance</string>
+    <string name="home_catalog_title">Catalogue d\'exercices</string>
+    <string name="home_catalog_subtitle">Parcourir, voir les détails et les charges conseillées.</string>
+    <string name="home_week_title">Cette semaine</string>
+    <string name="home_vs_last_week">vs sem. dernière</string>
+    <string name="home_stat_sessions">Séances</string>
+    <string name="home_stat_duration">Durée</string>
+    <string name="home_stat_distance">Distance</string>
+    <string name="home_stat_calories">Calories</string>
+    <string name="home_goals_title">Objectifs</string>
+    <string name="home_goal_done">%1$s réalisé</string>
+    <string name="home_activity_title">Activité (7 derniers jours)</string>
+    <string name="home_recent">Récent</string>
+    <string name="home_see_all">Tout voir</string>
+    <string name="home_empty_title">Ta première séance t\'attend</string>
+    <string name="home_empty_subtitle">Démarre une sortie (vélo, course, marche) ou une séance de muscu pour commencer.</string>
+    <string name="plan_update_title">Programme mis à jour cette semaine</string>
+    <string name="plan_update_dismiss">Masquer l\'annonce de progression</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Bienvenue dans Élan</string>
+    <string name="onboarding_subtitle">Ton carnet d\'entraînement vélo &amp; muscu.</string>
+    <string name="onboarding_privacy">Tout reste sur cet appareil — aucun compte, aucun serveur, aucune donnée envoyée sur internet.</string>
+    <string name="onboarding_profile_hint">Renseigne ton profil pour des calories, des zones cardio et des charges conseillées justes :</string>
+    <string name="onboarding_weight">Poids</string>
+    <string name="onboarding_height">Taille</string>
+    <string name="onboarding_max_hr">FC max</string>
+    <string name="onboarding_goal_hint">Ton objectif en musculation :</string>
+    <string name="onboarding_editable">Modifiable à tout moment dans Réglages.</string>
+    <string name="onboarding_go">C\'est parti</string>
+    <string name="onboarding_restore">J\'ai déjà une sauvegarde — restaurer</string>
+
+    <!-- Historique -->
+    <string name="history_progression_title">Progression muscu</string>
+    <string name="history_progression_subtitle">Suivi des charges par exercice</string>
+    <string name="history_search_placeholder">Rechercher (exercice, note…)</string>
+    <string name="history_search_clear">Effacer la recherche</string>
+    <string name="history_filter_all">Tout</string>
+    <string name="history_range_7">7 j</string>
+    <string name="history_range_30">30 j</string>
+    <string name="history_range_90">90 j</string>
+    <string name="history_empty_filtered_title">Aucun résultat</string>
+    <string name="history_empty_filtered_subtitle">Aucune séance ne correspond à ces filtres.</string>
+    <string name="history_empty_title">Ton historique est vide</string>
+    <string name="history_empty_subtitle">Tes séances enregistrées apparaîtront ici. Tu peux aussi importer ton historique Strava.</string>
+    <string name="history_import_strava">Importer depuis Strava</string>
+
+    <!-- Sortie -->
+    <string name="outing_quit">Quitter la sortie</string>
+    <string name="outing_duration">Durée</string>
+    <string name="outing_speed">Vitesse</string>
+    <string name="outing_pace">Allure</string>
+    <string name="outing_distance">Distance</string>
+    <string name="outing_cardio">Cardio</string>
+    <string name="outing_max_speed">Vitesse max</string>
+    <string name="outing_best_pace">Meilleure allure</string>
+    <string name="outing_wheel_speed">Vitesse roue</string>
+    <string name="outing_cadence">Cadence</string>
+    <string name="outing_elevation">Dénivelé +</string>
+    <string name="outing_calories">Calories</string>
+    <string name="outing_start">Démarrer la sortie</string>
+    <string name="outing_pause">Pause</string>
+    <string name="outing_resume">Reprendre</string>
+    <string name="outing_finish">Terminer</string>
+    <string name="outing_abandon">Abandonner</string>
+    <string name="outing_retry">Réessayer</string>
+    <string name="outing_finish_title">Terminer la sortie ?</string>
+    <string name="outing_finish_text">La séance sera enregistrée.</string>
+    <string name="outing_discard_title">Abandonner la sortie ?</string>
+    <string name="outing_discard_text">Les données ne seront pas enregistrées.</string>
+    <string name="outing_coarse_title">Position précise requise</string>
+    <string name="outing_coarse_text">Élan a besoin de la position précise pour tracer ta sortie. Choisis « Précise » dans les réglages de localisation de l\'application.</string>
+    <string name="outing_denied_title">Localisation refusée</string>
+    <string name="outing_denied_text">Autorise l\'accès à la position pour mesurer ta sortie. Tu peux l\'activer dans les réglages Android.</string>
+    <string name="outing_start_failed_title">Impossible de démarrer</string>
+    <string name="outing_start_failed_text">La sortie n\'a pas pu être initialisée. Réessaie.</string>
+    <string name="outing_save_failed_title">Échec de l\'enregistrement</string>
+    <string name="outing_save_failed_text">La sortie n\'a pas pu être enregistrée. Réessaie, ou abandonne.</string>
+
+    <!-- Détail de séance -->
+    <string name="session_not_found">Séance introuvable.</string>
+    <string name="session_share">Partager la séance</string>
+    <string name="session_delete">Supprimer la séance</string>
+    <string name="session_delete_title">Supprimer la séance ?</string>
+    <string name="session_delete_text">Cette action est définitive.</string>
+    <string name="session_expand_map">Agrandir la carte en plein écran</string>
+    <string name="session_moving">En mouvement</string>
+    <string name="session_sets">Séries</string>
+    <string name="session_exercises">Exercices</string>
+    <string name="session_duration">Durée</string>
+    <string name="session_total_time">Temps total</string>
+    <string name="session_avg_speed">Vitesse moy.</string>
+    <string name="session_avg_pace">Allure moy.</string>
+    <string name="session_avg_cadence">Cadence moy.</string>
+    <string name="session_max_cadence">Cadence max</string>
+    <string name="session_avg_hr">FC moy.</string>
+    <string name="session_max_hr">FC max</string>
+    <string name="session_effort">Effort</string>
+    <string name="session_chart_speed">Vitesse</string>
+    <string name="session_chart_speed_a11y">Vitesse en km/h</string>
+    <string name="session_chart_elevation">Altitude</string>
+    <string name="session_chart_elevation_a11y">Altitude en mètres</string>
+    <string name="session_chart_hr">Fréquence cardiaque</string>
+    <string name="session_chart_hr_a11y">Fréquence cardiaque en battements par minute</string>
+    <string name="session_notes">Notes</string>
+    <string name="session_type_title">Type d\'activité</string>
+    <string name="session_type_hint">Enregistrée sous le mauvais type ? Choisis le bon : les calories sont ré-estimées avec le barème de l\'activité.</string>
+    <string name="session_retype_title">Passer en %1$s ?</string>
+    <string name="session_retype_text">Les calories seront recalculées avec le barème « %1$s »%2$s. Le tracé, la durée et la fréquence cardiaque ne changent pas.</string>
+    <string name="session_retype_cadence">, et la cadence du capteur vélo sera effacée</string>
+    <string name="session_retype_confirm">Changer</string>
+    <string name="session_retype_failed_title">Changement impossible</string>
+    <string name="session_retype_failed_text">Le type de cette séance n\'a pas pu être modifié.</string>
+    <string name="session_export_gpx">Exporter en GPX (Strava)</string>
+    <string name="session_volume">%1$d kg</string>
+    <string name="session_reps">%1$d reps</string>
+    <string name="records_personal">Record personnel</string>
+    <string name="records_year">Record %1$d</string>
+    <!-- L'adjectif s'accorde avec le nom : il vit dans chaque libellé. -->
+    <string name="records_best">%1$s</string>
+    <string name="records_all_time">de tous les temps</string>
+    <string name="records_of_year">de %1$d</string>
+    <string name="records_distance">Meilleure distance</string>
+    <string name="records_elevation">Meilleur dénivelé</string>
+    <string name="records_duration">Meilleure durée</string>
+    <string name="records_speed">Meilleure vitesse moyenne</string>
+    <string name="map_empty">Aucun tracé à afficher.</string>
+    <string name="map_back">Revenir à la séance</string>
+
+    <!-- Poids -->
+    <string name="weight_title">Poids</string>
+    <string name="weight_intro">Note ton poids régulièrement : la dernière pesée sert de référence pour les calories et les charges conseillées. Tout reste sur l\'appareil.</string>
+    <string name="weight_new">Nouvelle pesée</string>
+    <string name="weight_input_a11y">Poids en kilogrammes</string>
+    <string name="weight_save">Enregistrer</string>
+    <string name="weight_invalid">Poids invalide : saisis une valeur entre 20 et 300 kg (ex. 76,4).</string>
+    <string name="weight_empty_title">Aucune pesée pour l\'instant</string>
+    <string name="weight_empty_subtitle">Enregistre ta première pesée pour suivre l\'évolution de ton poids.</string>
+    <string name="weight_current">Actuel</string>
+    <string name="weight_30d">30 jours</string>
+    <string name="weight_since_start">Depuis le début</string>
+    <string name="weight_evolution">Évolution</string>
+    <string name="weight_entries">Pesées</string>
+    <string name="weight_delete_title">Supprimer cette pesée ?</string>
+    <string name="weight_delete_a11y">Supprimer la pesée du %1$s</string>
+
+    <!-- Composants : libellés lus par les lecteurs d'écran -->
+    <string name="stat_tile_a11y">%1$s : %2$s</string>
+    <string name="bar_chart_a11y">Histogramme : %1$s</string>
+    <string name="bar_chart_a11y_empty">Histogramme vide</string>
+    <string name="route_canvas_a11y">Tracé GPS de la sortie</string>
+    <string name="route_canvas_live_a11y">Tracé GPS de la sortie en cours</string>
+    <string name="stepper_value_a11y">%1$s %2$s, modifier</string>
+    <string name="stepper_decrease_a11y">Diminuer %1$s</string>
+    <string name="stepper_increase_a11y">Augmenter %1$s</string>
+    <string name="exercise_illustration_a11y">Position « %1$s » du mouvement</string>
+    <string name="exercise_illustration_start">Départ</string>
+    <string name="exercise_illustration_end">Fin</string>
+    <string name="catalog_search_hint">Rechercher un exercice, un muscle…</string>
+    <string name="catalog_search_a11y">Rechercher un exercice, un muscle</string>
+    <string name="catalog_search_clear_a11y">Effacer la recherche</string>
+    <string name="catalog_already_added_a11y">Déjà ajouté</string>
+    <string name="rest_timer_minus_a11y">Réduire le repos de 15 secondes</string>
+    <string name="rest_timer_plus_a11y">Allonger le repos de 15 secondes</string>
+    <string name="rest_timer_close_a11y">Fermer le minuteur de repos</string>
+
+    <!-- Pastille cardiaque (composant HrBadge) -->
+    <string name="hr_badge_connect">Connecter</string>
+    <string name="hr_badge_unit">bpm</string>
+    <string name="hr_badge_a11y_bpm">Fréquence cardiaque %1$d battements par minute</string>
+    <string name="hr_badge_a11y_connected">Ceinture cardiaque connectée</string>
+    <string name="hr_badge_a11y_connecting">Connexion de la ceinture cardiaque…</string>
+    <string name="hr_badge_a11y_connect">Connecter une ceinture cardiaque</string>
+
+    <!-- Titres des écrans musculation, progression et catalogue -->
+    <string name="muscu_title">Musculation</string>
+    <string name="progression_title">Progression</string>
+    <string name="catalog_title">Catalogue d\'exercices</string>
+</resources>

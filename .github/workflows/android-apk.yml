@@ -16,13 +16,10 @@
 # cf. docs/PUBLISHING.md).
 name: APK Android
 
+# OBSOLÈTE depuis Élan 2.0 (app native) : l'APK des releases est produit par
+# release-native.yml. Recette Expo 1.x conservée pour legacy/expo-1.x,
+# déclenchement manuel seulement. À supprimer.
 on:
-  push:
-    tags: ['v*']
-  # Vérification de la chaîne de build quand la recette elle-même change.
-  pull_request:
-    paths:
-      - '.github/workflows/android-apk.yml'
   workflow_dispatch:
     inputs:
       release_tag:

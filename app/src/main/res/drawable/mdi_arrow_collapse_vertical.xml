@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MDI « arrow-collapse-vertical » — généré par scripts/gen-mdi-icons.mjs, ne pas éditer. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?android:attr/colorControlNormal">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M4,12H20V14H4V12M4,9H20V11H4V9M16,4L12,8L8,4H11V1H13V4H16M8,19L12,15L16,19H13V22H11V19H8Z" />
+</vector>

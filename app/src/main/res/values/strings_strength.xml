@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Musculation : Muscu, Progression, Fiche exercice, Catalogue. -->
+<resources>
+    <!-- Muscu -->
+    <string name="muscu_quit">Quitter la séance</string>
+    <string name="muscu_duration">Durée</string>
+    <string name="muscu_sets">Séries</string>
+    <string name="muscu_cardio">Cardio</string>
+    <string name="muscu_volume">Volume</string>
+    <string name="muscu_load_program">Charger un programme</string>
+    <string name="muscu_load_program_hint">Choisis un programme pour pré-remplir la séance, ou ajoute tes exercices plus bas.</string>
+    <string name="muscu_target">cible %1$s</string>
+    <string name="muscu_last_time">dernière fois : %1$s kg</string>
+    <string name="muscu_how_to_a11y">Comment faire : %1$s</string>
+    <string name="muscu_remove_exercise_a11y">Supprimer l\'exercice %1$s</string>
+    <string name="muscu_set_toggle_a11y">Série %1$d</string>
+    <string name="muscu_remove_set_a11y">Supprimer la série %1$d</string>
+    <string name="muscu_add_set">Ajouter une série</string>
+    <string name="muscu_feeling">Ressenti</string>
+    <string name="muscu_add_exercise">Ajouter un exercice</string>
+    <string name="muscu_browse_catalog">Parcourir le catalogue</string>
+    <string name="muscu_catalog_hint">Plus de 40 exercices, avec reps et charge conseillés selon ton profil et ton objectif.</string>
+    <string name="muscu_or_type">Ou saisis le tien :</string>
+    <string name="muscu_exercise_name">Nom de l\'exercice</string>
+    <string name="muscu_add_exercise_a11y">Ajouter l\'exercice</string>
+    <string name="muscu_pause">Pause</string>
+    <string name="muscu_resume">Reprendre</string>
+    <string name="muscu_finish">Terminer</string>
+    <string name="muscu_finish_title">Terminer la séance ?</string>
+    <string name="muscu_finish_text">La séance sera enregistrée.</string>
+    <string name="muscu_empty_title">Séance vide</string>
+    <string name="muscu_empty_text">Ajoute au moins un exercice avant de terminer.</string>
+    <string name="muscu_exit_title">Quitter la séance ?</string>
+    <string name="muscu_exit_text">Mets-la en pause pour la reprendre plus tard, ou abandonne-la définitivement.</string>
+    <string name="muscu_exit_pause">Mettre en pause</string>
+    <string name="muscu_exit_abandon">Abandonner</string>
+    <string name="muscu_save_failed_title">Échec de l\'enregistrement</string>
+    <string name="muscu_save_failed_text">La séance n\'a pas pu être enregistrée. Réessaie.</string>
+    <string name="muscu_remove_exercise_title">Supprimer cet exercice ?</string>
+    <string name="muscu_remove_exercise_text">« %1$s » sera retiré de la séance.</string>
+    <string name="muscu_remove_set_title">Supprimer cette série ?</string>
+    <string name="muscu_remove_set_text">Cette série effectuée sera retirée.</string>
+    <string name="muscu_catalog">Catalogue</string>
+    <string name="muscu_catalog_close">Fermer le catalogue</string>
+
+    <!-- Progression -->
+    <string name="progression_changes_title">Changements de la semaine</string>
+    <string name="progression_changes_text">Programme relevé selon ton ressenti · %1$s. Ces charges sont pré-remplies à ta prochaine séance — modifiables à tout moment.</string>
+    <string name="progression_intro">Suivi des charges, exercice par exercice. Touche un exercice pour voir sa courbe.</string>
+    <string name="progression_sessions">%1$d séance · dernière %2$s</string>
+    <string name="progression_sessions_plural">%1$d séances · dernière %2$s</string>
+    <string name="progression_easy_a11y">Ressenti facile : tu peux monter la charge</string>
+    <string name="progression_hard_a11y">Ressenti dur : lève le pied</string>
+    <string name="progression_empty_title">Ta progression démarre ici</string>
+    <string name="progression_empty_subtitle">Enregistre quelques séances de muscu pour suivre ta progression.</string>
+    <string name="progression_empty_action">Démarrer une séance muscu</string>
+
+    <!-- Fiche exercice -->
+    <string name="exercise_execution">Exécution</string>
+    <string name="exercise_record">Record</string>
+    <string name="exercise_current">Actuel</string>
+    <string name="exercise_since_start">Depuis le début</string>
+    <string name="exercise_1rm_current">1RM actuel</string>
+    <string name="exercise_1rm_record">1RM record</string>
+    <string name="exercise_1rm_hint">Estimation Epley d’après la série la plus lourde de chaque séance.</string>
+    <string name="exercise_advice">Conseil</string>
+    <string name="exercise_last_session">Dernière séance : %1$s</string>
+    <string name="exercise_rate_hint">Note tes prochaines séances (facile / moyen / dur) pour obtenir un conseil.</string>
+    <string name="exercise_max_per_session">Charge max par séance</string>
+    <string name="exercise_sessions">Séances</string>
+    <string name="exercise_sets_count">%1$d série</string>
+    <string name="exercise_sets_count_plural">%1$d séries</string>
+    <string name="exercise_volume">%1$d kg vol.</string>
+    <string name="exercise_1rm_approx">≈ %1$d kg 1RM</string>
+    <string name="exercise_empty_title">Aucune donnée</string>
+    <string name="exercise_empty_subtitle">Cet exercice n\'a pas encore de séance enregistrée.</string>
+
+    <!-- Catalogue autonome -->
+    <string name="catalog_add_to_session">Ajouter à une séance</string>
+</resources>

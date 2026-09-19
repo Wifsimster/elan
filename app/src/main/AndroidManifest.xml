@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Capteurs BLE (ceinture cardiaque, cadence/vitesse). Android 12+ :
+         BLUETOOTH_SCAN sans dérivation de position + BLUETOOTH_CONNECT ;
+         avant : BLUETOOTH/BLUETOOTH_ADMIN (installation) + ACCESS_FINE_LOCATION
+         (exigée pour le scan BLE, déjà déclarée pour le GPS ci-dessous). La radio
+         BLE n'est pas obligatoire : l'app reste installable sans, les cartes
+         capteurs affichent « non pris en charge ». -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="false" />
+
+    <!-- Suivi GPS d'une sortie : position précise + service de premier plan de
+         type « location » (le GPS reste actif écran éteint) + verrou de veille.
+         Pas de localisation en arrière-plan : le service est démarré app visible. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Rappels de séance : les alarmes ne survivent pas au redémarrage,
+         BootReceiver les re-planifie (sync/ReminderScheduler). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Health Connect (opt-in) : écriture seule — session d'exercice,
+         distance, calories actives, fréquence cardiaque. Aucune lecture. -->
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
+    <uses-permission android:name="android.permission.health.WRITE_DISTANCE" />
+    <uses-permission android:name="android.permission.health.WRITE_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.WRITE_HEART_RATE" />
+
+    <!-- Visibilité du fournisseur Health Connect (Android 11+ filtre les paquets). -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+
+    <application
+        android:name=".ElanApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Elan"
+        android:enableOnBackInvokedCallback="true"
+        tools:targetApi="33">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:theme="@style/Theme.Elan">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Liens profonds elan:// : `elan://outing/{velo|course|marche}` et
+                 `elan://muscu` ouvrent l'écran live (ui/navigation/OpenRoute.kt) ;
+                 import de séance, partage et retour d'OAuth viendront ensuite. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="elan" />
+            </intent-filter>
+            <!-- Health Connect (≤ Android 13) : justification des permissions,
+                 ouverte sur la route `health/rationale`. -->
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Health Connect (Android 14+) : même justification, via l'alias
+             exigé par le système. -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Rappels de séance : alarme du jour (posée par ReminderScheduler) et
+             re-planification au redémarrage. -->
+        <receiver
+            android:name=".sync.ReminderReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".sync.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Service de premier plan d'une sortie GPS (tracking/TrackingService). -->
+        <service
+            android:name=".tracking.TrackingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <!-- Partage des exports (GPX, bilan coach, JSON) : seul `cache/share/`
+             est exposé (res/xml/file_paths.xml), fichiers purgés après partage. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- WorkManager est initialisé par ElanApp (Configuration.Provider avec
+             HiltWorkerFactory) : on retire l'initialiseur automatique. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+    </application>
+</manifest>

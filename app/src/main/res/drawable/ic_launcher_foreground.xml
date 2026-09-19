@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Avant-plan de l'icône adaptative : le « É » d'Élan (assets/images/elan-logo.svg
+     transposé en Béziers, skew et rotation pré-appliqués car VectorDrawable ne
+     connaît pas skewX), recentré et réduit à 81 % pour tenir dans le cercle sûr de 66 dp.
+     Dégradé accent PULSE #6478FF → #7A3BFF, identique à l'icône 1.x. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M44.34,42.04 L49.14,42.04 C50.65,42.04 51.69,43.27 51.44,44.78 L46.07,78.70 C45.83,80.21 44.41,81.44 42.89,81.44 L38.10,81.44 C36.58,81.44 35.56,80.21 35.79,78.70 L41.17,44.78 C41.40,43.27 42.83,42.04 44.34,42.04 Z M44.34,42.04 L72.44,42.04 C73.95,42.04 74.99,43.27 74.74,44.78 L73.98,49.58 C73.75,51.10 72.32,52.32 70.81,52.32 L42.71,52.32 C41.19,52.32 40.16,51.10 40.40,49.58 L41.17,44.78 C41.40,43.27 42.83,42.04 44.34,42.04 Z M42.03,56.60 L64.82,56.60 C66.33,56.60 67.36,57.83 67.13,59.34 L66.36,64.14 C66.13,65.66 64.71,66.88 63.19,66.88 L40.41,66.88 C38.89,66.88 37.86,65.66 38.10,64.14 L38.86,59.34 C39.10,57.83 40.52,56.60 42.03,56.60 Z M39.73,71.16 L69.20,71.16 C70.71,71.16 71.75,72.39 71.50,73.90 L70.74,78.70 C70.50,80.21 69.08,81.44 67.56,81.44 L38.10,81.44 C36.58,81.44 35.56,80.21 35.79,78.70 L36.55,73.90 C36.79,72.39 38.21,71.16 39.73,71.16 Z M34.82,31.77 L42.91,27.29 C44.23,26.56 45.90,27.03 46.63,28.36 L46.63,28.36 C47.37,29.69 46.89,31.35 45.57,32.08 L37.47,36.57 C36.15,37.31 34.48,36.83 33.75,35.50 L33.75,35.50 C33.01,34.18 33.50,32.51 34.82,31.77 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="34" android:startY="21"
+                android:endX="80" android:endY="84">
+                <item android:offset="0" android:color="#FF6478FF" />
+                <item android:offset="1" android:color="#FF7A3BFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

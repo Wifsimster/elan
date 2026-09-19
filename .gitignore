@@ -56,3 +56,16 @@ example
 
 # Clés de signature Android (NE JAMAIS committer)
 credentials/
+
+# Projet natif Gradle (Élan 2.0) — même liste qu'Ondes
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+*.iml
+.idea/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.keystore
+keystore.properties

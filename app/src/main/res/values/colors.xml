@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fond du démarrage à froid (splash) ; = PulseColors.dark.background. -->
+    <color name="elan_background">#FF0A0C10</color>
+    <!-- Accent de marque ; = PulseColors.light.accent. -->
+    <color name="elan_accent">#FF3B5BFF</color>
+</resources>
