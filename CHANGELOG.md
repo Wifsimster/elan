@@ -1,6 +1,39 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+## [2.0.0](https://github.com/Wifsimster/elan/compare/v1.9.0...v2.0.0) (2026-09-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **natif:** Élan est réécrit en Kotlin + Jetpack Compose (Material 3 Expressive, Hilt, Room, WorkManager). Le projet Expo / React Native est retiré ; les sources 1.x restent consultables sur la branche `legacy/expo-1.x`. Même paquet `ovh.battistella.elan`, `versionCode` désormais dérivé du semver (`2.0.0` → `2000000`).
+* **migration:** au premier lancement, la base `suivi-sport.db` de la 1.x est importée automatiquement dans la base Room `elan.db` (séances, points GPS, séries, pesées, réglages, identifiants S3), en une transaction vérifiée par comptage ; l'ancien dossier est renommé `SQLite.migrated` et purgé après 30 jours. En cas d'échec, un écran propose de réessayer ou de continuer sans les anciennes données. Pas de retour arrière automatique : voir `docs/MIGRATION-1.x.md`.
+* **permissions:** `CAMERA`, `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS` et l'accès au stockage externe ne sont plus demandés ; les composants Firebase/datatransport embarqués par le runtime Expo disparaissent. Le QR de configuration S3 passe par le lecteur de codes de Google Play Services (masqué sans Play Services, saisie manuelle toujours possible).
+* **format:** le format de sauvegarde S3 (`format: 1`) et les clés de réglages sont inchangés et restent compatibles dans les deux sens avec la 1.9.0.
+
+### ✨ Fonctionnalités
+
+* **gps:** service de premier plan natif de type `location` (`TrackingService`) avec verrou de veille, source GPS 1 Hz sans Play Services, flush des points toutes les 20 s et récupération des sorties orphelines au démarrage
+* **gps:** filtre GPS porté à l'identique (`GpsConsolidator` : seuil de précision, rejet des téléportations, Kalman, ancre de distance, médiane et hystérésis d'altitude)
+* **capteurs:** ceinture cardiaque et jusqu'à deux capteurs cadence/vitesse via l'API Bluetooth LE d'Android (`sensors/ble/`), reconnexion automatique au lancement et après coupure du Bluetooth, reprise des capteurs appairés en 1.x
+* **muscu:** brouillon de séance, minuteur de repos avec carillon, catalogue d'exercices avec photos embarquées, progression automatique hebdomadaire et rappels planifiés par `AlarmManager` (re-planifiés au redémarrage)
+* **sauvegarde:** client S3 SigV4 maison sur OkHttp, identifiants dans l'Android KeyStore (AES-256/GCM), sauvegarde automatique après chaque séance via WorkManager (réseau requis, 3 tentatives), erreurs S3 et réseau traduites, configuration par QR code JSON ou `s3://`
+* **import:** décodeur FIT natif, parseur GPX/TCX durci (DOCTYPE/ENTITY refusés), fichiers `.gz`, sélection multiple, bilan du dernier import conservé
+* **export:** bilan coach Markdown, export JSON brut, GPX d'une sortie avec zone de confidentialité, image de séance rendue par Compose (`ShareCard`) avec instantané MapLibre si un fond de carte est configuré
+* **santé:** export Health Connect opt-in en écriture seule (session, distance, calories actives, fréquence cardiaque) avec identifiants idempotents et écran de justification
+* **carte:** fond de carte MapLibre opt-in (OpenFreeMap par défaut ou serveur personnel HTTPS) avec attribution OSM, tracé Canvas hors-ligne sinon
+* **ui:** design system PULSE réimplémenté en Compose (`ui/theme/`, `ui/components/`) sur `MaterialExpressiveTheme`, icônes Material Design Icons en vector drawables générés, mouvement réduit respecté, bord à bord natif
+* **ci:** workflows `build-native.yml` (tests JVM, APK debug/release, AAB signé, vérifications 16 Ko / bord à bord / taille, release roulante `latest`) et `release-native.yml` (semantic-release, changelog, APK joint à la release)
+
+### ⚡ Performances
+
+* **apk:** APK universel (4 ABI) de ≈ 45 Mo au lieu de ≈ 92 Mo pour la 1.9.0 ; les bibliothèques natives (MapLibre) en représentent l'essentiel, un APK arm64 seul est nettement plus léger et la CI garantit un téléchargement arm64 sous 15 Mo via l'AAB (`scripts/check-bundle-size.sh`)
+* **démarrage:** plus de moteur JavaScript ni de pont React Native ; R8 minifié avec réduction des ressources, journaux `Log.v/d/i` supprimés en release
+* **sauvegarde:** instantané JSON écrit et lu en flux (`JsonWriter`/`JsonReader`), sans charger les points GPS en mémoire
+
+### 🐛 Corrections
+
+* **android:** plus d'avertissement Play Console « deprecated edge-to-edge APIs » : `enableEdgeToEdgeCompat()` n'appelle plus `Window.setStatusBarColor` / `setNavigationBarColor`, vérifié sur le dex final par `scripts/check-deprecated-edge-to-edge.sh`
+* **android:** alignement 16 Ko des bibliothèques natives vérifié à chaque build (`scripts/check-16kb-alignment.sh`)
 
 ## [1.9.0](https://github.com/Wifsimster/elan/compare/v1.8.0...v1.9.0) (2026-09-18)
 

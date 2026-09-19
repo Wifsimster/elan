@@ -114,6 +114,19 @@ jobs:
           chmod +x scripts/check-16kb-alignment.sh
           ./scripts/check-16kb-alignment.sh app/build/outputs/bundle/release/app-release.aab
 
+      # Zéro API bord à bord obsolète dans le dex final (avertissement Play
+      # « deprecated edge-to-edge APIs » qui a motivé le portage natif).
+      - name: Verify no deprecated edge-to-edge API
+        run: |
+          chmod +x scripts/check-deprecated-edge-to-edge.sh
+          ./scripts/check-deprecated-edge-to-edge.sh app/build/outputs/apk/release/app-release.apk
+
+      # Taille de téléchargement arm64 < 15 Mo (objectif du portage natif).
+      - name: Verify download size per ABI
+        run: |
+          chmod +x scripts/check-bundle-size.sh
+          ./scripts/check-bundle-size.sh app/build/outputs/bundle/release/app-release.aab 15
+
       # Stage the downloadable assets under stable filenames (so the README's
       # permalinks keep resolving) plus a checksum file, which is what lets
       # someone verify a sideloaded APK against what CI actually built.

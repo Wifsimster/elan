@@ -18,10 +18,14 @@ comme un projet Claude Code.
 
 ## Les deux formats
 
-| Format | Contenu | Usage |
-|--------|---------|-------|
-| **Bilan Markdown** | Programme, planning, statistiques, progression et historique, mis en forme | À lire par une IA ou un humain |
-| **Export JSON brut** | Profil, programme et instantané complet de la base | Traitement automatisé, tableur, archivage |
+| Format | Fichier | Contenu | Usage |
+|--------|---------|---------|-------|
+| **Bilan Markdown** | `suivi-sport-coach.md` | Profil, poids, programme et planning, statistiques (7/30/90 j, total), objectifs, progression par exercice, détail des séances muscu, historique des sorties | À lire par une IA ou un humain |
+| **Export JSON brut** | `suivi-sport-export.json` | Profil, programme et instantané complet de la base (même contenu que la sauvegarde S3, tracés GPS inclus) | Traitement automatisé, tableur, archivage |
+
+Le bilan Markdown ne contient **aucune coordonnée GPS** : seulement des
+agrégats par sortie (date, distance, vitesse ou allure, FC, dénivelé,
+calories). L'export JSON, lui, contient les points bruts.
 
 ## Comment ça marche
 
@@ -40,7 +44,8 @@ choisissez la destination : Drive, e-mail, gestionnaire de fichiers, etc.
 ## Utilisation
 
 1. Ouvrez **Réglages → Exporter mes données**.
-2. Choisissez le format (**Markdown** ou **JSON**).
+2. Choisissez le format (**Exporter le bilan (Markdown)** ou **Exporter les
+   données brutes (JSON)**).
 3. Sélectionnez la destination dans la feuille de partage.
 
 ## Confidentialité
@@ -49,8 +54,15 @@ choisissez la destination : Drive, e-mail, gestionnaire de fichiers, etc.
   l'application elle-même.
 - C'est **vous** qui choisissez la destination du partage. Pensez-y : envoyer le
   bilan vers un service en ligne le fait sortir de l'appareil.
+- La **zone de confidentialité** (Réglages, 100/200/500 m) masque le départ et
+  l'arrivée d'un tracé dans l'**export GPX** d'une séance ; elle ne s'applique
+  pas à l'export JSON brut, qui reste une copie intégrale.
 
-> **Détail technique.** Le bilan est assemblé par `lib/coach-export.ts`
-> (`buildCoachMarkdown` / `buildCoachJson`) à partir des fonctions de la base.
-> Le partage passe par `expo-sharing` ; aucun appel réseau n'est effectué par
-> l'application.
+> **Détail technique.** Le bilan est assemblé par
+> `data/export/CoachExporter.kt` (`buildMarkdown` / `buildJson`) depuis les
+> dépôts Room ; le JSON réutilise l'encodeur de sauvegarde
+> (`BackupSnapshotCodec.writeSnapshot`) avec les mêmes réglages exclus. Les
+> fichiers sont écrits dans `cache/share/`, seul dossier exposé par le
+> `FileProvider` `${applicationId}.files` (`res/xml/file_paths.xml`), et
+> partagés par `data/export/FileShare.kt` (`ACTION_SEND`) ; aucun appel réseau
+> n'est effectué par l'application.

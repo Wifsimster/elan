@@ -4,12 +4,16 @@ Ce document explique comment **reprendre vos activités passées** dans Élan à
 partir de fichiers. Il s'adresse à l'utilisateur qui arrive depuis Strava ou une
 autre application de sport.
 
+> Vous venez d'**Élan 1.x** ? Rien à importer : vos séances sont reprises
+> automatiquement à la première ouverture de la 2.0
+> (voir [MIGRATION-1.x.md](MIGRATION-1.x.md)).
+
 ## En bref
 
 - L'import se fait **à partir d'un fichier** que vous choisissez, pas par
   connexion à un compte.
 - Formats pris en charge : **GPX**, **TCX** et **FIT** (y compris compressés en
-  `.gz`).
+  `.gz`), plusieurs fichiers à la fois, 30 Mo maximum par fichier.
 - L'opération est **100 % hors-ligne** : aucun appel réseau.
 - Les doublons sont **détectés et ignorés** : réimporter un fichier ne crée pas
   de séance en double.
@@ -49,20 +53,39 @@ ajoute la séance — sauf si elle existe déjà.
 
 ## Utilisation
 
-1. Ouvrez **Réglages → Importer des activités**.
-2. Sélectionnez un ou plusieurs fichiers.
-3. Un récapitulatif s'affiche : importées, doublons, ignorées, erreurs.
+1. Ouvrez **Réglages → Import Strava**.
+2. Touchez « Importer un fichier (GPX/TCX/FIT) » et sélectionnez un ou
+   plusieurs fichiers dans le sélecteur de documents d'Android.
+3. Un récapitulatif s'affiche : importées, doublons, ignorées, erreurs. Le
+   dernier résultat reste visible dans la carte.
 
 ## Ce qui est importé
 
-- Seules les activités de type **vélo** sont conservées (les autres sports sont
-  ignorés).
-- Données reprises quand elles sont présentes : tracé GPS, distance, vitesse,
-  dénivelé, fréquence cardiaque, cadence.
-- Les **calories** sont recalculées localement à partir de votre profil.
+- Le **type d'activité** dépend du format :
 
-> **Détail technique.** Une **clé unique** (empreinte du contenu) est dérivée de
-> chaque activité pour garantir un import idempotent : le même fichier réimporté
-> est reconnu comme doublon. Les parseurs GPX/TCX et FIT sont écrits en
-> JavaScript pur, sans module natif, et durcis contre les fichiers malveillants
-> (taille plafonnée, entités XML externes refusées).
+  | Format | Sport détecté | Séance créée |
+  |--------|---------------|--------------|
+  | TCX | `Biking` / `Running` / `Walking` (ou `Other`) | vélo / course / marche (ignorée) |
+  | FIT | `cycling` | vélo ; les autres sports sont ignorés |
+  | GPX | non indiqué par le format | toujours vélo |
+
+- Données reprises quand elles sont présentes : tracé GPS, altitude, fréquence
+  cardiaque, cadence, distance et calories déclarées par le fichier.
+- Distance (si absente du fichier), vitesse moyenne/max, temps en mouvement et
+  dénivelé sont recalculés depuis les points ; les segments à plus de 160 km/h
+  sont écartés.
+- Les **calories** sont estimées localement à partir de votre profil si le
+  fichier n'en fournit pas.
+- Une activité sans horodatage exploitable ou de durée nulle est ignorée ; une
+  activité **sans GPS** (home-trainer avec cardio/cadence) est acceptée.
+
+> **Détail technique.** Le pipeline est `data/export/StravaImporter.kt`
+> (sélecteur SAF multi-fichiers, limite `MAX_BYTES` de 30 Mio) →
+> `domain/strava/StravaDecoder.kt` (gzip, puis signature `.FIT`, sinon XML) →
+> `domain/strava/FitDecoder.kt` (décodeur binaire maison, messages `record` et
+> `session`) ou `domain/strava/GpxTcxParser.kt` (SAX, `DOCTYPE`/`ENTITY`
+> refusés) → `domain/strava/StravaImport.kt` (normalisation, `externalId`
+> stable = empreinte SHA-256 de la date, la durée, la distance et du premier
+> point, préfixée `strava-`) → `SessionRepository.insertImportedSession`, dont
+> l'index unique sur `externalId` renvoie `Duplicate` sans rien écrire. Le
+> dernier bilan est mémorisé dans le réglage `strava_last_import`.
