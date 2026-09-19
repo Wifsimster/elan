@@ -40,8 +40,15 @@ for so in "${libs[@]}"; do
     fi
   done < <(readelf -lW "$so" | awk '/LOAD/ {print $NF}')
   if [ -n "$bad" ]; then
-    echo "❌ $name: LOAD alignment(s)$bad — not a multiple of 16 KB"
-    fail=1
+    case "$name" in
+      # 16 KB pages only exist on 64-bit devices: 32-bit ABIs are reported but
+      # do not fail the check (Play only enforces arm64-v8a / x86_64).
+      */armeabi-v7a/*|*/x86/*)
+        echo "ℹ️  $name: LOAD alignment(s)$bad — 32-bit ABI, ignoré (pages 16 Ko = 64 bits seulement)" ;;
+      *)
+        echo "❌ $name: LOAD alignment(s)$bad — not a multiple of 16 KB"
+        fail=1 ;;
+    esac
   else
     echo "✅ $name"
   fi
