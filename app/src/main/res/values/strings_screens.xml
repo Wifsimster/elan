@@ -136,13 +136,14 @@
     <string name="session_reps">%1$d reps</string>
     <string name="records_personal">Record personnel</string>
     <string name="records_year">Record %1$d</string>
-    <string name="records_best">Meilleure %1$s</string>
+    <!-- L'adjectif s'accorde avec le nom : il vit dans chaque libellé. -->
+    <string name="records_best">%1$s</string>
     <string name="records_all_time">de tous les temps</string>
     <string name="records_of_year">de %1$d</string>
-    <string name="records_distance">distance</string>
-    <string name="records_elevation">dénivelé</string>
-    <string name="records_duration">durée</string>
-    <string name="records_speed">vitesse moyenne</string>
+    <string name="records_distance">Meilleure distance</string>
+    <string name="records_elevation">Meilleur dénivelé</string>
+    <string name="records_duration">Meilleure durée</string>
+    <string name="records_speed">Meilleure vitesse moyenne</string>
     <string name="map_empty">Aucun tracé à afficher.</string>
     <string name="map_back">Revenir à la séance</string>
 

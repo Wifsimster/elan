@@ -232,7 +232,7 @@ fun MapLibreRouteView(
         startColor = colors.success.toArgb(),
         endStrokeColor = colors.background.toArgb(),
         live = live,
-        boundsPaddingPx = with(density) { 48.dp.roundToPx() },
+        boundsPaddingPx = with(density) { 56.dp.roundToPx() },
     )
 
     val frame = if (fill) {

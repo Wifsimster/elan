@@ -86,9 +86,12 @@ fun LineChart(
         minY -= 1
         maxY += 1
     }
-    // Un peu de marge verticale pour ne pas coller le tracé aux bords.
+    // Un peu de marge verticale pour ne pas coller le tracé aux bords, sans
+    // descendre sous zéro pour une grandeur positive (vitesse, cadence…).
     val headroom = (maxY - minY) * 0.08
+    val dataMin = minY
     minY -= headroom
+    if (dataMin >= 0.0) minY = maxOf(minY, 0.0)
     maxY += headroom
 
     val yTicks = listOf(maxY, (maxY + minY) / 2, minY)
