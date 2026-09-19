@@ -11,6 +11,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -202,9 +203,27 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Restauration depuis l'onboarding : câblée au jalon M3 (sauvegarde S3). */
-    fun requestRestore() {
-        snackbar.show(context.getString(R.string.common_soon))
+    private val _restoreOpen = MutableStateFlow(false)
+
+    /** Feuille « J'ai déjà une sauvegarde » ouverte par-dessus l'onboarding. */
+    val restoreOpen: StateFlow<Boolean> = _restoreOpen.asStateFlow()
+
+    fun requestRestore() = _restoreOpen.update { true }
+
+    fun closeRestore() = _restoreOpen.update { false }
+
+    /**
+     * Restauration terminée : le snapshot contient le profil et, en général,
+     * `onboarding_done` ; on le force quand même (sauvegarde antérieure à
+     * l'onboarding) pour ne pas redemander un profil qui vient d'être rechargé.
+     */
+    fun restoreFinished(count: Int) {
+        viewModelScope.launch {
+            settings.setOnboardingDone(true)
+            _restoreOpen.update { false }
+            refresh()
+            snackbar.show(context.getString(R.string.restore_done_snackbar, count))
+        }
     }
 
     /** `close` sur la bannière de progression : masquée jusqu'à la prochaine évaluation. */

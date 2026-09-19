@@ -24,6 +24,22 @@ import ovh.battistella.elan.ui.screens.outing.OutingViewModel
 import ovh.battistella.elan.ui.screens.session.SessionDetailViewModel
 import ovh.battistella.elan.ui.screens.session.SessionMapViewModel
 import ovh.battistella.elan.ui.screens.weight.WeightViewModel
+import ovh.battistella.elan.ui.screens.settings.BackupViewModel
+import ovh.battistella.elan.ui.screens.settings.FakeBackupPort
+import ovh.battistella.elan.ui.screens.settings.FakeExportPort
+import ovh.battistella.elan.ui.screens.settings.FakeHealthConnectPort
+import ovh.battistella.elan.ui.screens.settings.FakeMapStylePort
+import ovh.battistella.elan.ui.screens.settings.FakeRemindersPort
+import ovh.battistella.elan.ui.screens.settings.FakeStravaImportPort
+import ovh.battistella.elan.ui.screens.settings.SensorsViewModel
+import ovh.battistella.elan.ui.screens.settings.SettingsViewModel
+import ovh.battistella.elan.sensors.ble.BleScanner
+import ovh.battistella.elan.sensors.ble.CadenceSpeedManager
+import ovh.battistella.elan.sensors.ble.FakeBleAdapterState
+import ovh.battistella.elan.sensors.ble.FakeGattLinkFactory
+import ovh.battistella.elan.sensors.ble.FakeLeScanner
+import ovh.battistella.elan.sensors.ble.HeartRateManager
+import ovh.battistella.elan.data.settings.SettingsRepository
 import ovh.battistella.elan.ui.screens.catalog.CatalogViewModel
 import ovh.battistella.elan.ui.screens.exercise.ExerciseViewModel
 import ovh.battistella.elan.ui.screens.progression.ProgressionViewModel
@@ -73,8 +89,11 @@ class TestViewModelFactory(
     private val heart: FakeHeartRatePort = FakeHeartRatePort(),
     private val cadence: FakeCadencePort = FakeCadencePort(),
     private val snackbar: SnackbarController = SnackbarController(),
+    private val export: FakeExportPort = FakeExportPort(),
+    private val backup: FakeBackupPort = FakeBackupPort(),
 ) : ViewModelProvider.Factory {
     private val repos = TestSupport.repositories(db)
+    private val sensors by lazy { testBleManagers(repos.settings, clock) }
     private val progression = TestSupport.progressionRunner(repos)
     private val finalizer = SessionFinalizer(Optional.empty(), Optional.empty(), CoroutineScope(Dispatchers.Unconfined))
     private val context: Context get() = ApplicationProvider.getApplicationContext()
@@ -86,14 +105,37 @@ class TestViewModelFactory(
             HomeViewModel::class.java -> HomeViewModel(repos.sessions, repos.settings, heart, clock, snackbar, context, progression)
             HistoryViewModel::class.java -> HistoryViewModel(repos.sessions, clock)
             OutingViewModel::class.java -> OutingViewModel(handle, outing, cadence)
-            SessionDetailViewModel::class.java -> SessionDetailViewModel(handle, repos.sessions, repos.settings, snackbar, context)
+            SessionDetailViewModel::class.java -> SessionDetailViewModel(handle, repos.sessions, repos.settings, snackbar, context, finalizer, export)
             SessionMapViewModel::class.java -> SessionMapViewModel(handle, repos.sessions)
             WeightViewModel::class.java -> WeightViewModel(repos.bodyWeight, repos.settings, clock)
             StrengthViewModel::class.java -> StrengthViewModel(handle, repos.sessions, repos.settings, progression, finalizer, heart, clock, context)
             ProgressionViewModel::class.java -> ProgressionViewModel(repos.sessions, repos.settings, clock)
             ExerciseViewModel::class.java -> ExerciseViewModel(handle, repos.sessions)
             CatalogViewModel::class.java -> CatalogViewModel(repos.settings)
+            SettingsViewModel::class.java -> SettingsViewModel(
+                repos.settings, repos.sessions, FakeRemindersPort(), FakeHealthConnectPort(isSupported = false),
+                FakeMapStylePort(), export, FakeStravaImportPort(), clock, context,
+            )
+            SensorsViewModel::class.java -> SensorsViewModel(sensors.first, sensors.second)
+            BackupViewModel::class.java -> BackupViewModel(backup, repos.settings)
             else -> throw IllegalArgumentException("ViewModel inconnu : ${modelClass.name}")
         } as T
     }
+}
+
+/**
+ * Gestionnaires BLE sur radio factice (aucun appareil, adaptateur allumé) :
+ * les cartes capteurs se rendent en état « Non connectée » sans Bluetooth.
+ */
+fun testBleManagers(
+    settings: SettingsRepository,
+    clock: Clock = Clock.systemUTC(),
+    scope: CoroutineScope = CoroutineScope(Dispatchers.Unconfined),
+): Pair<HeartRateManager, CadenceSpeedManager> {
+    val scanner = BleScanner(FakeLeScanner(), scope)
+    val links = FakeGattLinkFactory()
+    val adapter = FakeBleAdapterState(enabled = true)
+    val hr = HeartRateManager(scanner, links, adapter, { true }, settings, clock, scope)
+    val csc = CadenceSpeedManager(scanner, links, adapter, { true }, settings, clock, scope)
+    return hr to csc
 }

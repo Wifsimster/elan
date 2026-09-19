@@ -15,6 +15,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -31,6 +33,9 @@ import ovh.battistella.elan.data.local.ElanDatabase
 import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.domain.Difficulty
 import ovh.battistella.elan.testing.TestSupport
+import ovh.battistella.elan.ui.screens.settings.FakeExportPort
+import ovh.battistella.elan.tracking.SessionFinalizer
+import java.util.Optional
 import ovh.battistella.elan.ui.theme.ElanTheme
 
 @RunWith(RobolectricTestRunner::class)
@@ -45,6 +50,8 @@ class SessionDetailScreenTest {
     private lateinit var db: ElanDatabase
     private lateinit var repos: TestSupport.Repositories
     private val t0 = 1_700_000_000_000L
+    private val finalizer = SessionFinalizer(Optional.empty(), Optional.empty(), CoroutineScope(Dispatchers.Unconfined))
+    private val export = FakeExportPort()
 
     @Before
     fun setUp() {
@@ -57,7 +64,7 @@ class SessionDetailScreenTest {
         db.close()
     }
 
-    private fun vm(id: Long) = SessionDetailViewModel(SavedStateHandle(mapOf("id" to id)), repos.sessions, repos.settings, SnackbarController(), context)
+    private fun vm(id: Long) = SessionDetailViewModel(SavedStateHandle(mapOf("id" to id)), repos.sessions, repos.settings, SnackbarController(), context, finalizer, export)
 
     private fun seedVelo(movingTimeSec: Int? = 3000, points: Int = 3): Long = runBlocking {
         val id = db.sessionDao().insert(

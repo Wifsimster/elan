@@ -60,7 +60,7 @@ import ovh.battistella.elan.ui.components.GpsStatusPill
 import ovh.battistella.elan.ui.components.MapPlaceholder
 import ovh.battistella.elan.ui.components.PulseButton
 import ovh.battistella.elan.ui.components.PulseCard
-import ovh.battistella.elan.ui.components.RouteCanvas
+import ovh.battistella.elan.ui.components.RouteMap
 import ovh.battistella.elan.ui.components.StatTile
 import ovh.battistella.elan.ui.components.screenContent
 import ovh.battistella.elan.ui.icons.MdiIcons
@@ -193,7 +193,7 @@ fun OutingScreen(
             // Tracé live dès 2 points, sinon cadre d'attente (jamais « rien »).
             if (ui.phase != OutingPhase.Idle) {
                 if (ui.outing.livePath.size >= 2) {
-                    RouteCanvas(points = ui.outing.livePath, color = color, height = 220.dp, live = true)
+                    RouteMap(points = ui.outing.livePath, color = color, height = 220.dp, live = true)
                 } else {
                     MapPlaceholder(status = ui.outing.gpsStatus)
                 }

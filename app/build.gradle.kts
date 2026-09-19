@@ -171,9 +171,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     // Activées par les jalons qui en ont besoin (carte, Health Connect, QR).
-    // implementation(libs.maplibre)
-    // implementation(libs.androidx.health.connect)
-    // implementation(libs.play.code.scanner)
+    implementation(libs.maplibre)
+    implementation(libs.androidx.health.connect)
+    implementation(libs.play.code.scanner)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
@@ -184,5 +184,5 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    // testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.okhttp.mockwebserver)
 }

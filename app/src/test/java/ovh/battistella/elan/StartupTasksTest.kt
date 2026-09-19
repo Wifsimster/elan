@@ -17,6 +17,7 @@ import ovh.battistella.elan.data.legacy.LegacyDatabaseImporter
 import ovh.battistella.elan.data.legacy.MigrationGate
 import ovh.battistella.elan.data.legacy.MigrationState
 import ovh.battistella.elan.sync.AutoProgressionRunner
+import ovh.battistella.elan.sync.ReminderScheduler
 import ovh.battistella.elan.tracking.RecoveryOutcome
 import ovh.battistella.elan.tracking.SessionRecovery
 import java.time.Clock
@@ -35,7 +36,11 @@ class StartupTasksTest {
         coEvery { it.runWeeklyProgressionIfDue(any()) } returns emptyList()
     }
 
-    private fun tasks(gate: MigrationGate) = StartupTasks(context, gate, importer, recovery, progression, Clock.systemUTC())
+    private val reminders = mockk<ReminderScheduler>().also {
+        coEvery { it.apply() } returns Unit
+    }
+
+    private fun tasks(gate: MigrationGate) = StartupTasks(context, gate, importer, recovery, progression, reminders, Clock.systemUTC())
 
     @Test
     fun `la barrière de migration passe en premier puis la purge différée`() = runTest {
@@ -60,6 +65,7 @@ class StartupTasksTest {
 
         coVerify(exactly = 1) { recovery.recoverOrphans() }
         verify(exactly = 1) { recovery.reconcileOrphanService(context) }
+        coVerify(exactly = 1) { reminders.apply() }
     }
 
     @Test

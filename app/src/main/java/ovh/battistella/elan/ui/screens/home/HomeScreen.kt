@@ -90,20 +90,32 @@ fun HomeScreen(
     onOpenHistory: () -> Unit = {},
     onOpenSession: (Long) -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    /**
+     * Feuille de restauration (premier lancement) : emplacement injectable pour
+     * que les tests fournissent leur propre `BackupViewModel`.
+     */
+    restoreSheet: @Composable (onCancel: () -> Unit, onRestored: (Int) -> Unit) -> Unit = { onCancel, onRestored ->
+        RestoreSheet(onCancel = onCancel, onRestored = onRestored)
+    },
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val heart by viewModel.heart.collectAsStateWithLifecycle()
+    val restoreOpen by viewModel.restoreOpen.collectAsStateWithLifecycle()
     val colors = ElanTheme.colors
 
     // Recharge à chaque retour sur l'écran (séance fraîchement enregistrée).
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
 
-    ui.onboarding?.let { profile ->
-        OnboardingSheet(
-            initial = profile,
-            onDone = { w, h, hr, goal -> viewModel.finishOnboarding(w, h, hr, goal) },
-            onRestore = { viewModel.requestRestore() },
-        )
+    if (restoreOpen) {
+        restoreSheet(viewModel::closeRestore, viewModel::restoreFinished)
+    } else {
+        ui.onboarding?.let { profile ->
+            OnboardingSheet(
+                initial = profile,
+                onDone = { w, h, hr, goal -> viewModel.finishOnboarding(w, h, hr, goal) },
+                onRestore = { viewModel.requestRestore() },
+            )
+        }
     }
 
     Column(

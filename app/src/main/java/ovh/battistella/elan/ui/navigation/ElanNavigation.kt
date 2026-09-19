@@ -39,9 +39,11 @@ import androidx.navigation.navArgument
 import ovh.battistella.elan.common.SnackbarController
 import ovh.battistella.elan.ui.screens.history.HistoryScreen
 import ovh.battistella.elan.ui.screens.home.HomeScreen
+import ovh.battistella.elan.ui.screens.home.RestoreSheet
 import ovh.battistella.elan.ui.screens.outing.OutingScreen
 import ovh.battistella.elan.ui.screens.catalog.CatalogScreen
 import ovh.battistella.elan.ui.screens.exercise.ExerciseScreen
+import ovh.battistella.elan.ui.screens.health.HealthRationaleScreen
 import ovh.battistella.elan.ui.screens.progression.ProgressionScreen
 import ovh.battistella.elan.ui.screens.session.SessionDetailScreen
 import ovh.battistella.elan.ui.screens.session.SessionMapScreen
@@ -128,6 +130,9 @@ fun ElanRoot(
                     onOpenHistory = { navController.navigateToTab(Routes.HISTORY) },
                     onOpenSession = { navController.navigate(Routes.session(it)) },
                     onOpenSettings = { navController.navigateToTab(Routes.SETTINGS) },
+                    restoreSheet = { onCancel, onRestored ->
+                        RestoreSheet(onCancel = onCancel, onRestored = onRestored, viewModel = screenViewModel(viewModelFactory))
+                    },
                 )
             }
             composable(Routes.HISTORY) {
@@ -139,7 +144,15 @@ fun ElanRoot(
                     onOpenSettings = { navController.navigateToTab(Routes.SETTINGS) },
                 )
             }
-            composable(Routes.SETTINGS) { SettingsScreen(contentPadding = innerPadding) }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(
+                    contentPadding = innerPadding,
+                    viewModel = screenViewModel(viewModelFactory),
+                    sensorsViewModel = screenViewModel(viewModelFactory),
+                    backupViewModel = screenViewModel(viewModelFactory),
+                    onOpenWeight = { navController.navigate(Routes.WEIGHT) },
+                )
+            }
 
             // Écrans live : plein écran, fondu (modal `fade` d'origine).
             composable(
@@ -217,6 +230,9 @@ fun ElanRoot(
                     onOpenExercise = { navController.navigate(Routes.exercise(it)) },
                     onStartMuscu = { navController.navigate(Routes.muscu()) },
                 )
+            }
+            composable(Routes.HEALTH_RATIONALE) {
+                HealthRationaleScreen(contentPadding = innerPadding, onBack = { navController.popBackStack() })
             }
             composable(Routes.CATALOG) {
                 CatalogScreen(

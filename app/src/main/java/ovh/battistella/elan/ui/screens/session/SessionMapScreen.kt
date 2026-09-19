@@ -34,7 +34,7 @@ import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.domain.TrackPoint
 import ovh.battistella.elan.domain.isGpsActivity
 import ovh.battistella.elan.domain.meta
-import ovh.battistella.elan.ui.components.RouteCanvas
+import ovh.battistella.elan.ui.components.RouteMap
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
@@ -86,7 +86,7 @@ fun SessionMapScreen(
     Box(modifier = Modifier.fillMaxSize().background(colors.background)) {
         when {
             ui.loading -> CircularProgressIndicator(color = colors.accent, modifier = Modifier.align(Alignment.Center))
-            ui.points.size >= 2 -> RouteCanvas(points = ui.points, color = color, interactive = true, fill = true)
+            ui.points.size >= 2 -> RouteMap(points = ui.points, color = color, interactive = true, fill = true)
             else -> Text(
                 stringResource(R.string.map_empty),
                 color = colors.textSecondary,

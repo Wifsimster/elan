@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -35,15 +36,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.GOALS
 import ovh.battistella.elan.domain.Profile
 import ovh.battistella.elan.domain.TrainingGoal
 import ovh.battistella.elan.ui.components.ButtonVariant
+import ovh.battistella.elan.ui.components.ErrorNotice
 import ovh.battistella.elan.ui.components.PulseButton
 import ovh.battistella.elan.ui.components.PulseChip
 import ovh.battistella.elan.ui.components.SettingStepper
 import ovh.battistella.elan.ui.icons.MdiIcons
+import ovh.battistella.elan.ui.screens.settings.BackupEvent
+import ovh.battistella.elan.ui.screens.settings.BackupStatus
+import ovh.battistella.elan.ui.screens.settings.BackupViewModel
+import ovh.battistella.elan.ui.screens.settings.cards.BackupConfigFields
+import ovh.battistella.elan.ui.screens.settings.cards.BackupDialogs
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.PulseType
 import ovh.battistella.elan.ui.theme.Radius
@@ -190,4 +199,110 @@ fun OnboardingSheet(
             }
         }
     }
+}
+
+/**
+ * Feuille « J'ai déjà une sauvegarde » du premier lancement : après une
+ * réinstallation, la base est vide — y compris la config S3, qui vit dans la
+ * même base. On redemande donc les identifiants du serveur, on récupère le
+ * snapshot, et la sauvegarde automatique vers ce même serveur est activée
+ * dans la foulée (`BackupViewModel.restoreNow`). Pas de confirmation
+ * destructive : il n'y a encore rien à écraser.
+ */
+@Composable
+fun RestoreSheet(
+    onCancel: () -> Unit,
+    onRestored: (count: Int) -> Unit,
+    viewModel: BackupViewModel = hiltViewModel(),
+) {
+    val colors = ElanTheme.colors
+    val ui by viewModel.ui.collectAsStateWithLifecycle()
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is BackupEvent.Restored -> onRestored(event.count)
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(dismissOnClickOutside = false, usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.scrim)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .widthIn(max = 480.dp)
+                    .fillMaxWidth()
+                    .background(colors.backgroundElement, RoundedCornerShape(Radius.xl))
+                    .padding(24.dp),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .background(colors.accent.copy(alpha = 0.13f), RoundedCornerShape(Radius.lg)),
+                ) {
+                    Icon(
+                        painter = painterResource(MdiIcons.CloudDownloadOutline),
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.restore_title), style = PulseType.title, color = colors.text)
+                    Text(stringResource(R.string.restore_text), style = PulseType.body, color = colors.textSecondary)
+                }
+
+                BackupConfigFields(config = ui.config, onPatch = viewModel::update, onQrScanned = viewModel::onQrScanned)
+
+                ui.error?.let { ErrorNotice(it) }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                    Icon(
+                        painter = painterResource(MdiIcons.Autorenew),
+                        contentDescription = null,
+                        tint = colors.success,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.restore_note),
+                        style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
+                        color = colors.textSecondary,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                PulseButton(
+                    title = stringResource(R.string.restore_button),
+                    icon = MdiIcons.CloudDownload,
+                    loading = ui.status == BackupStatus.Restoring,
+                    enabled = ui.ready && ui.status == BackupStatus.Idle,
+                    onClick = viewModel::restoreNow,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                PulseButton(
+                    title = stringResource(R.string.common_back),
+                    variant = ButtonVariant.Ghost,
+                    enabled = ui.status != BackupStatus.Restoring,
+                    onClick = onCancel,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+
+    BackupDialogs(dialog = ui.dialog, onConfirmRestore = viewModel::confirmRestore, onDismiss = viewModel::dismissDialog)
 }

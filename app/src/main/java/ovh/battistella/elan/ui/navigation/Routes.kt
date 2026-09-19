@@ -43,6 +43,9 @@ object Routes {
     const val PROGRESSION = "progression"
     const val CATALOG = "catalog"
 
+    /** Justification des permissions Health Connect (ouverte par le système). */
+    const val HEALTH_RATIONALE = "health/rationale"
+
     const val EXERCISE = "exercise/{name}"
     fun exercise(name: String): String = "exercise/${Uri.encode(name)}"
 }

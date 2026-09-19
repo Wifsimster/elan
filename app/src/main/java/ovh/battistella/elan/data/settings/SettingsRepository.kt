@@ -114,6 +114,9 @@ class SettingsRepository @Inject constructor(
         /** `"1"` une fois les restes de l'app d'origine supprimés. */
         const val LEGACY_CLEANUP_DONE = "legacy_cleanup_done"
 
+        /** JSON du bilan du dernier import Strava (compteurs + horodatage) — propre à l'appareil. */
+        const val STRAVA_LAST_IMPORT = "strava_last_import"
+
         /** Marqueurs de migration : l'état de CET appareil, jamais d'une sauvegarde. */
         val LEGACY_KEYS: Set<String> = setOf(
             LEGACY_IMPORT_DONE,
@@ -134,7 +137,7 @@ class SettingsRepository @Inject constructor(
          * restaurés sur un autre téléphone, ils y sauteraient l'import.
          */
         val BACKUP_EXCLUDED: Set<String> =
-            setOf(BACKUP_S3, BACKUP_LAST, MAP_STYLE_URL, BACKUP_SECRETS_MISSING) + LEGACY_KEYS
+            setOf(BACKUP_S3, BACKUP_LAST, MAP_STYLE_URL, BACKUP_SECRETS_MISSING, STRAVA_LAST_IMPORT) + LEGACY_KEYS
 
         /**
          * Clés préservées par une réinitialisation complète : la config de

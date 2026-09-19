@@ -3,7 +3,10 @@ package ovh.battistella.elan.ui.screens.session
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -18,6 +21,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import ovh.battistella.elan.R
 import ovh.battistella.elan.common.SnackbarController
 import ovh.battistella.elan.data.local.ElanDatabase
 import ovh.battistella.elan.data.repository.RecordKind
@@ -28,6 +34,11 @@ import ovh.battistella.elan.domain.Difficulty
 import ovh.battistella.elan.domain.MuscuSet
 import ovh.battistella.elan.testing.MainDispatcherRule
 import ovh.battistella.elan.testing.TestSupport
+import ovh.battistella.elan.ui.screens.settings.FakeExportPort
+import ovh.battistella.elan.tracking.HealthExport
+import ovh.battistella.elan.tracking.SavedSessionData
+import ovh.battistella.elan.tracking.SessionFinalizer
+import java.util.Optional
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -39,6 +50,8 @@ class SessionDetailViewModelTest {
     private lateinit var repos: TestSupport.Repositories
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val t0 = 1_700_000_000_000L
+    private val finalizer = SessionFinalizer(Optional.empty(), Optional.empty(), CoroutineScope(Dispatchers.Unconfined))
+    private val export = FakeExportPort()
 
     @Before
     fun setUp() {
@@ -51,7 +64,7 @@ class SessionDetailViewModelTest {
         db.close()
     }
 
-    private fun vm(id: Long) = SessionDetailViewModel(SavedStateHandle(mapOf("id" to id)), repos.sessions, repos.settings, SnackbarController(), context)
+    private fun vm(id: Long) = SessionDetailViewModel(SavedStateHandle(mapOf("id" to id)), repos.sessions, repos.settings, SnackbarController(), context, finalizer, export)
 
     private suspend fun seedVelo(): Long {
         val id = db.sessionDao().insert(
@@ -167,6 +180,31 @@ class SessionDetailViewModelTest {
     }
 
     @Test
+    fun `retype confirmé - miroir Health Connect retiré sous l'ancien type puis réécrit`() = runTest(mainDispatcher.dispatcher) {
+        val id = seedVelo()
+        val calls = mutableListOf<String>()
+        val health = object : HealthExport {
+            override suspend fun export(data: SavedSessionData) {
+                calls += "export:${data.type.key}:${data.startedAt}:${data.hrSamples.size}"
+            }
+            override suspend fun remove(type: ActivityType, startedAt: Long) {
+                calls += "remove:${type.key}:$startedAt"
+            }
+        }
+        val finalizer = SessionFinalizer(Optional.empty(), Optional.of(health), CoroutineScope(Dispatchers.Unconfined))
+        val vm = SessionDetailViewModel(SavedStateHandle(mapOf("id" to id)), repos.sessions, repos.settings, SnackbarController(), context, finalizer, export)
+        advanceUntilIdle()
+
+        vm.requestRetype(ActivityType.COURSE)
+        vm.confirmRetype()
+        advanceUntilIdle()
+
+        // L'ancien type d'abord (l'identifiant client porte le type), puis la
+        // séance réécrite sous le nouveau, avec ses échantillons FC.
+        assertEquals(listOf("remove:velo:$t0", "export:course:$t0:3"), calls)
+    }
+
+    @Test
     fun `suppression confirmée`() = runTest(mainDispatcher.dispatcher) {
         val id = seedVelo()
         val vm = vm(id)
@@ -213,5 +251,82 @@ class SessionDetailViewModelTest {
         assertEquals(2, groups[0].rows.size)
         assertNull(groups[0].difficulty)
         assertEquals(Difficulty.MOYEN, groups[1].difficulty)
+    }
+
+    @Test
+    fun `export GPX - fichier partagé avec la zone de confidentialité, rien sous 2 points`() = runTest(mainDispatcher.dispatcher) {
+        val id = seedVelo()
+        repos.settings.setPrivacyZoneM(200.0)
+        val snackbar = SnackbarController()
+        val messages = mutableListOf<String>()
+        val job = launch { snackbar.messages.collect { messages += it.text } }
+        val vm = SessionDetailViewModel(SavedStateHandle(mapOf("id" to id)), repos.sessions, repos.settings, snackbar, context, finalizer, export)
+        advanceUntilIdle()
+
+        vm.exportGpx()
+        advanceUntilIdle()
+
+        assertEquals(listOf("gpx:$id:200"), export.calls)
+        assertEquals("application/gpx+xml", export.shared.single().second)
+        assertFalse(vm.ui.value.exporting)
+        assertTrue(messages.isEmpty())
+
+        // Sortie sans tracé exploitable : ni fichier ni partage, un message.
+        val short = db.sessionDao().insert(TestSupport.session(type = ActivityType.VELO, startedAt = t0 + 1))
+        db.trackPointDao().insertAll(listOf(TestSupport.trackPoint(short, ts = t0 + 1)))
+        val vm2 = SessionDetailViewModel(SavedStateHandle(mapOf("id" to short)), repos.sessions, repos.settings, snackbar, context, finalizer, export)
+        advanceUntilIdle()
+        vm2.exportGpx()
+        advanceUntilIdle()
+
+        assertEquals(1, export.calls.size)
+        assertEquals(1, export.shared.size)
+        assertEquals(listOf(context.getString(R.string.session_gpx_no_track)), messages)
+        job.cancel()
+    }
+
+    @Test
+    fun `export GPX - l exporteur rend null ou échoue - message et pas de partage`() = runTest(mainDispatcher.dispatcher) {
+        val id = seedVelo()
+        val snackbar = SnackbarController()
+        val messages = mutableListOf<String>()
+        val job = launch { snackbar.messages.collect { messages += it.text } }
+        val vm = SessionDetailViewModel(SavedStateHandle(mapOf("id" to id)), repos.sessions, repos.settings, snackbar, context, finalizer, export)
+        advanceUntilIdle()
+
+        export.gpxResult = null
+        vm.exportGpx()
+        advanceUntilIdle()
+        assertTrue(export.shared.isEmpty())
+        assertEquals(context.getString(R.string.session_gpx_no_track), messages.last())
+
+        export.failure = IllegalStateException("Export indisponible.")
+        vm.exportGpx()
+        advanceUntilIdle()
+        assertTrue(export.shared.isEmpty())
+        assertEquals("Export indisponible.", messages.last())
+        assertFalse(vm.ui.value.exporting)
+        job.cancel()
+    }
+
+    @Test
+    fun `partage - aperçu ouvert puis PNG partagé et aperçu fermé`() = runTest(mainDispatcher.dispatcher) {
+        val id = seedVelo()
+        val vm = vm(id)
+        advanceUntilIdle()
+
+        vm.share()
+        assertTrue(vm.ui.value.sharePreview)
+
+        // Bitmap 3 arguments : la seule fabrique simulée par Robolectric (mode graphique hérité).
+        vm.shareImage(Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).asImageBitmap())
+        // L'écriture du PNG passe par Dispatchers.IO : on attend la fin réelle.
+        vm.ui.first { !it.sharing }
+
+        val (file, mime, _) = export.shared.single()
+        assertEquals("image/png", mime)
+        assertTrue(file.exists() && file.length() > 0)
+        assertFalse(vm.ui.value.sharePreview)
+        assertFalse(vm.ui.value.sharing)
     }
 }

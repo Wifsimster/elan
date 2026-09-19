@@ -8,6 +8,7 @@ import ovh.battistella.elan.data.legacy.LegacyDatabaseImporter
 import ovh.battistella.elan.data.legacy.MigrationGate
 import ovh.battistella.elan.data.legacy.MigrationState
 import ovh.battistella.elan.sync.AutoProgressionRunner
+import ovh.battistella.elan.sync.ReminderScheduler
 import ovh.battistella.elan.tracking.LiveNotification
 import ovh.battistella.elan.tracking.SessionRecovery
 import java.time.Clock
@@ -37,6 +38,7 @@ class StartupTasks @Inject constructor(
     private val legacyImporter: LegacyDatabaseImporter,
     private val sessionRecovery: SessionRecovery,
     private val progression: AutoProgressionRunner,
+    private val reminders: ReminderScheduler,
     private val clock: Clock,
 ) {
     suspend fun run() {
@@ -49,8 +51,7 @@ class StartupTasks @Inject constructor(
         bestEffort { sessionRecovery.recoverOrphans() }
         bestEffort { sessionRecovery.reconcileOrphanService(context) }
 
-        // TODO(port-spec 02-interface §1) : applyNotifications() — rappels
-        //   hebdomadaires (canal `routine`), jalon M3.
+        bestEffort { reminders.apply() }
         bestEffort { progression.runWeeklyProgressionIfDue(clock.millis()) }
     }
 

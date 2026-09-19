@@ -17,9 +17,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import ovh.battistella.elan.common.SnackbarController
 import ovh.battistella.elan.data.legacy.MigrationGate
 import ovh.battistella.elan.data.legacy.MigrationState
+import ovh.battistella.elan.health.HealthConnectManager
 import ovh.battistella.elan.tracking.TrackingController
 import ovh.battistella.elan.ui.enableEdgeToEdgeCompat
 import ovh.battistella.elan.ui.navigation.ElanRoot
+import ovh.battistella.elan.ui.navigation.Routes
 import ovh.battistella.elan.ui.navigation.openRouteFor
 import ovh.battistella.elan.ui.screens.migration.MigrationScreen
 import ovh.battistella.elan.ui.setSystemBarsAppearance
@@ -96,6 +98,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun routeFrom(intent: Intent?): String? {
+        // Health Connect demande d'afficher la justification des permissions.
+        if (intent?.action in HealthConnectManager.RATIONALE_ACTIONS) return Routes.HEALTH_RATIONALE
         val outing = trackingController.state.value
         return intent?.let { openRouteFor(it, outing.type, outing.isLive) }
     }

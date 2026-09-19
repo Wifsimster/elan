@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dossiers exposés par le FileProvider `${applicationId}.files` : uniquement
+     `cache/share/`, où les exports (GPX, bilan coach, JSON) sont écrits puis
+     supprimés après partage. -->
+<paths>
+    <cache-path name="share" path="share/" />
+</paths>

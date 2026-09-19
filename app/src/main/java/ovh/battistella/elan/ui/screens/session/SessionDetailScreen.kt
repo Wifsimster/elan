@@ -72,7 +72,7 @@ import ovh.battistella.elan.ui.components.LineChart
 import ovh.battistella.elan.ui.components.PulseButton
 import ovh.battistella.elan.ui.components.PulseCard
 import ovh.battistella.elan.ui.components.PulseChip
-import ovh.battistella.elan.ui.components.RouteCanvas
+import ovh.battistella.elan.ui.components.RouteMap
 import ovh.battistella.elan.ui.components.StatTile
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.components.screenContent
@@ -198,7 +198,7 @@ fun SessionDetailScreen(
                     .semantics { contentDescription = expand }
                     .pressableScale(onClick = { onOpenMap(session.id) }),
             ) {
-                RouteCanvas(points = points, color = color)
+                RouteMap(points = points, color = color)
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -270,6 +270,7 @@ fun SessionDetailScreen(
                 icon = MdiIcons.CloudUploadOutline,
                 variant = ButtonVariant.Secondary,
                 color = color,
+                loading = ui.exporting,
                 onClick = viewModel::exportGpx,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -323,6 +324,19 @@ fun SessionDetailScreen(
             title = { Text(stringResource(R.string.session_retype_failed_title)) },
             text = { Text(stringResource(R.string.session_retype_failed_text)) },
             confirmButton = { TextButton(onClick = viewModel::dismissRetypeError) { Text(stringResource(R.string.common_ok)) } },
+        )
+    }
+
+    if (ui.sharePreview) {
+        SharePreviewDialog(
+            session = session,
+            points = points,
+            sets = ui.sets,
+            records = ui.records,
+            effort = sessionEffort(session, ui.maxHr),
+            sharing = ui.sharing,
+            onShare = viewModel::shareImage,
+            onDismiss = viewModel::dismissSharePreview,
         )
     }
 }
