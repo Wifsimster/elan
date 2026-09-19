@@ -14,12 +14,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.Radius
@@ -43,13 +45,13 @@ fun HrBadge(
     val label = when {
         connected -> bpm?.toString() ?: "··"
         connecting -> "..."
-        else -> "Connecter"
+        else -> stringResource(R.string.hr_badge_connect)
     }
     val a11y = when {
-        connected && bpm != null -> "Fréquence cardiaque $bpm battements par minute"
-        connected -> "Ceinture cardiaque connectée"
-        connecting -> "Connexion de la ceinture cardiaque…"
-        else -> "Connecter une ceinture cardiaque"
+        connected && bpm != null -> stringResource(R.string.hr_badge_a11y_bpm, bpm)
+        connected -> stringResource(R.string.hr_badge_a11y_connected)
+        connecting -> stringResource(R.string.hr_badge_a11y_connecting)
+        else -> stringResource(R.string.hr_badge_a11y_connect)
     }
     val tint = if (connected) colors.heart else colors.textSecondary
 
@@ -87,7 +89,7 @@ fun HrBadge(
         )
         if (connected && bpm != null) {
             Text(
-                text = "bpm",
+                text = stringResource(R.string.hr_badge_unit),
                 color = colors.textSecondary,
                 style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
             )

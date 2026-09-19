@@ -18,11 +18,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.PulseType
@@ -64,9 +68,17 @@ fun StatTile(
         else -> 32.sp
     }
 
+    // Libellé, valeur, unité et tendance forment un seul nœud pour TalkBack
+    // (« Distance : 12,4 km, +8 % vs semaine passée »).
+    val description = listOfNotNull(
+        stringResource(R.string.stat_tile_a11y, label, listOfNotNull(value, unit).joinToString(" ")),
+        trend?.label,
+    ).joinToString(", ")
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier.then(if (hero) Modifier.fillMaxWidth() else Modifier.widthIn(min = 96.dp)),
+        modifier = modifier
+            .semantics(mergeDescendants = true) { contentDescription = description }
+            .then(if (hero) Modifier.fillMaxWidth() else Modifier.widthIn(min = 96.dp)),
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),

@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.formatDuration
 import ovh.battistella.elan.ui.haptics.HapticKind
 import ovh.battistella.elan.ui.haptics.rememberHaptics
@@ -145,11 +147,11 @@ fun RestTimerBar(
                 color = if (done) colors.success else colors.text,
             )
         }
-        RestPill(label = "−15", description = "Réduire le repos de 15 secondes", onClick = { adjust(-15) })
-        RestPill(label = "+15", description = "Allonger le repos de 15 secondes", onClick = { adjust(15) })
+        RestPill(label = "−15", description = stringResource(R.string.rest_timer_minus_a11y), onClick = { adjust(-15) })
+        RestPill(label = "+15", description = stringResource(R.string.rest_timer_plus_a11y), onClick = { adjust(15) })
         Icon(
             painter = painterResource(MdiIcons.CloseCircle),
-            contentDescription = "Fermer le minuteur de repos",
+            contentDescription = stringResource(R.string.rest_timer_close_a11y),
             tint = colors.textSecondary,
             modifier = Modifier
                 .pressableScale(scaleTo = 0.85f, onClick = { onChange(null) })

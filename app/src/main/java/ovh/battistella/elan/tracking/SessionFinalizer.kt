@@ -27,8 +27,8 @@ data class SavedSessionData(
 )
 
 /**
- * Sauvegarde homelab automatique (`autoBackup`). L'implémentation réelle (M3)
- * se lie via `@Binds` dans son propre module ; sans liaison, aucun effet.
+ * Sauvegarde homelab automatique (`autoBackup`). Implémentation liée par
+ * `di/BackupModule` (`WorkManagerBackupTrigger`) ; sans liaison, aucun effet.
  */
 interface BackupTrigger {
     /** Lance une sauvegarde si configurée ; ne bloque pas, avale ses erreurs. */
@@ -36,8 +36,8 @@ interface BackupTrigger {
 }
 
 /**
- * Miroir Health Connect (opt-in). L'implémentation réelle (M3) se lie via
- * `@Binds` dans son propre module ; sans liaison, aucun effet.
+ * Miroir Health Connect (opt-in). Implémentation liée par `di/HealthModule`
+ * (`HealthConnectManager`) ; sans liaison, aucun effet.
  */
 interface HealthExport {
     suspend fun export(data: SavedSessionData)

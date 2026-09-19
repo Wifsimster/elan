@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
@@ -58,12 +59,14 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.GeoPoint
 import ovh.battistella.elan.domain.GpsStatus
 import ovh.battistella.elan.domain.ProjectedPoint
 import ovh.battistella.elan.domain.createProjection
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.LocalReducedMotion
 import ovh.battistella.elan.ui.theme.Radius
 import java.util.Locale
 import kotlin.math.floor
@@ -153,8 +156,9 @@ fun RouteCanvas(
         }
     }
 
-    // Halo pulsant du marqueur de position courante (mode live) : 1 → 1,9 en 1 100 ms, aller-retour.
-    val pulse = if (live) {
+    // Halo pulsant du marqueur de position courante (mode live) : 1 → 1,9 en 1 100 ms,
+    // aller-retour. Figé quand le système demande des animations réduites.
+    val pulse = if (live && !LocalReducedMotion.current) {
         rememberInfiniteTransition(label = "pulse").animateFloat(
             initialValue = 1f,
             targetValue = 1.9f,
@@ -202,9 +206,10 @@ fun RouteCanvas(
         Modifier
     }
 
+    val description = stringResource(if (live) R.string.route_canvas_live_a11y else R.string.route_canvas_a11y)
     Box(
         modifier = modifier
-            .semantics { contentDescription = if (live) "Tracé GPS de la sortie en cours" else "Tracé GPS de la sortie" }
+            .semantics { contentDescription = description }
             .then(frame)
             .then(gestures)
             .clipToBounds(),

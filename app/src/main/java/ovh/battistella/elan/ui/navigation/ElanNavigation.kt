@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -288,7 +289,7 @@ private fun BottomBar(
                 onClick = { if (!selected) navController.navigateToTab(dest.route) },
                 // Le libellé est affiché en texte dessous ; null évite que
                 // TalkBack le lise deux fois.
-                icon = { Icon(dest.icon, contentDescription = null) },
+                icon = { Icon(painterResource(dest.icon), contentDescription = null) },
                 label = { Text(stringResource(dest.labelRes)) },
             )
         }

@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -21,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.PulseType
@@ -55,7 +57,7 @@ fun SettingStepper(
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
             StepperButton(
                 icon = MdiIcons.MinusCircleOutline,
-                description = "Diminuer $label",
+                description = stringResource(R.string.stepper_decrease_a11y, label),
                 enabled = value > min,
                 onClick = { onChange((value - step).coerceAtLeast(min)) },
             )
@@ -70,7 +72,7 @@ fun SettingStepper(
             )
             StepperButton(
                 icon = MdiIcons.PlusCircleOutline,
-                description = "Augmenter $label",
+                description = stringResource(R.string.stepper_increase_a11y, label),
                 enabled = value < max,
                 onClick = { onChange((value + step).coerceAtMost(max)) },
             )

@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.CATALOG
 import ovh.battistella.elan.domain.CATEGORIES
 import ovh.battistella.elan.domain.CatalogExercise
@@ -228,6 +230,7 @@ fun ExerciseCatalog(
 private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     val colors = ElanTheme.colors
     val shape = RoundedCornerShape(Radius.sm)
+    val searchDescription = stringResource(R.string.catalog_search_a11y)
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -249,11 +252,11 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             modifier = Modifier
                 .weight(1f)
                 .padding(vertical = 10.dp)
-                .semantics { contentDescription = "Rechercher un exercice, un muscle" },
+                .semantics { contentDescription = searchDescription },
             decorationBox = { inner ->
                 Box {
                     if (query.isEmpty()) {
-                        Text("Rechercher un exercice, un muscle…", style = PulseType.body, color = colors.textMuted, maxLines = 1)
+                        Text(stringResource(R.string.catalog_search_hint), style = PulseType.body, color = colors.textMuted, maxLines = 1)
                     }
                     inner()
                 }
@@ -262,7 +265,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         if (query.isNotEmpty()) {
             Icon(
                 painter = painterResource(MdiIcons.CloseCircle),
-                contentDescription = "Effacer la recherche",
+                contentDescription = stringResource(R.string.catalog_search_clear_a11y),
                 tint = colors.textMuted,
                 modifier = Modifier.pressableScale(onClick = { onQueryChange("") }).padding(4.dp).size(18.dp),
             )
@@ -319,7 +322,7 @@ private fun ExerciseRow(ex: CatalogExercise, profile: RecoProfile, added: Boolea
         }
         Icon(
             painter = painterResource(if (added) MdiIcons.CheckCircle else MdiIcons.ChevronRight),
-            contentDescription = if (added) "Déjà ajouté" else null,
+            contentDescription = if (added) stringResource(R.string.catalog_already_added_a11y) else null,
             tint = if (added) colors.muscu else colors.textMuted,
             modifier = Modifier.size(22.dp),
         )

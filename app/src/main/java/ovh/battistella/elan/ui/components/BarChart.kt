@@ -16,18 +16,27 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.PulseGradients
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.max
+import kotlin.math.roundToLong
 
 /** Une barre : libellé sous l'axe et valeur (≥ 0). */
 data class BarPoint(val label: String, val value: Double)
+
+/** Résumé lu par les lecteurs d'écran : « libellé valeur » par barre (pur, pour les tests). */
+internal fun barChartSummary(data: List<BarPoint>, formatValue: (Double) -> String): String =
+    data.joinToString(", ") { "${it.label} ${formatValue(it.value)}" }
 
 /**
  * Histogramme PULSE : une colonne par point, valeur au-dessus des barres non
@@ -49,11 +58,18 @@ fun BarChart(
     val maxValue = max(1.0, data.maxOfOrNull { it.value } ?: 0.0)
     val railColor = colors.hairline
     val brush = Brush.verticalGradient(gradient)
+    val summary = if (data.isEmpty()) {
+        stringResource(R.string.bar_chart_a11y_empty)
+    } else {
+        stringResource(R.string.bar_chart_a11y, barChartSummary(data, formatValue ?: { it.roundToLong().toString() }))
+    }
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.Bottom,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { contentDescription = summary },
     ) {
         data.forEach { point ->
             val hasValue = point.value > 0

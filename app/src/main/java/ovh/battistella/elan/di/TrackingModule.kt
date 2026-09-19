@@ -16,15 +16,15 @@ import javax.inject.Singleton
 /**
  * Liaisons du suivi GPS (`tracking/`).
  *
- * Les dépendances qui arrivent avec d'autres jalons sont déclarées en liaisons
+ * Les dépendances des autres capacités sont déclarées en liaisons
  * OPTIONNELLES (`@BindsOptionalOf`) : tant qu'aucun module ne les lie, le
  * contrôleur reçoit `Optional.empty()` et se comporte comme sans capteur /
- * sans sauvegarde / sans Health Connect. Pour brancher l'implémentation
- * réelle, il suffit d'ajouter un `@Binds` dans SON PROPRE module — rien à
- * modifier ici :
+ * sans sauvegarde / sans Health Connect. Chaque implémentation se lie par un
+ * `@Binds` dans SON PROPRE module — rien à modifier ici :
  *
- *   - `HeartRateSamples`, `CadenceSamples` → `BleModule` (jalon capteurs) ;
- *   - `BackupTrigger`, `HealthExport`      → module du jalon M3.
+ *   - `HeartRateSamples`, `CadenceSamples` → `sensors/ble/BleModule` ;
+ *   - `BackupTrigger`                      → `di/BackupModule` ;
+ *   - `HealthExport`                       → `di/HealthModule`.
  */
 @Module
 @InstallIn(SingletonComponent::class)

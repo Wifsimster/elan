@@ -23,10 +23,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.PulseGradients
@@ -76,14 +78,14 @@ fun ExerciseIllustration(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.fillMaxWidth(),
     ) {
-        HeroPhoto(res = photos.start, label = "Départ", height = height, modifier = Modifier.weight(1f))
+        HeroPhoto(res = photos.start, label = stringResource(R.string.exercise_illustration_start), height = height, modifier = Modifier.weight(1f))
         Icon(
             painter = painterResource(MdiIcons.ArrowRight),
             contentDescription = null,
             tint = colors.textMuted,
             modifier = Modifier.size(22.dp),
         )
-        HeroPhoto(res = photos.end, label = "Fin", height = height, modifier = Modifier.weight(1f))
+        HeroPhoto(res = photos.end, label = stringResource(R.string.exercise_illustration_end), height = height, modifier = Modifier.weight(1f))
     }
 }
 
@@ -92,12 +94,13 @@ fun ExerciseIllustration(
 private fun HeroPhoto(@DrawableRes res: Int, label: String, height: Dp, modifier: Modifier = Modifier) {
     val colors = ElanTheme.colors
     val shape = RoundedCornerShape(Radius.lg)
+    val positionDescription = stringResource(R.string.exercise_illustration_a11y, label)
     Box(
         modifier = modifier
             .height(height)
             .background(colors.background, shape)
             .clip(shape)
-            .semantics { contentDescription = "Position « $label » du mouvement" },
+            .semantics { contentDescription = positionDescription },
     ) {
         Image(
             painter = painterResource(res),

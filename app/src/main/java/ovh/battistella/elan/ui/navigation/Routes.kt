@@ -1,15 +1,12 @@
 package ovh.battistella.elan.ui.navigation
 
 import android.net.Uri
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.ui.graphics.vector.ImageVector
 import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.domain.TemplateId
+import ovh.battistella.elan.ui.icons.MdiIcons
 
 /**
  * Routes de l'app (miroir du dossier `src/app` d'origine) : trois onglets, deux écrans live
@@ -51,16 +48,15 @@ object Routes {
 }
 
 /**
- * Les destinations de la barre de navigation. Icônes Material provisoires
- * (`DateRange` faute de `History` dans le jeu d'icônes de base) ; les icônes
- * PULSE arrivent avec le jalon des assets.
+ * Les destinations de la barre de navigation, avec les icônes MDI de l'app
+ * d'origine (`view-dashboard-outline`, `history`, `cog-outline`).
  */
 enum class TopLevelDestination(
     val route: String,
     @StringRes val labelRes: Int,
-    val icon: ImageVector,
+    @DrawableRes val icon: Int,
 ) {
-    HOME(Routes.HOME, R.string.nav_home, Icons.Default.Home),
-    HISTORY(Routes.HISTORY, R.string.nav_history, Icons.Default.DateRange),
-    SETTINGS(Routes.SETTINGS, R.string.nav_settings, Icons.Default.Settings),
+    HOME(Routes.HOME, R.string.nav_home, MdiIcons.ViewDashboardOutline),
+    HISTORY(Routes.HISTORY, R.string.nav_history, MdiIcons.History),
+    SETTINGS(Routes.SETTINGS, R.string.nav_settings, MdiIcons.CogOutline),
 }

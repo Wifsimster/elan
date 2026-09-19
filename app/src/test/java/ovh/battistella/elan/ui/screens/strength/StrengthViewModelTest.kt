@@ -375,6 +375,11 @@ class StrengthViewModelTest {
         runCurrent()
         assertNull(repos.settings.snapshot().muscuDraft)
         assertEquals(3, events.size)
+
+        // L'écran qui se ferme rappelle onStop : la séance abandonnée ne doit pas renaître.
+        vm.onStop()
+        runCurrent()
+        assertNull(repos.settings.snapshot().muscuDraft)
     }
 
     @Test

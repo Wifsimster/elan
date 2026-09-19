@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Écrans du jalon M1 : Accueil, Historique, Sortie, Détail de séance, Carte, Poids. -->
+<!-- Écrans : Accueil, Historique, Sortie, Détail de séance, Carte, Poids. -->
 <resources>
     <!-- Commun -->
     <string name="common_ok">OK</string>
@@ -7,7 +7,6 @@
     <string name="common_delete">Supprimer</string>
     <string name="common_continue">Continuer</string>
     <string name="common_back">Retour</string>
-    <string name="common_soon">Bientôt</string>
     <string name="common_trend_stable">stable</string>
 
     <!-- Accueil -->
@@ -164,7 +163,35 @@
     <string name="weight_delete_title">Supprimer cette pesée ?</string>
     <string name="weight_delete_a11y">Supprimer la pesée du %1$s</string>
 
-    <!-- Destinations à venir -->
+    <!-- Composants : libellés lus par les lecteurs d'écran -->
+    <string name="stat_tile_a11y">%1$s : %2$s</string>
+    <string name="bar_chart_a11y">Histogramme : %1$s</string>
+    <string name="bar_chart_a11y_empty">Histogramme vide</string>
+    <string name="route_canvas_a11y">Tracé GPS de la sortie</string>
+    <string name="route_canvas_live_a11y">Tracé GPS de la sortie en cours</string>
+    <string name="stepper_value_a11y">%1$s %2$s, modifier</string>
+    <string name="stepper_decrease_a11y">Diminuer %1$s</string>
+    <string name="stepper_increase_a11y">Augmenter %1$s</string>
+    <string name="exercise_illustration_a11y">Position « %1$s » du mouvement</string>
+    <string name="exercise_illustration_start">Départ</string>
+    <string name="exercise_illustration_end">Fin</string>
+    <string name="catalog_search_hint">Rechercher un exercice, un muscle…</string>
+    <string name="catalog_search_a11y">Rechercher un exercice, un muscle</string>
+    <string name="catalog_search_clear_a11y">Effacer la recherche</string>
+    <string name="catalog_already_added_a11y">Déjà ajouté</string>
+    <string name="rest_timer_minus_a11y">Réduire le repos de 15 secondes</string>
+    <string name="rest_timer_plus_a11y">Allonger le repos de 15 secondes</string>
+    <string name="rest_timer_close_a11y">Fermer le minuteur de repos</string>
+
+    <!-- Pastille cardiaque (composant HrBadge) -->
+    <string name="hr_badge_connect">Connecter</string>
+    <string name="hr_badge_unit">bpm</string>
+    <string name="hr_badge_a11y_bpm">Fréquence cardiaque %1$d battements par minute</string>
+    <string name="hr_badge_a11y_connected">Ceinture cardiaque connectée</string>
+    <string name="hr_badge_a11y_connecting">Connexion de la ceinture cardiaque…</string>
+    <string name="hr_badge_a11y_connect">Connecter une ceinture cardiaque</string>
+
+    <!-- Titres des écrans musculation, progression et catalogue -->
     <string name="muscu_title">Musculation</string>
     <string name="progression_title">Progression</string>
     <string name="catalog_title">Catalogue d\'exercices</string>

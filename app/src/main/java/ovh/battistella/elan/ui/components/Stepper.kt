@@ -28,6 +28,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.fmtKg
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
@@ -77,6 +79,7 @@ fun Stepper(
     val colors = ElanTheme.colors
     val shape = RoundedCornerShape(Radius.sm)
     val display = fmtKg(value)
+    val valueDescription = stringResource(R.string.stepper_value_a11y, display, suffix)
 
     var editing by remember { mutableStateOf(false) }
     var text by remember { mutableStateOf(TextFieldValue("")) }
@@ -100,7 +103,7 @@ fun Stepper(
     ) {
         StepButton(
             icon = MdiIcons.Minus,
-            description = "Diminuer $suffix",
+            description = stringResource(R.string.stepper_decrease_a11y, suffix),
             onClick = { onChange(max(min, value - step)) },
         )
         Column(
@@ -115,7 +118,7 @@ fun Stepper(
                         editing = true
                     }),
                 )
-                .semantics { contentDescription = "$display $suffix, modifier" },
+                .semantics { contentDescription = valueDescription },
         ) {
             val valueStyle = TextStyle(
                 fontSize = 15.sp,
@@ -154,7 +157,7 @@ fun Stepper(
         }
         StepButton(
             icon = MdiIcons.Plus,
-            description = "Augmenter $suffix",
+            description = stringResource(R.string.stepper_increase_a11y, suffix),
             onClick = { onChange(value + step) },
         )
     }

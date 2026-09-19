@@ -461,9 +461,13 @@ class StrengthViewModel @Inject constructor(
         }
     }
 
-    /** « Abandonner » : brouillon et notification effacés. */
+    /**
+     * « Abandonner » : brouillon et notification effacés. La séance est vidée
+     * d'abord : l'ON_STOP de l'écran qui se ferme rappelle [onStop], et un
+     * brouillon vide s'efface au lieu de ressusciter la séance abandonnée.
+     */
     fun abandon() {
-        _ui.update { it.copy(dialog = StrengthDialog.None) }
+        _ui.update { it.copy(dialog = StrengthDialog.None, exercises = emptyList()) }
         viewModelScope.launch {
             draftMutex.withLock { settings.setMuscuDraft(null) }
             LiveNotification.clear(context)

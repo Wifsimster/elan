@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Jalon M2 : Muscu, Progression, Fiche exercice, Catalogue. -->
+<!-- Musculation : Muscu, Progression, Fiche exercice, Catalogue. -->
 <resources>
     <!-- Muscu -->
     <string name="muscu_quit">Quitter la séance</string>

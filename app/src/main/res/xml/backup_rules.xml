@@ -5,7 +5,9 @@
   réglages restent sur l'appareil : chaque domaine de stockage est exclu.
   `allowBackup="false"` dans le manifeste coupe déjà tout ; ceci est la
   ceinture en plus des bretelles, et le contrat lisible dans le code.
-  Le DataStore (réglages) vit sous files/datastore, couvert par le domaine file.
+  Les réglages vivent dans la base Room `elan.db` (table `settings`), couverte
+  par le domaine database ; les secrets S3 (files/secrets/) et l'ancienne base
+  Expo `suivi-sport.db` (files/SQLite/, SQLite.migrated/) par le domaine file.
 -->
 <full-backup-content>
     <exclude domain="root" path="." />

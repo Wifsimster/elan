@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Health Connect : justification des permissions (jalon M3). -->
+<!-- Health Connect : justification des permissions (écran health/rationale). -->
 <resources>
     <string name="health_rationale_title">Health Connect</string>
     <string name="health_rationale_intro">Élan peut recopier tes séances dans Health Connect, la base de données santé de ton téléphone. C\'est optionnel : rien n\'est écrit tant que tu n\'actives pas l\'export dans les réglages.</string>

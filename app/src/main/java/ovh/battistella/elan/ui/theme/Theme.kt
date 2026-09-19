@@ -94,15 +94,19 @@ fun ElanTheme(
 ) {
     val pulseColors = if (darkTheme) PulseColors.Dark else PulseColors.Light
     val hrZones = if (darkTheme) HrZoneColors.Dark else HrZoneColors.Light
+    // « Animations réduites » (échelle d'animation système à 0) : plus de rebond
+    // ni de halo pulsant (pressableScale, RouteCanvas) et ressorts Material
+    // standard, sans dépassement.
+    val reducedMotion = rememberSystemReducedMotion()
 
     CompositionLocalProvider(
         LocalPulseColors provides pulseColors,
         LocalHrZoneColors provides hrZones,
-        LocalReducedMotion provides rememberSystemReducedMotion(),
+        LocalReducedMotion provides reducedMotion,
     ) {
         MaterialExpressiveTheme(
             colorScheme = colorSchemeFrom(pulseColors, darkTheme),
-            motionScheme = MotionScheme.expressive(),
+            motionScheme = if (reducedMotion) MotionScheme.standard() else MotionScheme.expressive(),
             content = content,
         )
     }

@@ -7,9 +7,11 @@
   Pour que la garantie tienne, chaque domaine de stockage est exclu À LA FOIS
   de la sauvegarde cloud (Google Drive) et du transfert direct appareil à
   appareil :
-    - database/   — base Room : séances, exercices, mesures
-    - sharedpref/ — préférences
-    - file/       — DataStore (files/datastore), exports, caches locaux
+    - database/   — base Room `elan.db` : séances, exercices, mesures, réglages
+    - sharedpref/ — reliquats expo-secure-store de la 1.x (secrets S3 chiffrés)
+    - file/       — secrets S3 chiffrés (files/secrets/), ancienne base Expo
+                    `suivi-sport.db` (files/SQLite/, SQLite.migrated/), exports
+                    et caches locaux
   La portabilité passe par l'export JSON que l'utilisateur déclenche
   explicitement. Miroir de backup_rules.xml pour les API antérieures.
 -->

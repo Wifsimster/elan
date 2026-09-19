@@ -132,9 +132,6 @@ class BackupManager @Inject constructor(
         )
     }
 
-    /** Dernier résultat de sauvegarde (succès ou échec), `null` si aucune n'a encore eu lieu. */
-    val last: Flow<BackupLast?> = settings.settings.map { it.backupLast }.distinctUntilChanged()
-
     /** Instantané ponctuel de la config complète. */
     suspend fun currentConfig(): BackupConfigFull = full(settings.snapshot().backupConfig, loadSecrets())
 

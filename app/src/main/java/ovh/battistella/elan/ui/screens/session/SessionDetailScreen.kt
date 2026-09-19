@@ -199,10 +199,11 @@ fun SessionDetailScreen(
                     .pressableScale(onClick = { onOpenMap(session.id) }),
             ) {
                 RouteMap(points = points, color = color)
+                // En bas à droite : le nord (haut-droit) et l'échelle (bas-gauche) restent visibles.
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
+                        .align(Alignment.BottomEnd)
                         .padding(10.dp)
                         .size(34.dp)
                         .background(colors.backgroundElement.copy(alpha = 0.9f), RoundedCornerShape(Radius.sm)),
