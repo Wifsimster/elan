@@ -24,7 +24,7 @@ workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 # Signature debug automatique : seule la taille nous intéresse.
 java -jar "$jar" build-apks --bundle="$AAB" --output="$workdir/app.apks" --overwrite >/dev/null
-sizes="$(java -jar "$jar" get-size total --apks="$workdir/app.apks" --dimensions=ABI)"
+sizes="$(java -jar "$jar" get-size total --apks="$workdir/app.apks" --dimensions=ABI | tr -d '\r')"
 
 echo "Taille de téléchargement (octets, min–max) par ABI :"
 echo "$sizes" | sed 's/^/   /'
