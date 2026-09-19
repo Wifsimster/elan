@@ -53,7 +53,7 @@
       {
         "assets": [
           {
-            "path": "dist/elan-${nextRelease.version}.apk",
+            "path": "dist/elan-*.apk",
             "label": "Élan v${nextRelease.version} — Android APK (elan-${nextRelease.version}.apk)"
           },
           {

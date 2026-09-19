@@ -2,23 +2,6 @@
 
 ## [2.0.0](https://github.com/Wifsimster/elan/compare/v1.9.0...v2.0.0) (2026-09-19)
 
-### ⚠ BREAKING CHANGES
-
-* le projet Expo / React Native est remplacé par une app native
-(sources 1.x sur la branche legacy/expo-1.x). Au premier lancement, la base
-suivi-sport.db et les identifiants S3 de la 1.x sont importés automatiquement
-(voir docs/MIGRATION-1.x.md). Les permissions CAMERA, RECORD_AUDIO,
-MODIFY_AUDIO_SETTINGS et stockage externe ne sont plus demandées. versionCode
-dérivé du semver (2.0.0 → 2000000).
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-### ✨ Fonctionnalités
-
-* réécriture native Kotlin/Compose (Élan 2.0) ([#75](https://github.com/Wifsimster/elan/issues/75)) ([5690248](https://github.com/Wifsimster/elan/commit/5690248b0124a6cb90aadce68072f52957ab4cb7))
-
-## [2.0.0](https://github.com/Wifsimster/elan/compare/v1.9.0...v2.0.0) (2026-09-19)
-
 
 ### ⚠ BREAKING CHANGES
 
