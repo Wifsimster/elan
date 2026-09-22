@@ -1,5 +1,6 @@
 package ovh.battistella.elan.ui.components
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -10,9 +11,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanColors
-import ovh.battistella.elan.ui.theme.ElanGradients
+import ovh.battistella.elan.ui.theme.ElanTheme
 
 @RunWith(RobolectricTestRunner::class)
 class ElanButtonTest {
@@ -49,15 +49,23 @@ class ElanButtonTest {
     }
 
     @Test
-    fun gradientIsInferredFromActivityColour() {
-        val c = ElanColors.Light
-        assertEquals(ElanGradients.velo, gradientFor(c.velo, c))
-        assertEquals(ElanGradients.muscu, gradientFor(c.muscu, c))
-        assertEquals(ElanGradients.course, gradientFor(c.course, c))
-        assertEquals(ElanGradients.marche, gradientFor(c.marche, c))
-        assertEquals(ElanGradients.heart, gradientFor(c.heart, c))
-        assertEquals(ElanGradients.fire, gradientFor(c.warning, c))
-        assertEquals(ElanGradients.accent, gradientFor(c.accent, c))
-        assertEquals(ElanGradients.accent, gradientFor(null, c))
+    fun accentAndDefaultFillWithTheBrandVolt() {
+        for (c in listOf(ElanColors.Light, ElanColors.Dark)) {
+            assertEquals(c.brand, fillFor(null, c))
+            assertEquals(c.brand, fillFor(c.accent, c))
+            assertEquals(c.brand, fillFor(c.link, c))
+            assertEquals(c.velo, fillFor(c.velo, c))
+            assertEquals(c.danger, fillFor(c.danger, c))
+        }
+    }
+
+    @Test
+    fun inkOnTheVoltIsTheBrandInk() {
+        for (c in listOf(ElanColors.Light, ElanColors.Dark)) {
+            assertEquals(c.onBrand, inkOn(c.brand, c))
+        }
+        // Teintes profondes du thème clair : blanc ; teintes vives du sombre : encre.
+        assertEquals(Color.White, inkOn(ElanColors.Light.muscu, ElanColors.Light))
+        assertEquals(ElanColors.Dark.onBrand, inkOn(ElanColors.Dark.velo, ElanColors.Dark))
     }
 }

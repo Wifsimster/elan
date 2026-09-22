@@ -55,7 +55,7 @@ class ShareCardTest {
             }
         }
 
-        compose.onNodeWithText(text(R.string.share_brand)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(text(R.string.app_name)).assertIsDisplayed()
         compose.onNodeWithText("Vélo").assertIsDisplayed()
         compose.onNodeWithContentDescription("Tracé GPS de la sortie").assertIsDisplayed()
         compose.onNodeWithText("30,0 km").assertIsDisplayed()

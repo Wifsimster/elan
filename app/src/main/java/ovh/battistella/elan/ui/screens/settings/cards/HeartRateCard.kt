@@ -17,10 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.sensors.ble.BlePermissions
 import ovh.battistella.elan.sensors.ble.HrState
@@ -31,6 +28,7 @@ import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 
 /**
  * Demande les permissions Bluetooth puis lance [onGranted] ; [onDenied] sinon.
@@ -137,13 +135,13 @@ private fun HrStatusLine(state: HrState) {
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             StatusDot(color)
-            Text(label, color = colors.text, style = TextStyle(fontWeight = FontWeight.SemiBold))
+            Text(label, color = colors.text, style = ElanType.subtitle)
         }
         if (state.status == SensorStatus.Connected) {
             Text(
                 text = state.bpm?.let { stringResource(R.string.settings_bpm, it) } ?: "··",
                 color = colors.heart,
-                style = TextStyle(fontWeight = FontWeight.ExtraBold, fontFeatureSettings = "tnum", fontSize = 15.sp),
+                style = ElanType.metricSm,
             )
         }
     }

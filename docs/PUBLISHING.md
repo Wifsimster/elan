@@ -168,7 +168,7 @@ l'AAB → créer une liste d'e-mails de testeurs → partager le lien d'opt-in.
   (`res/values/`).
 - **Captures d'écran** : `docs/screenshots/`.
 - **Feature graphic 1024×500** : `fastlane/metadata/android/fr-FR/images/featureGraphic.png`
-  (sans canal alpha), régénérable via `scripts/feature-graphic.sh` (ImageMagick).
+  (sans canal alpha), régénérable via `node scripts/feature-graphic.mjs` (Playwright).
 - **Politique de confidentialité** : héberger `PRIVACY.md` à une URL publique et
   la coller dans Politique de confidentialité.
 - **Sécurité des données** : suivre `docs/DATA_SAFETY.md` (permissions,

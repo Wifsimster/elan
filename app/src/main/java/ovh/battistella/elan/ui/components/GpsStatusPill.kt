@@ -11,12 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.domain.GpsStatus
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 import kotlin.math.roundToInt
 
 /** Libellé du point d'état GPS (pur, pour les tests). */
@@ -54,7 +52,7 @@ fun GpsStatusPill(
         Text(
             text = label,
             color = colors.textSecondary,
-            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+            style = ElanType.label,
         )
     }
 }

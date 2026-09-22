@@ -13,10 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.ACTIVITY_TYPES
 import ovh.battistella.elan.domain.Goal
@@ -66,7 +63,7 @@ fun GoalsCard(
             val removeLabel = stringResource(R.string.settings_goals_remove, label)
             HairlineRow {
                 Icon(painter = painterResource(MdiIcons.FlagOutline), contentDescription = null, tint = colors.accent, modifier = Modifier.size(18.dp))
-                Text(label, color = colors.text, style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold), modifier = Modifier.weight(1f))
+                Text(label, color = colors.text, style = ElanType.label, modifier = Modifier.weight(1f))
                 Icon(
                     painter = painterResource(MdiIcons.TrashCanOutline),
                     contentDescription = removeLabel,

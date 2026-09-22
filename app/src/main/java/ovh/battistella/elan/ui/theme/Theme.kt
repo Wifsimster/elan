@@ -5,80 +5,88 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 
 /**
  * Schéma Material 3 dérivé des jetons Sillage, pour que les composants Material
- * (boutons, switches, barre de navigation, snackbar) parlent la même langue
- * que les composants maison. Pas de couleur dynamique (Material You) : la
- * marque est fixe.
+ * (dialogues, switches, champs, snackbar) parlent la même langue que les
+ * composants maison. Pas de couleur dynamique (Material You) : la marque est
+ * fixe. `primary` est la marque « en trait » ([ElanColors.accent]) : Material
+ * s'en sert aussi comme couleur de texte (`TextButton`, champ focalisé), que
+ * le Volt pur ne tiendrait pas sur le papier. Les aplats Volt passent par les
+ * composants maison ([ElanColors.brand]).
  */
 private fun colorSchemeFrom(c: ElanColors, dark: Boolean): ColorScheme {
-    val onAccent = Color.White
-    return if (dark) {
-        darkColorScheme(
-            primary = c.accent,
-            onPrimary = onAccent,
-            primaryContainer = c.accentSoft,
-            onPrimaryContainer = c.text,
-            secondary = c.link,
-            onSecondary = onAccent,
-            secondaryContainer = c.backgroundSelected,
-            onSecondaryContainer = c.text,
-            tertiary = c.success,
-            onTertiary = c.background,
-            background = c.background,
-            onBackground = c.text,
-            surface = c.backgroundElement,
-            onSurface = c.text,
-            surfaceVariant = c.backgroundSelected,
-            onSurfaceVariant = c.textSecondary,
-            surfaceContainerLowest = c.background,
-            surfaceContainerLow = c.backgroundElement,
-            surfaceContainer = c.backgroundElement,
-            surfaceContainerHigh = c.surfaceHigh,
-            surfaceContainerHighest = c.backgroundSelected,
-            outline = c.border,
-            outlineVariant = c.hairline,
-            error = c.danger,
-            onError = Color.White,
-            scrim = c.scrim,
-        )
-    } else {
-        lightColorScheme(
-            primary = c.accent,
-            onPrimary = onAccent,
-            primaryContainer = c.accentSoft,
-            onPrimaryContainer = c.text,
-            secondary = c.link,
-            onSecondary = onAccent,
-            secondaryContainer = c.backgroundSelected,
-            onSecondaryContainer = c.text,
-            tertiary = c.success,
-            onTertiary = Color.White,
-            background = c.background,
-            onBackground = c.text,
-            surface = c.backgroundElement,
-            onSurface = c.text,
-            surfaceVariant = c.backgroundSelected,
-            onSurfaceVariant = c.textSecondary,
-            surfaceContainerLowest = c.backgroundElement,
-            surfaceContainerLow = c.background,
-            surfaceContainer = c.background,
-            surfaceContainerHigh = c.backgroundSelected,
-            surfaceContainerHighest = c.backgroundSelected,
-            outline = c.border,
-            outlineVariant = c.hairline,
-            error = c.danger,
-            onError = Color.White,
-            scrim = c.scrim,
-        )
-    }
+    val base = if (dark) darkColorScheme() else lightColorScheme()
+    return base.copy(
+        primary = c.accent,
+        onPrimary = if (dark) c.onBrand else Color.White,
+        primaryContainer = c.accentSoft,
+        onPrimaryContainer = c.text,
+        inversePrimary = c.accent,
+        secondary = c.link,
+        onSecondary = if (dark) c.onBrand else Color.White,
+        secondaryContainer = c.backgroundSelected,
+        onSecondaryContainer = c.text,
+        tertiary = c.success,
+        onTertiary = if (dark) c.background else Color.White,
+        background = c.background,
+        onBackground = c.text,
+        surface = c.backgroundElement,
+        onSurface = c.text,
+        surfaceVariant = c.backgroundSelected,
+        onSurfaceVariant = c.textSecondary,
+        surfaceTint = Color.Transparent,
+        surfaceBright = c.surfaceHigh,
+        surfaceDim = c.background,
+        surfaceContainerLowest = if (dark) c.background else c.backgroundElement,
+        surfaceContainerLow = if (dark) c.backgroundElement else c.background,
+        surfaceContainer = if (dark) c.backgroundElement else c.background,
+        surfaceContainerHigh = if (dark) c.surfaceHigh else c.backgroundSelected,
+        surfaceContainerHighest = c.backgroundSelected,
+        inverseSurface = c.text,
+        inverseOnSurface = c.background,
+        outline = c.border,
+        outlineVariant = c.hairline,
+        error = c.danger,
+        onError = Color.White,
+        scrim = c.scrim,
+    )
+}
+
+/**
+ * Typographie Material recomposée en Archivo : les composants Material non
+ * stylés (dialogues, champs, snackbar, `Text` sans style) héritent de la
+ * police de marque plutôt que de la police système.
+ */
+private val ElanMaterialTypography: Typography = Typography().run {
+    fun TextStyle.sans() = copy(fontFamily = ElanFonts.sans)
+    fun TextStyle.condensed() = copy(fontFamily = ElanFonts.condensed, fontWeight = FontWeight.ExtraBold)
+    copy(
+        displayLarge = displayLarge.condensed(),
+        displayMedium = displayMedium.condensed(),
+        displaySmall = displaySmall.condensed(),
+        headlineLarge = headlineLarge.condensed(),
+        headlineMedium = headlineMedium.condensed(),
+        headlineSmall = headlineSmall.sans().copy(fontWeight = FontWeight.Bold),
+        titleLarge = titleLarge.sans().copy(fontWeight = FontWeight.Bold),
+        titleMedium = titleMedium.sans().copy(fontWeight = FontWeight.SemiBold),
+        titleSmall = titleSmall.sans().copy(fontWeight = FontWeight.SemiBold),
+        bodyLarge = bodyLarge.sans(),
+        bodyMedium = bodyMedium.sans(),
+        bodySmall = bodySmall.sans(),
+        labelLarge = labelLarge.sans().copy(fontWeight = FontWeight.Bold),
+        labelMedium = labelMedium.sans().copy(fontWeight = FontWeight.SemiBold),
+        labelSmall = labelSmall.sans().copy(fontWeight = FontWeight.SemiBold),
+    )
 }
 
 /**
@@ -106,6 +114,7 @@ fun ElanTheme(
     ) {
         MaterialExpressiveTheme(
             colorScheme = colorSchemeFrom(elanColors, darkTheme),
+            typography = ElanMaterialTypography,
             motionScheme = if (reducedMotion) MotionScheme.standard() else MotionScheme.expressive(),
             content = content,
         )

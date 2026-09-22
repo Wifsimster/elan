@@ -24,21 +24,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.haptics.HapticKind
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 
-/** Paragraphe explicatif d'une carte (13 sp, secondaire). */
+/**
+ * Paragraphe explicatif d'une carte (secondaire). [size] choisit le jeton :
+ * ≤ 12 → [ElanType.caption] (notes, aides avancées), ≥ 15 → [ElanType.body],
+ * sinon [ElanType.bodySm].
+ */
 @Composable
 fun CardText(text: String, modifier: Modifier = Modifier, muted: Boolean = false, size: Int = 13) {
     Text(
         text = text,
-        style = TextStyle(fontSize = size.sp, lineHeight = (size + 6).sp),
+        style = when {
+            size <= 12 -> ElanType.caption
+            size >= 15 -> ElanType.body
+            else -> ElanType.bodySm
+        },
         color = if (muted) ElanTheme.colors.textMuted else ElanTheme.colors.textSecondary,
         modifier = modifier,
     )
@@ -47,7 +53,7 @@ fun CardText(text: String, modifier: Modifier = Modifier, muted: Boolean = false
 /** Petite ligne d'erreur rouge sous une action (les erreurs BLE, export, import). */
 @Composable
 fun CardError(text: String, modifier: Modifier = Modifier) {
-    Text(text = text, style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp), color = ElanTheme.colors.danger, modifier = modifier)
+    Text(text = text, style = ElanType.bodySm, color = ElanTheme.colors.danger, modifier = modifier)
 }
 
 /** Libellé + commutateur Material sur une ligne. */
@@ -68,7 +74,7 @@ fun SwitchRow(
     ) {
         Text(
             text = label,
-            style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+            style = ElanType.subtitle,
             color = colors.text,
             modifier = Modifier.weight(1f),
         )
@@ -94,10 +100,10 @@ fun Hairline(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxWidth().height(1.dp).background(ElanTheme.colors.hairline))
 }
 
-/** Titre de sous-bloc (15 sp semi-gras). */
+/** Titre de sous-bloc ([ElanType.subtitle]). */
 @Composable
 fun SubTitle(text: String, modifier: Modifier = Modifier) {
-    Text(text, style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold), color = ElanTheme.colors.text, modifier = modifier)
+    Text(text, style = ElanType.subtitle, color = ElanTheme.colors.text, modifier = modifier)
 }
 
 /**
@@ -117,7 +123,7 @@ fun ScannedDeviceRow(@DrawableRes icon: Int, color: Color, name: String, onClick
             .padding(vertical = 10.dp),
     ) {
         Icon(painter = painterResource(icon), contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-        Text(name, color = colors.text, style = TextStyle(fontWeight = FontWeight.SemiBold), modifier = Modifier.weight(1f))
+        Text(name, color = colors.text, style = ElanType.subtitle, modifier = Modifier.weight(1f))
         Icon(painter = painterResource(MdiIcons.ChevronRight), contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(20.dp))
     }
 }

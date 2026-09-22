@@ -41,12 +41,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.CATALOG
 import ovh.battistella.elan.domain.CATEGORIES
@@ -168,7 +166,7 @@ fun ExerciseCatalog(
                 Text(
                     "Tout effacer",
                     style = ElanType.label,
-                    color = colors.accent,
+                    color = colors.link,
                     modifier = Modifier.pressableScale(onClick = clearAll).padding(4.dp),
                 )
             }
@@ -372,7 +370,7 @@ fun ExerciseDetailSheet(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Matériel".uppercase(), style = ElanType.overline, color = colors.textMuted)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ex.equipment.forEach { TagPill(label = it.label, color = colors.accent) }
+                        ex.equipment.forEach { TagPill(label = it.label, color = colors.link) }
                     }
                 }
 
@@ -402,7 +400,7 @@ fun ExerciseDetailSheet(
                     Text(
                         "D'après ton poids (${fmtKg(profile.weightKg)} kg), ta taille (${profile.heightCm.roundToInt()} cm) et ton objectif. " +
                             "Un point de départ — tu ajustes reps et charge à ta guise.",
-                        style = ElanType.caption.copy(lineHeight = 17.sp),
+                        style = ElanType.caption,
                         color = colors.textMuted,
                     )
                 }

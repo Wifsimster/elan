@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Fond du démarrage à froid (splash) ; = ElanColors.dark.background. -->
-    <color name="elan_background">#FF0A0C10</color>
-    <!-- Accent de marque ; = ElanColors.light.accent. -->
-    <color name="elan_accent">#FF3B5BFF</color>
+    <!-- Fond du démarrage à froid (splash) ; = ElanColors.Dark.background (Encre). -->
+    <color name="elan_background">#FF0D0E0B</color>
+    <!-- Volt de marque ; = ElanColors.brand. -->
+    <color name="elan_accent">#FFD4F545</color>
 </resources>

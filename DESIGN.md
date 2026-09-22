@@ -1,219 +1,261 @@
-# PULSE — Design System
+# Sillage — Design System d'Élan
 
-**PULSE** est le langage visuel d'Élan : un système **cinétique, sombre par défaut et orienté effort**, dans la lignée de Material 3 Expressive et des apps de sport modernes (WHOOP, Strava, Apple Fitness). Trois partis pris le résument :
+**Élan** est un carnet d'entraînement qui ne quitte pas ton téléphone. Son
+identité tient en une phrase : **« Ton effort, ta trace. »** Chaque sortie
+laisse un sillage — la trace GPS, la courbe de la semaine, la charge qui monte —
+et ce sillage t'appartient, sans compte ni cloud.
 
-1. **L'énergie passe par la couleur et le dégradé.** Chaque activité a sa teinte vive et son dégradé ; les actions principales rayonnent (ombre teintée), pas juste « remplies ».
-2. **La profondeur passe par l'ombre, pas par la bordure.** Les surfaces flottent au-dessus d'un fond quasi noir ; les bordures dures sont réservées aux champs et séparateurs.
-3. **Tout ce qui réagit au doigt bouge.** Appui = compression élastique + retour haptique. Le mouvement est physique (ressorts), jamais linéaire.
+**Sillage** est le langage visuel qui porte cette idée. Quatre partis pris :
 
-> Source de vérité : **`app/src/main/java/ovh/battistella/elan/ui/theme/`** (`Tokens.kt`, `Theme.kt`, `Type.kt`). Aucune valeur de style en dur dans les écrans — on pioche les tokens ici (couleurs via `ElanTheme.colors`, le reste via les objets `Radius` / `Spacing` / `Elevation` / `PulseType` / `Motion` / `PulseGradients`). La correspondance token → Kotlin est détaillée au [§ 7](#7-implémentation-compose).
+1. **Encre et papier.** Des neutres chauds — une encre verdâtre en sombre, un
+   papier crème en clair — plutôt que le bleu-noir froid des apps de sport. La
+   profondeur passe par **le ton** (fond → carte → sélection), pas par l'ombre.
+2. **Un seul Volt, et il se mérite.** La couleur de marque (`brand`, un
+   jaune-vert électrique) marque *l'action principale et le maintenant* :
+   bouton principal, onglet actif, filtre choisi, barre d'aujourd'hui. Jamais
+   de décor.
+3. **Les chiffres sont les héros.** Archivo Condensed ExtraBold, tabulaire,
+   grand. Les libellés s'effacent devant la valeur.
+4. **Le trait d'élan.** L'accent du « é » — un trait penché vers l'avant — est
+   le motif de la marque : logo, étiquettes de section, élément actif.
+
+Et, hérité de PULSE : **tout ce qui réagit au doigt bouge** (ressort +
+haptique), une teinte d'activité = un sens, 100 % local.
+
+> Source de vérité : **`app/src/main/java/ovh/battistella/elan/ui/theme/`**
+> (`Tokens.kt`, `Theme.kt`, `Type.kt`). Aucune valeur de style en dur dans les
+> écrans — couleurs via `ElanTheme.colors`, le reste via `Radius` / `Spacing` /
+> `Elevation` / `ControlSize` / `ElanType` / `Motion` / `ElanGradients`.
+> Correspondance token → Kotlin au [§ 8](#8-implémentation-compose).
 
 ---
 
-## 1. Couleur
+## 1. Marque
 
-Palette **sombre par défaut** (le mode clair suit le système). Les couleurs dépendantes du thème se lisent via `ElanTheme.colors` (`PulseColors.Light` / `PulseColors.Dark`).
-
-### Rôles
-
-| Token | Rôle | Sombre | Clair |
-| --- | --- | --- | --- |
-| `background` | Fond d'écran | `#0A0C10` | `#F3F5FA` |
-| `backgroundElement` | Surface (Card, barres, tab bar) | `#14181F` | `#FFFFFF` |
-| `surfaceHigh` | Surface surélevée (popover, sélection) | `#1B202A` | `#FFFFFF` |
-| `backgroundSelected` | État sélectionné | `#232A35` | `#E9ECF4` |
-| `border` | Bordure visible (champ, contour) | `#222934` | `#E4E8F0` |
-| `hairline` | Séparateur ultra-discret | `#1A1F28` | `#EDF0F6` |
-| `text` | Texte principal | `#F4F7FB` | `#0B0E13` |
-| `textSecondary` | Texte secondaire | `#9AA3B0` | `#5A6472` |
-| `textMuted` | Texte/icône tertiaire (chevrons) | `#868FA0` | `#6B7280` |
-| `accent` | Marque, liens, focus | `#5B7CFF` | `#3B5BFF` |
-| `accentSoft` | Fond teinté accent | `#1B2236` | `#E5EAFF` |
-
-### Couleurs d'activité (sémantiques)
-
-| Token | Sens | Sombre | Clair |
-| --- | --- | --- | --- |
-| `velo` | Vélo / cardio GPS | `#22D3C5` | `#0BA59B` |
-| `muscu` | Musculation / volume | `#A78BFA` | `#7C3AED` |
-| `course` | Course à pied | `#38BDF8` | `#0284C7` |
-| `marche` | Marche | `#A3E635` | `#65A30D` |
-| `heart` | Fréquence cardiaque (data viz) | `#FF5C7A` | `#F43F5E` |
-| `danger` | Action destructrice (supprimer) | `#FF4D4D` | `#DC2626` |
-| `success` | GPS précis, validé | `#34D399` | `#10B981` |
-| `warning` | Calories, alerte douce | `#FBBF24` | `#E08600` |
-
-**Règles d'usage**
-- Une teinte d'activité = un sens. Ne jamais peindre du vélo en violet.
-- Fonds teintés : superposer la teinte à `~13 %` (`color + '22'`) pour les pastilles d'icône, `~24 %` pour les puces.
-- **`heart` (rose) ne sert qu'à la donnée cardio** (badge FC, chiffres FC), jamais à un bouton.
-- **Boutons : le primaire est bleu (`accent`) ou la teinte d'activité (vélo/muscu) ; seul le destructif est rouge (`danger`).** Pas de bouton rose.
-
-### Dégradés (`PulseGradients`)
-
-Vifs et **identiques en clair/sombre** (ils se posent toujours sur une surface colorée). Diagonale par défaut.
-
-| Nom | Couleurs | Emploi |
+| Élément | Fichier | Règle |
 | --- | --- | --- |
-| `accent` | `#6478FF → #7A3BFF` | Action principale neutre, barres du graphe |
-| `velo` | `#2DE0C0 → #0BA9B5` | Bouton/héros vélo |
-| `muscu` | `#B07BFF → #7A3BFF` | Bouton/héros muscu |
-| `course` | `#5AC8FF → #3B7BFF` | Bouton/héros course |
-| `marche` | `#C7F04F → #5FB828` | Bouton/héros marche |
-| `heart` | `#FF6B8B → #F43F5E` | Cardio (jauges, accents data) |
-| `danger` | `#FF5A5A → #D61F2E` | Bouton destructif (supprimer) |
-| `fire` | `#FFB020 → #FF6B35` | Calories |
-| `success` | `#4ADE80 → #10B981` | Validation |
-| `scrim` | transparent → noir | Voile sous une image/héros |
+| **Logotype « élan »** | `res/drawable/brand_wordmark.xml` + `brand_wordmark_accent.xml`, composable `ElanWordmark` | Minuscules, Archivo Condensed ExtraBold Italic. Lettres à l'encre (`text`), accent à la marque (`accent`). Hauteur mini 18 dp. |
+| **Icône « é »** | `ic_launcher_{foreground,background,monochrome}.xml`, `docs/brand/elan-mark.svg` | « é » papier sur aplat Encre, accent Volt. Jamais sur un autre fond. |
+| **Trait d'élan** | `ElanTick` (`components/Brand.kt`) | Quadrilatère penché (227 × 132, bord droit plus raide). Seul, il signale « ici » : étiquette de section (`SectionLabel`). |
+| **Accroche** | fiche Play, feature graphic | « Ton effort, ta trace. » — tutoiement, phrases courtes, pas de superlatif. |
 
-Rendu via `Brush.linearGradient` de Compose à partir de `PulseGradients.<nom>` — **100 % local, aucune dépendance réseau**. `PulseGradients.inkOn(gradient)` choisit l'encre (`OnBright` sur les dégradés clairs `velo`/`success`/`fire`/`marche`, blanc sinon).
+Les vecteurs sont les contours exacts de la police embarquée, générés par
+`scripts/gen-brand-assets.py` ; le feature graphic par
+`scripts/feature-graphic.mjs`. Ne pas les retoucher à la main.
 
----
-
-## 2. Typographie (`PulseType`)
-
-Police système (`FontFamily.Default`, aucune police embarquée). Chiffres d'effort en **tabulaire** (`fontFeatureSettings = "tnum"`) pour ne pas « danser » en direct. Tracking négatif sur les grands titres pour un rendu compact et moderne.
-
-| Token | Taille / graisse | Emploi |
-| --- | --- | --- |
-| `metricLg` | 64 / 800, tabular | Le chronomètre de séance |
-| `display` | 44 / 800 | Très grand chiffre héros |
-| `title` | 28 / 800 | Titre d'écran (« Historique », « Réglages ») |
-| `metric` | 30 / 800, tabular | Valeur de StatTile |
-| `headline` | 20 / 800 | Titre de section / de Card |
-| `subtitle` | 16 / 700 | Titre de ligne (séance, exercice) |
-| `body` | 15 / 500 | Texte courant |
-| `label` | 13 / 600 | Libellé de métrique |
-| `caption` | 12 / 600 | Légende, unité |
-| `overline` | 12 / 700, +1.4, MAJUSCULES | Étiquette de section (« DURÉE », « NOTES ») |
-
-Usage : `Text(text, style = PulseType.headline, color = ElanTheme.colors.text)`.
+**Voix.** Tutoiement, français simple, verbes d'action (« Démarrer »,
+« Reprendre »). On parle d'effort et de progrès, jamais de performance
+comparée aux autres. Pas d'emoji dans l'interface, sauf le salut de l'accueil.
 
 ---
 
-## 3. Espacement, rayons, élévation
+## 2. Couleur
 
-**Espacement** — grille 4 pt (`Spacing`). Marges d'écran : `16`. Espace inter-cartes : `16`. Gouttière intra-carte : `12`.
+Sombre par défaut (Encre), le clair (Papier) suit le système. Les couleurs se
+lisent via `ElanTheme.colors` (`ElanColors.Light` / `ElanColors.Dark`).
 
-**Rayons** (`Radius`) — coins arrondis (`RoundedCornerShape`) partout :
+### Neutres
 
-| `sm` 12 | `md` 16 | `lg` 22 | `xl` 28 | `pill` 999 |
-| --- | --- | --- | --- | --- |
-| pastilles, champs | icône détail | **Card, bouton** | héros | puces, badges |
+| Token | Rôle | Encre (sombre) | Papier (clair) |
+| --- | --- | --- | --- |
+| `background` | Fond d'écran | `#0D0E0B` | `#F3F2EC` |
+| `backgroundElement` | Carte, barre d'onglets | `#171914` | `#FFFFFF` |
+| `surfaceHigh` | Feuille, menu | `#1F221B` | `#FFFFFF` |
+| `backgroundSelected` | Puce au repos, piste de jauge, sélection | `#292D24` | `#E8E7DF` |
+| `border` | Bordure de champ | `#30352A` | `#DAD9CF` |
+| `hairline` | Séparateur, rail de graphe | `#22261E` | `#EAE9E2` |
+| `text` | Texte principal | `#F3F4EE` | `#151712` |
+| `textSecondary` | Texte secondaire | `#A7AB9E` | `#595C52` |
+| `textMuted` | Tertiaire, chevrons, onglet inactif | `#8B8F82` | `#6B6E64` |
 
-**Élévation** (`Elevation`) — ombres douces et diffuses (`sm` / `md` / `lg`). `Modifier.shadow(Elevation.x)`. La profondeur ne se signale **jamais** par une bordure dure. Les actions principales ajoutent une **ombre teintée** à leur couleur (`ambientColor`/`spotColor` = teinte du bouton) pour « rayonner ».
+### Marque — un Volt, trois usages
+
+Le Volt pur (`#D4F545`) éclate sur l'encre mais disparaît sur le papier
+(1,1:1). D'où trois jetons :
+
+| Token | Usage | Encre | Papier |
+| --- | --- | --- | --- |
+| `brand` / `onBrand` | **Aplat** (bouton principal, onglet actif, puce choisie), toujours sous l'encre `onBrand` | `#D4F545` / `#12140F` | idem |
+| `accent` | **Trait** : barres, jauges, icônes, curseurs, trait d'élan (≥ 3:1) | `#D4F545` | `#5A7F00` |
+| `link` | **Texte** : « Voir tout », `TextButton` (≥ 4,5:1) | `#D4F545` | `#4A6600` |
+| `accentSoft` | Fond teinté de marque | `#252B12` | `#EFF7CC` |
+
+`fillFor(color)` (`ElanButton.kt`) convertit une teinte « accent » en aplat
+`brand` ; `inkOn(fill)` choisit l'encre (`onBrand` ou blanc) au contraste.
+
+### Teintes d'activité (sémantiques)
+
+Vives sur l'encre (aplat sous encre sombre), approfondies sur le papier (aplat
+sous blanc, texte ≥ 4,5:1).
+
+| Token | Sens | Encre | Papier |
+| --- | --- | --- | --- |
+| `velo` | Vélo | `#35D6E6` | `#007584` |
+| `course` | Course à pied | `#FF8B4D` | `#B8420B` |
+| `marche` | Marche | `#86A8FF` | `#2F5BD0` |
+| `muscu` | Musculation, volume | `#B899FF` | `#7440DB` |
+| `heart` | Fréquence cardiaque — **données uniquement** | `#FF5E8A` | `#CF2358` |
+| `warning` | Calories, alerte douce | `#FFC247` | `#9A5B00` |
+| `success` | Validé, GPS précis, tendance ↑ | `#5BDF8E` | `#137A3B` |
+| `danger` | Action destructrice | `#FF5D52` | `#C4261C` |
+
+**Règles**
+- Une teinte = un sens. Le vélo n'est jamais violet ; le Volt n'est jamais une activité.
+- Pastilles d'icône : teinte à **16 %** ; bouton secondaire : **14 %**.
+- `heart` ne sert qu'à la donnée cardio (badge FC, chiffres FC), jamais à un bouton.
+- Un écran = **un** aplat Volt au plus (l'action principale). Les autres actions sont tonales.
+
+### Dégradés « sillage » (`ElanGradients`)
+
+Une teinte qui s'éclaircit en s'éloignant, comme une trace. Réservés aux
+surfaces de marque (carte de partage, illustration d'exercice, héros sans
+tracé) ; **jamais sur un bouton**. Les graphes utilisent le même principe en
+alpha : barre pleine en haut → 45 % à la base, aire de courbe → transparent.
 
 ---
 
-## 4. Mouvement & haptique (`Motion`, `ui/haptics/Haptics.kt`)
+## 3. Typographie (`ElanType`)
 
-Le ressenti « cinétique » vient d'ici. Bâti sur les `spring()` de Compose Animation et `HapticFeedbackConstants` (aucune bibliothèque tierce).
+**Archivo** (Omnibus-Type, OFL), embarquée dans `res/font/` en huit
+graisses sous-ensemblées latin (~460 Ko) : `ElanFonts.sans` (400 → 800) et
+`ElanFonts.condensed` (700, 800, 800 italique). Aucune police téléchargée.
+La typographie Material est recomposée en Archivo : un `Text` sans style ou un
+composant Material non stylé hérite de la marque.
 
-**Ressorts** (`Motion`) : `snappy` (appui), `bouncy` (relâchement, léger rebond), `gentle` (entrées/sorties).
+| Token | Famille | Taille / graisse | Emploi |
+| --- | --- | --- | --- |
+| `metricLg` | Condensed | 84 / 800, tnum | Chronomètre de séance |
+| `display` | Condensed | 52 / 800, tnum | Chiffre héros |
+| `metric` | Condensed | 34 / 800, tnum | Valeur de StatTile |
+| `metricSm` | Condensed | 22 / 800, tnum | Valeur de ligne, compteur, bpm |
+| `title` | Condensed *italique* | 34 / 800 | Titre d'écran — l'élan du logotype |
+| `headline` | Sans | 19 / 700 | Titre de carte |
+| `sectionTitle` | Sans | 17 / 700 | Sous-section |
+| `subtitle` | Sans | 16 / 600 | Titre de ligne |
+| `body` | Sans | 15 / 400 | Texte courant |
+| `bodySm` | Sans | 13 / 400 | Date, aide, sous-titre |
+| `label` | Sans | 13 / 600 | Libellé de champ |
+| `caption` | Sans | 12 / 500 | Légende, unité |
+| `micro` | Sans | 11 / 600 | Axe de graphe, onglet |
+| `overline` | Condensed | 13 / 700, +1,2, MAJUSCULES | Libellé de métrique, section |
+| `button` / `buttonLg` | Sans | 16 / 700 · 17 / 800 | Boutons, liens, tuiles |
 
-**Appui** : toute surface tactile passe par **`Modifier.pressableScale()`** → compression à `0.96` (`Motion.pressScale`) puis rebond. C'est la brique de base ; ne pas utiliser `clickable` nu pour un élément interactif visible. Le mouvement réduit du système (`LocalReducedMotion`) supprime l'échelle mais garde l'haptique.
+Usage : `Text(text, style = ElanType.headline, color = ElanTheme.colors.text)`.
+Jamais de `TextStyle(fontSize = …)` nu : sans `fontFamily`, il retombe sur la
+police système.
 
-**Haptique** (`HapticKind`, `rememberHaptics()`) — un retour par interaction marquante :
+---
+
+## 4. Forme, espace, profondeur
+
+**Rayons** (`Radius`) : `xs` 8 (barres de graphe) · `sm` 12 (champs) ·
+`md` 16 (pastilles d'icône) · `lg` 24 (**cartes**, tuiles) · `xl` 32 (héros,
+feuilles) · `pill` (**boutons**, puces, badges, jauges).
+
+**Espacement** (`Spacing`, grille 4 pt) : marges d'écran 16, entre cartes 16,
+gouttière 12 (`gutter`), padding de carte 16 × 18.
+
+**Tailles de contrôle** (`ControlSize`) : bouton 52, bouton large 60, tuile de
+démarrage 104. Toute cible tactile ≥ 48 dp.
+
+**Profondeur** (`Elevation`) : par le ton. `none` pour cartes et barres ;
+l'ombre (`md`, `lg`) n'existe que pour ce qui flotte réellement (barre de
+contrôle de séance, feuilles). Pas d'ombre teintée, pas de halo.
+
+---
+
+## 5. Mouvement & haptique (`Motion`, `ui/haptics/Haptics.kt`)
+
+**Ressorts** : `snappy` (appui), `bouncy` (relâchement), `gentle`
+(entrées/sorties). **Appui** : toute surface tactile passe par
+`Modifier.pressableScale()` (compression 0,96 puis rebond). Le mouvement
+réduit du système (`LocalReducedMotion`) supprime l'échelle, garde l'haptique.
 
 | Geste | Retour |
 | --- | --- |
-| Appui contrôle secondaire / chip / sélection | `selection` |
-| Appui action principale | `light` |
+| Contrôle secondaire, puce, sélection | `selection` |
+| Action principale, tuile de démarrage | `light` |
 | Démarrer / mettre en pause un effort | `medium` |
 | Séance enregistrée, objectif atteint | `success` |
 | Action refusée / erreur | `error` |
 
-« Fire and forget » : un appareil sans moteur haptique (ou le web) ignore silencieusement.
-
 ---
 
-## 5. Composants
+## 6. Composants (`ui/components/`)
 
-Tous dans `ui/components/`, thémés via `ElanTheme.colors` + tokens.
-
-| Composant | Rôle | Points clés |
+| Composant | Rôle | Sillage |
 | --- | --- | --- |
-| **`Modifier.pressableScale()`** | Surface tactile élastique | `scaleTo`, `haptic` ; base de toute interaction |
-| **`PulseButton`** | Action | `ButtonVariant` Primary/Secondary/Danger/Ghost, `ButtonSize` Md/Lg ; le primaire est un dégradé à ombre teintée |
-| **`PulseCard`** | Surface de contenu | `CardVariant` Elevated (défaut, ombre) / Inset (champ) / Plain |
-| **`PulseChip`** | Filtre / suggestion | sélectionnable, teinte d'activité |
-| **`StatTile`** | Métrique « bento » | pastille d'icône teintée + grand chiffre tabulaire, tendance |
-| **`BarChart`** / **`LineChart`** | Graphes | barres en dégradé vertical ; aire façon Strava avec moyenne pointillée |
-| **`HrBadge`** | État cardio | halo (`shadow`) coloré quand la ceinture émet |
-| **`EmptyState`** | Vide | icône + titre + sous-titre centrés, action secondaire optionnelle |
-| **`RouteMap`** / **`RouteCanvas`** | Tracé GPS | `RouteMap` choisit MapLibre si un style est configuré, sinon `RouteCanvas` (Canvas normalisé, aucun fond cartographique, offline) |
+| `ElanWordmark`, `ElanTick`, `SectionLabel` | Marque | Logotype bicolore ; trait d'élan ; overline précédée du trait |
+| `ElanButton` | Action | Pilule 52/60 dp. `Primary` = aplat Volt (ou teinte d'activité) sous encre calculée ; `Secondary` = tonal 14 % ; `Danger` ; `Ghost` |
+| `ElanCard` | Surface | Tonale, `Radius.lg`, sans ombre ; `Inset` = creux bordé |
+| `ElanChip` | Filtre | Pilule 40 dp ; repos tonal, choisie = aplat Volt/teinte |
+| `StatTile` | Métrique | Icône 16 + overline, valeur Condensed tabulaire |
+| `BarChart` / `LineChart` | Graphes | Barres « sillage », la plus récente pleine et libellée à l'encre ; aire qui s'estompe |
+| `SessionRow` | Ligne de séance | Pastille 48 teinte 16 %, valeur `metricSm` |
+| `HrBadge` | Cardio | Pilule tonale `heart` 16 %, bpm condensé |
+| `EmptyState` | Vide | Pastille ronde, titre, action secondaire |
+| Barre d'onglets | Navigation | Barre tonale, indicateur Volt sous icône encre |
+| `RouteMap` / `RouteCanvas` | Tracé | Teinte d'activité ; hors-ligne par défaut |
 
 ### Anatomie des écrans
-- **Accueil** : en-tête (salut + titre `title` + `HrBadge`) → grille 2×2 de boutons d'action `ButtonSize.Lg` (dégradés vélo/muscu/course/marche) → cartes résumé & graphe → liste récente.
-- **Séance live (vélo/muscu)** : chrono `metricLg` centré, label `overline` à la teinte d'activité, stats en grille bento, **barre de contrôle flottante** (`Elevation.lg`) collée en bas.
-- **Détail de séance** : en-tête icône+titre, tracé GPS, grille de stats, ventilation muscu, notes.
+- **Accueil** : salut + logotype, pastille FC → séance du jour → « Démarrer »
+  (`SectionLabel`) et grille 2×2 de **tuiles d'activité** en aplat → semaine,
+  objectifs, activité 7 jours → séances récentes.
+- **Séance live** : chrono `metricLg` centré, overline à la teinte d'activité,
+  métriques en grille, tracé, barre de contrôle flottante (`Elevation.lg`).
+- **Détail** : en-tête, records, tracé, grille de métriques, graphes, notes.
 
 ---
 
-## 6. Faire / Ne pas faire
+## 7. Faire / Ne pas faire
 
-✅ Lire les valeurs depuis `ui/theme/` (couleurs via `ElanTheme.colors`, reste via les objets de tokens).
-✅ Envelopper tout interactif dans `Modifier.pressableScale()` + haptique adapté.
-✅ Action principale = `PulseButton` Primary (dégradé + ombre teintée).
-✅ Profondeur par l'ombre (`Elevation`) ; coins arrondis `Radius`.
-✅ Chiffres d'effort en tabulaire (`tnum`, déjà dans `PulseType.metric*`).
+✅ Tokens uniquement (`ElanTheme.colors`, `ElanType`, `Radius`, `Spacing`…).
+✅ Un seul aplat Volt par écran : l'action principale.
+✅ Chiffres en `metric*` (Condensed, tabulaire).
+✅ `pressableScale` + haptique sur tout interactif.
+✅ Titres d'écran en `ElanType.title`, sections en `SectionLabel`.
 
-❌ Pas de couleur, taille de police, rayon ni ombre codés en dur dans un écran.
-❌ Pas de bordure dure pour signifier une surface flottante.
-❌ Ne pas mélanger les sens des teintes d'activité.
-❌ Pas de dépendance réseau/cloud (dégradés, carte et icônes restent 100 % locaux).
-❌ Pas de `Color(0x…)`, de `.sp` ni de `.dp` de style inventés dans un écran : si un token manque, on l'ajoute à `Tokens.kt`.
+❌ Pas de `Color(0x…)`, `.sp`, `.dp` de style ni `TextStyle` nu dans un écran : il manque un token ? on l'ajoute à `Tokens.kt` / `Type.kt`.
+❌ Pas de Volt en texte ou en trait sur le papier : `accent` / `link` s'en chargent.
+❌ Pas d'ombre pour signifier une carte ; pas de dégradé sur un bouton.
+❌ Pas de mélange des sens de teinte ; pas de rose hors cardio.
+❌ Rien de réseau : police, icônes, sons et dégradés sont embarqués.
 
 ---
 
-## 7. Implémentation Compose
+## 8. Implémentation Compose
 
-PULSE est implémenté en **Kotlin + Jetpack Compose** (Material 3 Expressive) dans `app/src/main/java/ovh/battistella/elan/ui/`. Material fournit la mécanique (thème, composants de base, `MotionScheme.expressive()`), PULSE fournit les valeurs.
+Sillage vit dans `app/src/main/java/ovh/battistella/elan/ui/`. Material 3
+Expressive fournit la mécanique (thème, composants de base,
+`MotionScheme.expressive()`) ; Sillage fournit les valeurs.
 
-### Tokens → Kotlin
-
-| Section de ce document | Kotlin (`ui/theme/`) | Accès |
+| Section | Kotlin (`ui/theme/`) | Accès |
 | --- | --- | --- |
-| §1 Rôles et couleurs d'activité | `Tokens.kt` → `@Immutable data class PulseColors`, instances `PulseColors.Light` / `PulseColors.Dark` | `ElanTheme.colors.accent`, `.velo`, … (`Theme.kt`) ; `PulseColors.forKey("velo")` (`ColorUtils.kt`) pour une clé sérialisée |
-| §1 Zones cardiaques | `Tokens.kt` → `object HrZoneColors` (`Light` / `Dark`, 5 couleurs) | `ElanTheme.hrZones` |
-| §1 Dégradés | `Tokens.kt` → `object PulseGradients` (`accent`, `velo`, `muscu`, `course`, `marche`, `heart`, `danger`, `fire`, `success`, `scrim`), `BRIGHT_GRADIENTS`, `OnBright`, `inkOn()` | `Brush.linearGradient(PulseGradients.velo)` |
-| §2 Typographie | `Type.kt` → `object PulseType` (`display`, `metricLg`, `metric`, `title`, `headline`, `sectionTitle`, `subtitle`, `body`, `label`, `caption`, `overline`) ; police système, `tnum` sur les métriques | `Text(style = PulseType.headline)` |
-| §3 Rayons | `Tokens.kt` → `object Radius` (`sm` 12, `md` 16, `lg` 22, `xl` 28, `pill` 999) | `RoundedCornerShape(Radius.lg)` |
-| §3 Espacement | `Tokens.kt` → `object Spacing` (`half` 2, `one` 4, `two` 8, `three` 16, `four` 24, `five` 32, `six` 64) et `MaxContentWidth` (800 dp) | `Modifier.screenContent()` (`components/ScreenContent.kt`) applique marges, insets et largeur max |
-| §3 Élévation | `Tokens.kt` → `object Elevation` (`sm` 3, `md` 8, `lg` 18 dp) | `Modifier.shadow(Elevation.md, …)` avec `ambientColor`/`spotColor` teintés pour les actions primaires |
-| §4 Ressorts | `Tokens.kt` → `object Motion` (`snappy`, `bouncy`, `gentle` en `spring()` Compose, `pressScale` 0.96) | `Modifier.pressableScale()` (`components/PressableScale.kt`) |
-| §4 Haptique | `ui/haptics/Haptics.kt` → `enum HapticKind` (Selection, Light, Medium, Heavy, Success, Error), `rememberHaptics()` | `val haptics = rememberHaptics(); haptics(HapticKind.Success)` |
-| §4 Son | `ui/sound/Sounds.kt` → `Sounds.restDone(context)` (`res/raw/rest_done.wav`) | minuteur de repos uniquement |
-| Mouvement réduit | `ui/theme/Accessibility.kt` → `LocalReducedMotion`, `rememberSystemReducedMotion()` | fourni par `ElanTheme` |
-| Icônes | `ui/icons/MdiIcons.kt` → `object MdiIcons` (`MdiIcons.HeartPulse` = `R.drawable.mdi_heart_pulse`, `MdiIcons.byName("heart-pulse")`), généré par `scripts/gen-mdi-icons.mjs` | `Icon(painterResource(MdiIcons.Fire), tint = …)` |
+| §2 Couleurs | `Tokens.kt` → `ElanColors` (`Light` / `Dark`) | `ElanTheme.colors.brand`, `.velo`… ; `ElanColors.forKey("velo")` (`ColorUtils.kt`) |
+| §2 Zones FC | `Tokens.kt` → `HrZoneColors` | `ElanTheme.hrZones` |
+| §2 Dégradés | `Tokens.kt` → `ElanGradients` (`brand`, activités, `heart`, `danger`, `fire`, `success`, `scrim`), `inkOn()` | `Brush.linearGradient(ElanGradients.velo)` |
+| §3 Typographie | `Type.kt` → `ElanFonts`, `ElanType` | `Text(style = ElanType.metric)` |
+| §4 Forme | `Tokens.kt` → `Radius`, `Spacing`, `ControlSize`, `Elevation`, `MaxContentWidth` | `RoundedCornerShape(Radius.lg)`, `Modifier.screenContent()` |
+| §5 Mouvement | `Tokens.kt` → `Motion` ; `ui/haptics/Haptics.kt` ; `Accessibility.kt` | `Modifier.pressableScale()`, `rememberHaptics()` |
+| Icônes | `ui/icons/MdiIcons.kt` (généré par `scripts/gen-mdi-icons.mjs`) | `painterResource(MdiIcons.Fire)` |
 
-### Thème Material
+**Thème Material.** `ElanTheme(darkTheme)` fournit `LocalElanColors`,
+`LocalHrZoneColors`, `LocalReducedMotion`, puis `MaterialExpressiveTheme`
+avec un `colorScheme` dérivé (`primary` = `accent`, `secondary` = `link`,
+surfaces = neutres, `surfaceTint` transparent) et une typographie Archivo. Pas
+de couleur dynamique : la marque est fixe.
 
-`ElanTheme(darkTheme = isSystemInDarkTheme()) { … }` (`Theme.kt`) fournit `LocalPulseColors`, `LocalHrZoneColors` et `LocalReducedMotion`, puis enveloppe `MaterialExpressiveTheme(colorScheme, motionScheme = MotionScheme.expressive())`. **Pas de couleur dynamique** (Material You) : la marque est fixe. Le `colorScheme` est dérivé des tokens (`primary` = `accent`, `primaryContainer` = `accentSoft`, `secondary` = `link`, `tertiary` = `success`, `background`/`surface`/`outline`/`error`/`scrim` = tokens homonymes) pour que les composants Material non stylés (dialogues, `Switch`, `ModalBottomSheet`) restent dans la palette.
+**Bord à bord** : `enableEdgeToEdgeCompat()` (`ui/EdgeToEdge.kt`) ; fenêtre
+de démarrage `@color/elan_background` (Encre).
 
-Le bord à bord est activé par `enableEdgeToEdgeCompat()` (`ui/EdgeToEdge.kt`), sans les API `Window.setStatusBarColor` / `setNavigationBarColor` obsolètes que la Play Console signale ; les barres transparentes viennent de `Theme.Elan` (`res/values/themes.xml`).
+**Captures.** `ScreenshotTourTest` rend l'application entière (vraie base en
+mémoire, semaine type) en sombre et en clair :
 
-### Composants
+```bash
+ELAN_SCREENSHOTS=1 ./gradlew testDebugUnitTest --tests '*ScreenshotTourTest*'
+# → app/build/screenshots/*.png
+```
 
-| PULSE (§5) | Compose (`ui/components/`) | Fichier |
-| --- | --- | --- |
-| PressableScale | `Modifier.pressableScale(enabled, scaleTo, haptic, onClick)` | `PressableScale.kt` |
-| Button | `PulseButton(title, onClick, variant, size, color, gradient, icon, loading, enabled)` | `PulseButton.kt` |
-| Card | `PulseCard(variant = CardVariant.Elevated) { … }` | `PulseCard.kt` |
-| Chip | `PulseChip(label, selected, onClick, color)` | `Chip.kt` |
-| StatTile | `StatTile(label, value, unit, icon, color, compact, hero, trend)` | `StatTile.kt` |
-| BarChart / LineChart | `BarChart(data: List<BarPoint>, gradient)`, `LineChart(data: List<ChartPoint>, color, avg)` | `BarChart.kt`, `LineChart.kt` |
-| HrBadge | `HrBadge(bpm, connected, onClick, connecting)` | `HrBadge.kt` |
-| EmptyState | `EmptyState(icon, title, subtitle, tint, action)` | `EmptyState.kt` |
-| ErrorNotice | `ErrorNotice(message)` | `ErrorNotice.kt` |
-| RouteMap | `RouteMap(points, color, height, live, interactive, fill)` + `LocalMapRenderer` ; `RouteCanvas(...)`, `MapPlaceholder(status)` | `RouteMap.kt`, `RouteCanvas.kt` |
-| GpsStatusPill, HrZonesCard, RestTimerBar, SessionRow, ShareCard | composables homonymes | fichiers homonymes |
-| SettingCardHeader, SettingField, SettingStepper, Stepper | composables homonymes (cartes de réglages, saisie) | fichiers homonymes |
-| ExerciseCatalog, ExerciseDetailSheet, ExerciseInfoSheet, ExerciseIllustration | catalogue d'exercices et fiches (photos embarquées, `ExerciseImages.kt`) | `ExerciseCatalog.kt`, `ExerciseInfoSheet.kt`, `ExerciseIllustration.kt` |
-| QrScanButton | bouton secondaire qui ouvre le lecteur de codes Play Services | `QrScanButton.kt` |
-
-### Contraintes
-
-- Copie d'interface (`res/values/strings*.xml`) et commentaires en **français**.
-- Tout composant reçoit ses couleurs depuis `ElanTheme.colors` ; les seuls littéraux tolérés sont `Color.White`/`OnBright` comme encre sur dégradé.
-- 100 % local et hors-ligne — c'est un invariant produit, pas seulement visuel : photos, icônes, sons et dégradés sont embarqués.
+**Contraintes** : interface et commentaires en français ; seuls littéraux
+tolérés hors `ui/theme/` : `Color.White` / `ElanGradients.OnBright` comme
+encre calculée ; 100 % local et hors-ligne.

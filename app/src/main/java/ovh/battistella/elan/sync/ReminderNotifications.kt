@@ -26,7 +26,7 @@ object ReminderNotifications {
     /** Identifiant stable : le rappel du jour remplace celui de la veille. */
     const val NOTIFICATION_ID = 3201
 
-    private const val ACCENT = "#0A0C10"
+    private const val ACCENT = "#0D0E0B"
 
     /** Canal « Rappels de séance », importance par défaut, vibration. Idempotent. */
     fun ensureChannel(context: Context) {

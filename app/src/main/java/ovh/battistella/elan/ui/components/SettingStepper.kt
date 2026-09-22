@@ -17,11 +17,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
@@ -51,7 +48,7 @@ fun SettingStepper(
     ) {
         Text(
             text = label,
-            style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+            style = ElanType.subtitle,
             color = colors.text,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -63,7 +60,7 @@ fun SettingStepper(
             )
             Text(
                 text = "$value $unit",
-                style = ElanType.metric.copy(fontSize = 17.sp, letterSpacing = 0.sp),
+                style = ElanType.metricSm,
                 color = colors.text,
                 textAlign = TextAlign.Center,
                 modifier = Modifier

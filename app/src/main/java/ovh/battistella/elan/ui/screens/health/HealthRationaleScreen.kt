@@ -12,9 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.components.screenContent
 import ovh.battistella.elan.ui.screens.common.SubScreenHeader
@@ -30,7 +28,7 @@ import ovh.battistella.elan.ui.theme.ElanType
 @Composable
 fun HealthRationaleScreen(contentPadding: PaddingValues, onBack: () -> Unit) {
     val colors = ElanTheme.colors
-    val body = TextStyle(fontSize = 15.sp, lineHeight = 22.sp)
+    val body = ElanType.body
     Column(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier

@@ -1,16 +1,13 @@
 package ovh.battistella.elan.ui.components
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,8 +18,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,7 +25,6 @@ import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
-import ovh.battistella.elan.ui.theme.Radius
 
 /** Ton d'une tendance : [Positive] = vert, [Negative] = atténué, [Neutral] = stable. */
 enum class Tone { Positive, Negative, Neutral }
@@ -39,8 +33,8 @@ enum class Tone { Positive, Negative, Neutral }
 data class Trend(val label: String, val tone: Tone)
 
 /**
- * Tuile de métrique « bento » : pastille d'icône teintée + grand chiffre
- * tabulaire. Conçue pour s'aligner en grille fluide dans une [ElanCard] :
+ * Tuile de métrique : petite icône teintée + libellé en overline, puis le
+ * chiffre en Archivo Condensed tabulaire — le chiffre est le héros. Conçue pour s'aligner en grille fluide dans une [ElanCard] :
  * largeur mini 96 dp (pleine largeur en [hero]), et se laisse pondérer par
  * `Modifier.weight(1f)` dans une Row.
  */
@@ -62,10 +56,10 @@ fun StatTile(
     val colors = ElanTheme.colors
     val tint = color ?: colors.text
     val iconTint = color ?: colors.textSecondary
-    val valueSize = when {
-        hero -> 44.sp
-        compact -> 24.sp
-        else -> 32.sp
+    val valueStyle = when {
+        hero -> ElanType.display
+        compact -> ElanType.metricSm.copy(fontSize = 26.sp, lineHeight = 30.sp)
+        else -> ElanType.metric
     }
 
     // Libellé, valeur, unité et tendance forment un seul nœud pour TalkBack
@@ -75,33 +69,28 @@ fun StatTile(
         trend?.label,
     ).joinToString(", ")
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
             .semantics(mergeDescendants = true) { contentDescription = description }
             .then(if (hero) Modifier.fillMaxWidth() else Modifier.widthIn(min = 96.dp)),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (icon != null) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .background(iconTint.copy(alpha = 0.14f), RoundedCornerShape(Radius.sm)),
-                ) {
-                    Icon(
-                        painter = painterResource(icon),
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(16.dp),
+                )
             }
             Text(
+                // Casse d'origine (lecteurs d'écran, recherche par texte) : le
+                // style overline condensé suffit à le distinguer de la valeur.
                 text = label,
-                style = ElanType.label,
+                style = ElanType.overline.copy(letterSpacing = 0.4.sp),
                 color = colors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -113,7 +102,7 @@ fun StatTile(
         ) {
             Text(
                 text = value,
-                style = ElanType.metric.copy(fontSize = valueSize),
+                style = valueStyle,
                 color = tint,
                 maxLines = 1,
             )
@@ -121,8 +110,8 @@ fun StatTile(
                 Text(
                     text = unit,
                     color = colors.textSecondary,
-                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(bottom = 4.dp),
+                    style = ElanType.label,
+                    modifier = Modifier.padding(bottom = if (hero) 8.dp else 4.dp),
                 )
             }
         }

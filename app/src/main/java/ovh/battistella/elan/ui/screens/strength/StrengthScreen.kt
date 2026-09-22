@@ -60,14 +60,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
@@ -311,7 +309,7 @@ private fun Summary(label: String, value: String, color: Color? = null) {
     val density = LocalDensity.current
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.2f))) {
-            Text(value, style = ElanType.metric.copy(fontSize = 20.sp), color = color ?: colors.text, maxLines = 1)
+            Text(value, style = ElanType.metricSm, color = color ?: colors.text, maxLines = 1)
         }
         Text(label, style = ElanType.caption, color = colors.textSecondary)
     }
@@ -344,8 +342,8 @@ private fun TemplatePicker(onPick: (WorkoutTemplate) -> Unit) {
                         .clip(shape)
                         .padding(vertical = 12.dp, horizontal = 8.dp),
                 ) {
-                    Text(t.name, style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.ExtraBold), color = colors.muscu, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(t.day, style = TextStyle(fontSize = 11.sp), color = colors.textSecondary)
+                    Text(t.name, style = ElanType.subtitle, color = colors.muscu, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(t.day, style = ElanType.micro, color = colors.textSecondary)
                 }
             }
         }
@@ -359,18 +357,18 @@ private fun ExerciseCard(ex: StrengthExercise, viewModel: StrengthViewModel) {
     ElanCard {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(ex.name, style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.ExtraBold), color = colors.text)
+                Text(ex.name, style = ElanType.sectionTitle, color = colors.text)
                 if (ex.target != null || ex.lastWeight != null) {
                     val parts = listOfNotNull(
                         ex.target?.let { stringResource(R.string.muscu_target, it) },
                         ex.lastWeight?.let { stringResource(R.string.muscu_last_time, fmtKg(it)) },
                     )
-                    Text(parts.joinToString("  ·  "), style = TextStyle(fontSize = 12.sp), color = colors.textSecondary, modifier = Modifier.padding(top = 2.dp))
+                    Text(parts.joinToString("  ·  "), style = ElanType.caption, color = colors.textSecondary, modifier = Modifier.padding(top = 2.dp))
                 }
                 if (ex.bump != 0.0) {
                     Text(
                         bumpHint(ex.bump, ex.bumpKind),
-                        style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                        style = ElanType.label,
                         color = colors.muscu,
                         modifier = Modifier.padding(top = 2.dp),
                     )
@@ -411,7 +409,7 @@ private fun ExerciseCard(ex: StrengthExercise, viewModel: StrengthViewModel) {
             modifier = Modifier.pressableScale(onClick = { viewModel.addSet(ex.id) }).padding(vertical = 4.dp),
         ) {
             Icon(painter = painterResource(MdiIcons.PlusCircleOutline), contentDescription = null, tint = colors.muscu, modifier = Modifier.size(18.dp))
-            Text(stringResource(R.string.muscu_add_set), style = TextStyle(fontWeight = FontWeight.Bold), color = colors.muscu)
+            Text(stringResource(R.string.muscu_add_set), style = ElanType.label.copy(fontWeight = FontWeight.Bold), color = colors.muscu)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -456,7 +454,7 @@ private fun SetRowView(
             if (set.done) {
                 Icon(painter = painterResource(MdiIcons.Check), contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
             } else {
-                Text("${index + 1}", style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"), color = colors.textSecondary)
+                Text("${index + 1}", style = ElanType.label, color = colors.textSecondary)
             }
         }
         Row(
@@ -519,7 +517,7 @@ private fun AddExerciseCard(onBrowse: () -> Unit, onAdd: (String) -> Unit) {
                 value = draft,
                 onValueChange = { draft = it },
                 singleLine = true,
-                textStyle = TextStyle(fontSize = 15.sp, color = colors.text),
+                textStyle = ElanType.body.copy(color = colors.text),
                 cursorBrush = SolidColor(colors.accent),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submit() }),
@@ -533,7 +531,7 @@ private fun AddExerciseCard(onBrowse: () -> Unit, onAdd: (String) -> Unit) {
                             .border(1.dp, colors.border, shape)
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                     ) {
-                        if (draft.isEmpty()) Text(placeholder, style = TextStyle(fontSize = 15.sp), color = colors.textMuted)
+                        if (draft.isEmpty()) Text(placeholder, style = ElanType.body, color = colors.textMuted)
                         inner()
                     }
                 },

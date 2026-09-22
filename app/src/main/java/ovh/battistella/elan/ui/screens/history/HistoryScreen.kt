@@ -34,11 +34,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -190,7 +188,7 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit) {
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(fontSize = 15.sp, color = colors.text),
+            textStyle = ElanType.body.copy(color = colors.text),
             cursorBrush = SolidColor(colors.accent),
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.None,
@@ -203,7 +201,7 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit) {
             decorationBox = { inner ->
                 Box(contentAlignment = Alignment.CenterStart) {
                     if (value.isEmpty()) {
-                        Text(placeholder, style = TextStyle(fontSize = 15.sp), color = colors.textMuted, maxLines = 1)
+                        Text(placeholder, style = ElanType.body, color = colors.textMuted, maxLines = 1)
                     }
                     inner()
                 }

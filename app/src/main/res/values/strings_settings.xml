@@ -191,7 +191,6 @@
     <!-- Partage d'une séance -->
     <string name="share_preview_title">Aperçu</string>
     <string name="share_action">Partager</string>
-    <string name="share_brand">ÉLAN</string>
     <string name="share_stat_distance">Distance</string>
     <string name="share_stat_duration">Durée</string>
     <string name="share_stat_pace">Allure moy</string>

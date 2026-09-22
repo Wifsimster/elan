@@ -29,10 +29,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import ovh.battistella.elan.R
@@ -143,7 +140,7 @@ fun RestTimerBar(
             )
             Text(
                 formatDuration(remainingSec),
-                style = ElanType.metric.copy(fontSize = 26.sp),
+                style = ElanType.metricSm,
                 color = if (done) colors.success else colors.text,
             )
         }
@@ -179,7 +176,7 @@ private fun RestPill(label: String, description: String, onClick: () -> Unit) {
     ) {
         Text(
             label,
-            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold),
+            style = ElanType.label,
             color = colors.text,
         )
     }

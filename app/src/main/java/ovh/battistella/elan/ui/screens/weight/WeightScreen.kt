@@ -28,11 +28,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ovh.battistella.elan.R
@@ -98,7 +95,7 @@ fun WeightScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     if (ui.error) {
-                        Text(stringResource(R.string.weight_invalid), style = TextStyle(fontSize = 13.sp), color = colors.danger)
+                        Text(stringResource(R.string.weight_invalid), style = ElanType.bodySm, color = colors.danger)
                     }
                 }
 
@@ -183,7 +180,7 @@ private fun WeightInput(value: String, onValueChange: (String) -> Unit, modifier
         value = value,
         onValueChange = { if (it.length <= 6) onValueChange(it) },
         singleLine = true,
-        textStyle = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = colors.text, fontFeatureSettings = "tnum"),
+        textStyle = ElanType.metricSm.copy(color = colors.text),
         cursorBrush = SolidColor(colors.accent),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = modifier.semantics { contentDescription = a11y },
@@ -204,7 +201,7 @@ private fun WeightInput(value: String, onValueChange: (String) -> Unit, modifier
 private fun Metric(label: String, value: String, color: Color? = null) {
     val colors = ElanTheme.colors
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(value, style = ElanType.metric.copy(fontSize = 20.sp), color = color ?: colors.text)
+        Text(value, style = ElanType.metricSm, color = color ?: colors.text)
         Text(label, style = ElanType.caption, color = colors.textSecondary)
     }
 }
@@ -230,12 +227,12 @@ private fun WeightRow(measurement: BodyMeasurement, delta: Double?, first: Boole
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
                 Text("${fmtWeight(measurement.weightKg)} kg", style = ElanType.subtitle.copy(fontFeatureSettings = "tnum"), color = colors.text)
-                Text(date, style = TextStyle(fontSize = 13.sp), color = colors.textSecondary)
+                Text(date, style = ElanType.bodySm, color = colors.textSecondary)
             }
             if (delta != null) {
                 Text(
                     "${fmtWeightDelta(delta)} kg",
-                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
+                    style = ElanType.label,
                     color = colors.textSecondary,
                 )
             }

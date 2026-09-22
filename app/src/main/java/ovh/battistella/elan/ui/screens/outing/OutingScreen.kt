@@ -219,7 +219,7 @@ fun OutingScreen(
             title = stringResource(R.string.outing_finish_title),
             text = stringResource(R.string.outing_finish_text),
             confirmLabel = stringResource(R.string.outing_finish),
-            confirmColor = colors.accent,
+            confirmColor = colors.link,
             onConfirm = viewModel::confirmFinish,
             onDismiss = viewModel::dismissDialog,
         )
@@ -369,6 +369,7 @@ private fun ControlBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            // Seule ombre de l'écran : la barre flotte au-dessus de la carte.
             .shadow(Elevation.lg)
             .background(colors.backgroundElement)
             .padding(bottom = bottomInset),

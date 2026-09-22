@@ -32,7 +32,7 @@ data class EmptyAction(
 )
 
 /**
- * État vide Sillage : pastille d'icône teintée 64 dp (comme les autres surfaces
+ * État vide Sillage : pastille d'icône ronde teintée 64 dp (comme les autres surfaces
  * de repos), titre/sous-titre sur l'échelle typographique, et une action
  * secondaire facultative pour ne jamais laisser l'utilisateur dans une impasse.
  */
@@ -60,7 +60,7 @@ fun EmptyState(
             modifier = Modifier
                 .padding(bottom = 2.dp)
                 .size(64.dp)
-                .background(color.copy(alpha = 0.13f), RoundedCornerShape(Radius.lg)),
+                .background(color.copy(alpha = 0.14f), RoundedCornerShape(Radius.pill)),
         ) {
             Icon(
                 painter = painterResource(icon),

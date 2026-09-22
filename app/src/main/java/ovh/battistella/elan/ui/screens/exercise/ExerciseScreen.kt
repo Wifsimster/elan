@@ -22,11 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ovh.battistella.elan.R
@@ -41,6 +38,7 @@ import ovh.battistella.elan.ui.components.BarChart
 import ovh.battistella.elan.ui.components.EmptyState
 import ovh.battistella.elan.ui.components.ExerciseIllustration
 import ovh.battistella.elan.ui.components.ElanCard
+import ovh.battistella.elan.ui.components.SectionLabel
 import ovh.battistella.elan.ui.components.TagPill
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.components.screenContent
@@ -48,7 +46,6 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.common.SubScreenHeader
 import ovh.battistella.elan.ui.screens.common.TintedIconBox
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.ElanGradients
 import ovh.battistella.elan.ui.theme.ElanType
 import kotlin.math.roundToInt
 
@@ -90,8 +87,8 @@ fun ExerciseScreen(
                 }
                 if (guide.howTo.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.exercise_execution).uppercase(), style = ElanType.overline, color = colors.textMuted)
-                        Text(guide.howTo, style = TextStyle(fontSize = 15.sp, lineHeight = 23.sp), color = colors.text)
+                        SectionLabel(text = stringResource(R.string.exercise_execution), color = colors.textMuted)
+                        Text(guide.howTo, style = ElanType.body, color = colors.text)
                     }
                 }
             }
@@ -140,7 +137,7 @@ fun ExerciseScreen(
 
             ElanCard {
                 Text(stringResource(R.string.exercise_max_per_session), style = ElanType.headline, color = colors.text)
-                BarChart(data = ui.bars, gradient = ElanGradients.muscu, formatValue = { "${fmtKg(it)} kg" })
+                BarChart(data = ui.bars, color = colors.muscu, formatValue = { "${fmtKg(it)} kg" })
             }
 
             Text(stringResource(R.string.exercise_sessions), style = ElanType.headline, color = colors.text)
@@ -179,12 +176,12 @@ private fun AdviceCard(ui: ExerciseUi) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.exercise_advice).uppercase(), style = ElanType.overline, color = colors.textMuted)
                 if (ui.hasRating) {
-                    Text(adviceLabel(advice), style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold), color = colors.text)
+                    Text(adviceLabel(advice), style = ElanType.subtitle, color = colors.text)
                     ui.lastRating?.let {
-                        Text(stringResource(R.string.exercise_last_session, difficultyLabel(it)), style = TextStyle(fontSize = 13.sp), color = colors.textSecondary)
+                        Text(stringResource(R.string.exercise_last_session, difficultyLabel(it)), style = ElanType.bodySm, color = colors.textSecondary)
                     }
                 } else {
-                    Text(stringResource(R.string.exercise_rate_hint), style = TextStyle(fontSize = 14.sp), color = colors.textSecondary)
+                    Text(stringResource(R.string.exercise_rate_hint), style = ElanType.bodySm, color = colors.textSecondary)
                 }
             }
         }
@@ -199,24 +196,24 @@ private fun SessionRow(p: ExercisePoint, onClick: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
                 Text("${fmtKg(p.maxWeightKg)} kg × ${p.topReps}", style = ElanType.subtitle, color = colors.text)
-                Text(formatDateTime(p.startedAt), style = TextStyle(fontSize = 13.sp), color = colors.textSecondary)
+                Text(formatDateTime(p.startedAt), style = ElanType.bodySm, color = colors.textSecondary)
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 if (oneRm > 0) {
                     Text(
                         stringResource(R.string.exercise_1rm_approx, oneRm.roundToInt()),
-                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
+                        style = ElanType.label,
                         color = colors.muscu,
                     )
                 }
                 Text(
                     if (p.sets > 1) stringResource(R.string.exercise_sets_count_plural, p.sets) else stringResource(R.string.exercise_sets_count, p.sets),
-                    style = TextStyle(fontSize = 13.sp),
+                    style = ElanType.bodySm,
                     color = colors.textSecondary,
                 )
                 Text(
                     stringResource(R.string.exercise_volume, p.volume.roundToInt()),
-                    style = TextStyle(fontSize = 13.sp, fontFeatureSettings = "tnum"),
+                    style = ElanType.bodySm,
                     color = colors.textSecondary,
                 )
             }
@@ -229,7 +226,7 @@ private fun SessionRow(p: ExercisePoint, onClick: () -> Unit) {
 private fun Metric(label: String, value: String, color: Color? = null) {
     val colors = ElanTheme.colors
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(value, style = ElanType.metric.copy(fontSize = 20.sp), color = color ?: colors.text)
+        Text(value, style = ElanType.metricSm, color = color ?: colors.text)
         Text(label, style = ElanType.caption, color = colors.textSecondary)
     }
 }

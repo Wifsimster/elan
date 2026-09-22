@@ -21,21 +21,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.data.legacy.MigrationState
+import ovh.battistella.elan.ui.theme.ElanColors
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Spacing
 
-/** Fond sombre fixe, identique quel que soit le thème : l'écran précède le thème utilisateur. */
-private val MigrationBackground = Color(0xFF0A0C10)
-private val MigrationText = Color(0xFFF2F4F8)
-private val MigrationTextSecondary = Color(0xFFA0A8B8)
-private val MigrationAccent = Color(0xFF5B7CFF)
-private val MigrationDanger = Color(0xFFFF5B6E)
+/**
+ * Palette sombre fixe (encre Sillage), identique quel que soit le thème :
+ * l'écran précède le thème utilisateur.
+ */
+private val MigrationColors = ElanColors.Dark
+private val MigrationBackground = MigrationColors.background
+private val MigrationText = MigrationColors.text
+private val MigrationTextSecondary = MigrationColors.textSecondary
+private val MigrationAccent = MigrationColors.accent
+private val MigrationDanger = MigrationColors.danger
 
 /**
  * Écran plein cadre affiché tant que la reprise des anciennes données n'est

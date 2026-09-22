@@ -67,7 +67,7 @@ fun ExerciseIllustration(
             Icon(
                 painter = painterResource(icon?.let(MdiIcons::byName) ?: MdiIcons.Dumbbell),
                 contentDescription = null,
-                tint = Color.White,
+                tint = ElanGradients.inkOn(ElanGradients.muscu),
                 modifier = Modifier.size(72.dp),
             )
         }
@@ -112,9 +112,10 @@ private fun HeroPhoto(@DrawableRes res: Int, label: String, height: Dp, modifier
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(8.dp)
-                .background(Color(0xB3000000), RoundedCornerShape(Radius.pill))
+                .background(colors.scrim, RoundedCornerShape(Radius.pill))
                 .padding(horizontal = 10.dp, vertical = 4.dp),
         ) {
+            // Blanc fixe : le voile [scrim] est noir dans les deux thèmes.
             Text(label.uppercase(), style = ElanType.overline, color = Color.White)
         }
     }

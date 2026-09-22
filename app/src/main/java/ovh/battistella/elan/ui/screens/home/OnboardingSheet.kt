@@ -31,9 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -133,7 +131,7 @@ fun OnboardingSheet(
                     )
                     Text(
                         text = stringResource(R.string.onboarding_privacy),
-                        style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
+                        style = ElanType.bodySm,
                         color = colors.textSecondary,
                         modifier = Modifier.weight(1f),
                     )
@@ -279,7 +277,7 @@ fun RestoreSheet(
                     )
                     Text(
                         text = stringResource(R.string.restore_note),
-                        style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
+                        style = ElanType.bodySm,
                         color = colors.textSecondary,
                         modifier = Modifier.weight(1f),
                     )

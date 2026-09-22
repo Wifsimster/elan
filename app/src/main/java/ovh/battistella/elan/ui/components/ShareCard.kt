@@ -153,7 +153,7 @@ fun ShareCard(
         Column(verticalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(18.dp)) {
             Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.share_brand), style = ElanType.overline, color = colors.textMuted)
+                    ElanWordmark(height = 18.dp)
                     Text(meta.label, style = ElanType.headline, color = colors.text)
                     Text(formatDateTime(session.startedAt, withYear = true), style = ElanType.caption, color = colors.textSecondary)
                 }
@@ -168,7 +168,7 @@ fun ShareCard(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(14.dp), maxItemsInEachRow = 3) {
                 stats.forEach { s ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.width((SHARE_CARD_WIDTH - 36.dp - 24.dp) / 3)) {
-                        Text(s.value, style = ElanType.metric.copy(fontSize = 20.sp), color = s.color ?: colors.text, maxLines = 1)
+                        Text(s.value, style = ElanType.metricSm, color = s.color ?: colors.text, maxLines = 1)
                         Text(s.label, style = ElanType.caption, color = colors.textSecondary)
                     }
                 }
@@ -182,7 +182,7 @@ fun ShareCard(
                     .padding(horizontal = 12.dp, vertical = 6.dp),
             ) {
                 Icon(painter = painterResource(badgeIcon), contentDescription = null, tint = badgeColor, modifier = Modifier.size(15.dp))
-                Text(badgeLabel, color = badgeColor, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold))
+                Text(badgeLabel, color = badgeColor, style = ElanType.label.copy(fontWeight = FontWeight.Bold))
             }
         }
     }
@@ -202,7 +202,7 @@ private fun IconHero(gradient: List<Color>, @DrawableRes icon: Int) {
     }
 }
 
-/** Dégradé du thème par clé d'activité (`velo`, `muscu`, `course`, `marche`), accent sinon. */
+/** Dégradé sillage par clé d'activité (`velo`, `muscu`, `course`, `marche`), marque sinon. */
 fun ElanGradients.forKey(key: String): List<Color> = when (key) {
     "velo" -> velo
     "muscu" -> muscu
@@ -212,5 +212,5 @@ fun ElanGradients.forKey(key: String): List<Color> = when (key) {
     "warning" -> fire
     "success" -> success
     "danger" -> danger
-    else -> accent
+    else -> brand
 }

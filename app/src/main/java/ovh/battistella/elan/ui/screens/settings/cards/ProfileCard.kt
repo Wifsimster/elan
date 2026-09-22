@@ -15,10 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.GOALS
 import ovh.battistella.elan.domain.Profile
@@ -72,8 +69,8 @@ fun ProfileCard(
         ) {
             Icon(painter = painterResource(MdiIcons.ScaleBathroom), contentDescription = null, tint = colors.accent, modifier = Modifier.size(20.dp))
             Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.settings_weight_journal_title), color = colors.text, style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold))
-                Text(stringResource(R.string.settings_weight_journal_subtitle), color = colors.textSecondary, style = TextStyle(fontSize = 12.sp))
+                Text(stringResource(R.string.settings_weight_journal_title), color = colors.text, style = ElanType.subtitle)
+                Text(stringResource(R.string.settings_weight_journal_subtitle), color = colors.textSecondary, style = ElanType.caption)
             }
             Icon(painter = painterResource(MdiIcons.ChevronRight), contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(20.dp))
         }

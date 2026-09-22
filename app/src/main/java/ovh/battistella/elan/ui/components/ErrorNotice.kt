@@ -17,12 +17,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
+import ovh.battistella.elan.ui.theme.Spacing
 
 /**
  * Encart d'erreur intégré à une carte (fond teinté, icône, texte lisible) —
@@ -42,7 +42,7 @@ fun ErrorNotice(message: String, modifier: Modifier = Modifier) {
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Assertive }
             .background(colors.danger.copy(alpha = 0.10f), shape)
             .border(1.dp, colors.danger.copy(alpha = 0.33f), shape)
-            .padding(12.dp),
+            .padding(Spacing.gutter),
     ) {
         Icon(
             painter = painterResource(MdiIcons.AlertCircleOutline),
@@ -53,7 +53,7 @@ fun ErrorNotice(message: String, modifier: Modifier = Modifier) {
         Text(
             text = message,
             color = colors.text,
-            style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
+            style = ElanType.bodySm,
             modifier = Modifier.weight(1f),
         )
     }
