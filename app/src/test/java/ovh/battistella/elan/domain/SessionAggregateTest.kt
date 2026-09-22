@@ -78,6 +78,14 @@ class SessionAggregateTest {
     }
 
     @Test
+    fun `dénivelé - l'altitude du premier point sert de référence`() {
+        val agg = aggregateFromPoints(
+            listOf(P(ts = 0, altitude = 100.0), P(ts = 1000, altitude = 110.0), P(ts = 2000, altitude = 110.0)),
+        )!!
+        assertEquals(10.0, agg.elevationGainM!!, 0.0)
+    }
+
+    @Test
     fun `accepte directement des TrackPoint`() {
         val tp = { ts: Long -> TrackPoint(0, 1, ts, 48.85, 2.35, null, 20.0, 150.0, null) }
         val agg = aggregateFromPoints(listOf(tp(0), tp(5000)))!!
