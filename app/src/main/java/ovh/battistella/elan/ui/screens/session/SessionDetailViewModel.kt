@@ -149,6 +149,8 @@ class SessionDetailViewModel @Inject constructor(
     fun requestDelete() = _ui.update { it.copy(dialog = SessionDialog.Delete) }
 
     fun confirmDelete() {
+        // Double appui sur « Supprimer » : une seule suppression, un seul retour.
+        if (_ui.value.dialog != SessionDialog.Delete) return
         _ui.update { it.copy(dialog = SessionDialog.None) }
         viewModelScope.launch {
             sessions.deleteSession(sessionId)

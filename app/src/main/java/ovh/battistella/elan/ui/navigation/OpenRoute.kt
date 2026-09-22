@@ -3,6 +3,7 @@ package ovh.battistella.elan.ui.navigation
 import android.content.Intent
 import android.net.Uri
 import ovh.battistella.elan.domain.ActivityType
+import ovh.battistella.elan.domain.isGpsActivity
 import ovh.battistella.elan.domain.toActivityType
 import ovh.battistella.elan.sync.ProgressionNotifier
 import ovh.battistella.elan.tracking.LiveKind
@@ -41,7 +42,9 @@ fun openRouteFor(intent: Intent, outingType: ActivityType, outingLive: Boolean):
 
 private fun deepLinkRoute(uri: Uri, outingType: ActivityType, outingLive: Boolean): String? = when (uri.host) {
     LiveKind.OUTING.route -> {
+        // `elan://outing/muscu` n'est pas une sortie GPS : type courant à la place.
         val requested = toActivityType(uri.pathSegments.firstOrNull(), fallback = outingType)
+            .takeIf { isGpsActivity(it) } ?: outingType
         Routes.outing(if (outingLive) outingType else requested)
     }
     LiveKind.MUSCU.route -> Routes.muscu()

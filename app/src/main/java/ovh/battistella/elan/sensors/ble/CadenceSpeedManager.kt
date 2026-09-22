@@ -254,6 +254,13 @@ class CadenceSpeedManager @Inject constructor(
             l.connect(CONNECT_TIMEOUT_MS)
             l.discoverServices()
             val frames = l.enableNotifications(BleUuids.CSC_SERVICE, BleUuids.CSC_MEASUREMENT)
+            if (deviceId in intentional) {
+                // « Oublier » touché pendant la connexion : ni lien ni appareil mémorisé.
+                l.close()
+                connecting -= deviceId
+                syncDevices()
+                return
+            }
 
             val conn = Connection(l, l.name ?: "Capteur vélo")
             connections[deviceId] = conn

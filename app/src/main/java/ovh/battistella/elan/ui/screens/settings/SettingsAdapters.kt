@@ -91,7 +91,10 @@ internal fun parseBackupQrPatch(text: String): BackupPatch? = parseBackupQr(text
 internal fun describeBackupQrPatch(patch: BackupPatch): String = describeQrPatch(patch.toQrPatch())
 
 @Singleton
-class BackupManagerPort @Inject constructor(private val manager: BackupManager) : BackupPort {
+class BackupManagerPort @Inject constructor(
+    private val manager: BackupManager,
+    private val reminders: ReminderScheduler,
+) : BackupPort {
     override val config: Flow<BackupFormConfig> = manager.config.map { it.toForm() }
 
     override suspend fun updateConfig(patch: BackupPatch) = manager.updateConfig(patch.toConfigPatch())
@@ -100,7 +103,8 @@ class BackupManagerPort @Inject constructor(private val manager: BackupManager) 
         manager.runBackup()
     }
 
-    override suspend fun restoreBackup(): Int = manager.restoreBackup()
+    /** Les rappels suivent le planning et l'heure restaurés, sans attendre le prochain lancement. */
+    override suspend fun restoreBackup(): Int = manager.restoreBackup().also { reminders.apply() }
 
     override fun parseQr(text: String): BackupPatch? = parseBackupQrPatch(text)
 

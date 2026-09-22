@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import ovh.battistella.elan.domain.ActivityMeta
 import ovh.battistella.elan.domain.ActivityType
+import ovh.battistella.elan.domain.isGpsActivity
 import ovh.battistella.elan.domain.meta
 import ovh.battistella.elan.domain.toActivityType
 import ovh.battistella.elan.domain.usesPace
@@ -88,7 +89,9 @@ class OutingViewModel @Inject constructor(
     cadence: CadencePort,
 ) : ViewModel() {
 
+    /** Type demandé par la route ; une route non GPS (muscu) retombe sur le vélo. */
     val type: ActivityType = toActivityType(savedStateHandle.get<String>("type"))
+        .takeIf { isGpsActivity(it) } ?: ActivityType.VELO
 
     private val dialog = MutableStateFlow(OutingDialog.None)
     private val alert = MutableStateFlow<OutingAlert?>(null)
@@ -97,11 +100,13 @@ class OutingViewModel @Inject constructor(
     val events: SharedFlow<OutingEvent> = _events.asSharedFlow()
 
     val ui: StateFlow<OutingScreenUi> = combine(port.state, cadence.hasSensor, dialog, alert) { s, sensor, d, a ->
+        // Une sortie déjà en cours impose son type (écran rouvert par une autre route).
+        val t = if (s.phase != OutingPhase.Idle) s.type else type
         OutingScreenUi(
             outing = s,
-            type = type,
-            meta = type.meta,
-            pace = usesPace(type),
+            type = t,
+            meta = t.meta,
+            pace = usesPace(t),
             hasCadenceSensor = sensor || s.cadenceRpm != null,
             dialog = d,
             alert = a,

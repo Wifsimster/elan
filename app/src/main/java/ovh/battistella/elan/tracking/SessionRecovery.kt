@@ -20,6 +20,7 @@ import ovh.battistella.elan.data.repository.SessionUpdate
 import ovh.battistella.elan.data.repository.TrackPointInput
 import ovh.battistella.elan.domain.aggregateFromPoints
 import ovh.battistella.elan.domain.isGpsActivity
+import java.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,7 +35,15 @@ data class RecoveryOutcome(
 class SessionRecovery @Inject constructor(
     private val sessions: SessionRepository,
     private val controller: TrackingController,
+    clock: Clock,
 ) {
+    /**
+     * Instant de création (au lancement du processus, avant tout écran) : une
+     * séance commencée depuis appartient à ce processus, pas à un précédent —
+     * l'interface peut démarrer une sortie avant la fin des tâches de démarrage.
+     */
+    private val processStartedAt = clock.millis()
+
     /**
      * Récupère les séances orphelines. Best-effort : avale ses erreurs, une
      * séance récalcitrante ne bloque pas le sauvetage des autres.
@@ -44,6 +53,7 @@ class SessionRecovery @Inject constructor(
         var purged = 0
         try {
             for (s in sessions.listInProgressSessions()) {
+                if (s.startedAt >= processStartedAt || s.id == controller.state.value.sessionId) continue
                 try {
                     if (isGpsActivity(s.type)) {
                         val points = sessions.getTrackPoints(s.id)

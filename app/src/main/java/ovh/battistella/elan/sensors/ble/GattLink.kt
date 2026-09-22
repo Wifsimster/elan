@@ -111,7 +111,10 @@ class AndroidGattLink(
     @Volatile
     private var pending: CancellableContinuation<Int>? = null
 
-    private val _disconnected = MutableSharedFlow<Int>(extraBufferCapacity = 4)
+    // Rejoué : le lien sert une seule fois, et une coupure survenue avant que
+    // le gestionnaire ne s'abonne ne doit pas être perdue (capteur « connecté »
+    // à jamais, sans reconnexion).
+    private val _disconnected = MutableSharedFlow<Int>(replay = 1)
     override val disconnected: Flow<Int> = _disconnected
 
     private val notifications = MutableSharedFlow<Pair<UUID, ByteArray>>(

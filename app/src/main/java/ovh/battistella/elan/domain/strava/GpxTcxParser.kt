@@ -63,8 +63,11 @@ object GpxTcxParser {
         val reader = factory.newSAXParser().xmlReader
         reader.contentHandler = handler
         reader.setEntityResolver { _, _ -> InputSource(StringReader("")) }
+        // BOM ou blancs avant `<?xml` (exports TCX de Strava) : SAX refuse la
+        // déclaration XML ailleurs qu'en tout début de document.
+        val xml = content.trimStart('\uFEFF', ' ', '\t', '\r', '\n')
         try {
-            reader.parse(InputSource(StringReader(content)))
+            reader.parse(InputSource(StringReader(xml)))
         } catch (e: SAXException) {
             throw StravaFileException("Fichier XML illisible.", e)
         }

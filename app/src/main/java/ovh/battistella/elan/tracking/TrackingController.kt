@@ -188,7 +188,12 @@ class TrackingController @Inject constructor(
     private var frozen: GpsResult? = null
     private var profile = Profile()
 
-    @Volatile private var flushing = false
+    /**
+     * Tenu pendant toute l'écriture d'un flush incrémental. `save()` le prend
+     * autour de l'écriture finale : un flush en vol ne peut plus réinsérer ses
+     * points après la réécriture complète du tracé (doublons).
+     */
+    private val flushMutex = Mutex()
     private var gpsJob: Job? = null
     private var flushJob: Job? = null
 
@@ -353,6 +358,8 @@ class TrackingController @Inject constructor(
             // Figé au premier appel : un réessai réutilise le même tracé/agrégats.
             val result = frozen ?: stopGpsLocked()
             frozen = result
+            // L'écriture finale réécrit tout le tracé : plus rien à flusher.
+            flushedCount = points.size
             stopwatch.pause()
             // Durée lue en direct au moment du « Terminer » (chrono figé ensuite :
             // un réessai obtient la même valeur).
@@ -406,7 +413,7 @@ class TrackingController @Inject constructor(
         return try {
             // Écriture atomique : tout le tracé + agrégats + endedAt en une
             // transaction, sur l'id créé au démarrage (pas de doublon au réessai).
-            sessions.finalizeSession(prep.id, prep.patch, prep.points)
+            flushMutex.withLock { sessions.finalizeSession(prep.id, prep.patch, prep.points) }
             finalizer.onSaved(prep.data)
             mutex.withLock {
                 clearOutingLocked()
@@ -529,22 +536,31 @@ class TrackingController @Inject constructor(
      * Gardé contre le recouvrement (un flush lent ne se superpose pas au suivant).
      */
     private suspend fun flush() {
-        val batch = mutex.withLock {
-            val id = _state.value.sessionId ?: return@withLock null
-            if (flushing) return@withLock null
-            val slice = takeUnflushedLocked()
-            if (slice.isEmpty()) return@withLock null
-            flushing = true
-            id to attachSensorsLocked(slice)
-        } ?: return
+        if (!flushMutex.tryLock()) return
         try {
-            sessions.insertTrackPoints(batch.first, batch.second)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "flush incrémental ignoré", e)
+            val batch = mutex.withLock {
+                val s = _state.value
+                val id = s.sessionId ?: return@withLock null
+                if (s.phase != OutingPhase.ACTIVE && s.phase != OutingPhase.PAUSED) return@withLock null
+                val from = flushedCount
+                val slice = takeUnflushedLocked()
+                if (slice.isEmpty()) return@withLock null
+                Triple(id, from, attachSensorsLocked(slice))
+            } ?: return
+            val (id, from, slice) = batch
+            try {
+                sessions.insertTrackPoints(id, slice)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "flush incrémental ignoré", e)
+                // Tranche remise en file : le flush suivant la réessaie.
+                mutex.withLock {
+                    if (_state.value.sessionId == id && flushedCount == from + slice.size) flushedCount = from
+                }
+            }
         } finally {
-            flushing = false
+            flushMutex.unlock()
         }
     }
 
@@ -604,7 +620,6 @@ class TrackingController @Inject constructor(
         hrSamples.clear()
         cadenceSamples.clear()
         frozen = null
-        flushing = false
     }
 
     /** État remis à neuf en conservant les lectures capteurs (indépendantes de la sortie). */

@@ -9,8 +9,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.security.GeneralSecurityException
 import java.security.KeyStore
+import java.security.ProviderException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -59,6 +61,12 @@ class KeystoreSecretStore internal constructor(
             null
         } catch (e: IllegalArgumentException) {
             // Base64 invalide
+            null
+        } catch (e: IOException) {
+            // Fichier illisible
+            null
+        } catch (e: ProviderException) {
+            // KeyStore en défaut (clé invalidée, TEE indisponible)
             null
         }
     }

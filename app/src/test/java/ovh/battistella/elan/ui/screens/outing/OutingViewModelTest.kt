@@ -46,6 +46,16 @@ class OutingViewModelTest {
         assertFalse(velo.ui.value.pace)
 
         assertEquals(ActivityType.VELO, vm("inconnu").type)
+        assertEquals(ActivityType.VELO, vm("muscu").type)
+    }
+
+    @Test
+    fun `une sortie en cours impose son type à l'écran`() = runTest(mainDispatcher.dispatcher) {
+        val vm = vm("course", FakeOutingPort(OutingUi(phase = OutingPhase.Active, type = ActivityType.VELO)))
+        backgroundScope.launch { vm.ui.collect {} }
+        advanceUntilIdle()
+        assertEquals(ActivityType.VELO, vm.ui.value.type)
+        assertFalse(vm.ui.value.pace)
     }
 
     @Test

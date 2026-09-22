@@ -156,6 +156,15 @@ class GpxTcxParserTest {
     }
 
     @Test
+    fun `blancs ou BOM avant la déclaration XML sont tolérés (export TCX Strava)`() {
+        val tcx = GpxTcxParser.parse("   \n" + TCX_SAMPLE.trimStart())
+        assertEquals(StravaFormat.TCX, tcx.format)
+        assertEquals(1, tcx.activities.size)
+        val gpx = GpxTcxParser.parse("\uFEFF" + GPX_SAMPLE.trimStart())
+        assertEquals(3, gpx.activities[0].points.size)
+    }
+
+    @Test
     fun `sécurité — rejette une DOCTYPE (XXE, billion laughs)`() {
         val malicious = """<?xml version="1.0"?>
 <!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>

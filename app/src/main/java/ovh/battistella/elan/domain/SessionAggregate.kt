@@ -71,8 +71,9 @@ fun aggregateFromPoints(points: List<AggPoint>): SessionAggregate? {
     // vitesse implicite avec distance minimale) — cohérent avec le filtre live.
     var distanceM = 0.0
     var elevationGainM = 0.0
-    var anyAltitude = false
-    var prevAlt: Double? = null
+    // Le premier point sert de référence d'altitude (la boucle part du second).
+    var prevAlt: Double? = points.first().altitude
+    var anyAltitude = prevAlt != null
     for (i in 1 until points.size) {
         val prev = points[i - 1]
         val cur = points[i]

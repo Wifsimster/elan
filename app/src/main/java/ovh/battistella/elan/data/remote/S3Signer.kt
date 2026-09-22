@@ -53,7 +53,11 @@ object S3Signer {
         val ep = endpoint.trim().trimEnd('/')
         val m = ENDPOINT_RE.matchEntire(ep)
             ?: throw IllegalArgumentException("Endpoint S3 invalide : HTTPS requis (attendu https://hôte).")
-        val host = m.groupValues[1]
+        // Hôte signé = en-tête `Host` qu'OkHttp enverra : en minuscules, sans
+        // le port HTTPS par défaut. Sinon, 403 SignatureDoesNotMatch.
+        val authority = m.groupValues[1]
+        require('@' !in authority) { "Endpoint S3 invalide : identifiants dans l'URL non pris en charge." }
+        val host = authority.lowercase().removeSuffix(":443")
         val basePath = m.groupValues[2].trimEnd('/')
         return S3Endpoint(origin = "https://$host", host = host, basePath = basePath)
     }
