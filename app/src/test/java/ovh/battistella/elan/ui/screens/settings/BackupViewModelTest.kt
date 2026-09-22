@@ -25,6 +25,7 @@ import ovh.battistella.elan.data.secrets.InMemorySecretStore
 import ovh.battistella.elan.data.secrets.SecretStore
 import ovh.battistella.elan.data.settings.BackupLast
 import ovh.battistella.elan.data.settings.SettingsRepository
+import ovh.battistella.elan.sync.ReminderScheduler
 import ovh.battistella.elan.testing.MainDispatcherRule
 import ovh.battistella.elan.testing.TestSupport
 import java.time.Clock
@@ -225,7 +226,10 @@ class BackupViewModelTest {
         val secrets: SecretStore = InMemorySecretStore()
         repos.settings.setSetting(SettingsRepository.Keys.BACKUP_SECRETS_MISSING, "1")
         val context: Context = ApplicationProvider.getApplicationContext()
-        val port = BackupManagerPort(BackupManager(context, repos.settings, secrets, repos.snapshot, mockk(), Clock.systemUTC()))
+        val port = BackupManagerPort(
+            BackupManager(context, repos.settings, secrets, repos.snapshot, mockk(), Clock.systemUTC()),
+            ReminderScheduler(context, repos.settings, Clock.systemUTC()),
+        )
         val vm = vm(port)
         assertTrue(ui(vm).secretsMissing)
 

@@ -83,6 +83,14 @@ class S3SignerTest {
     }
 
     @Test
+    fun `l'hôte signé est celui qu'OkHttp envoie (minuscules, sans port 443)`() {
+        assertEquals(S3Endpoint("https://minio.home.lan", "minio.home.lan", ""), S3Signer.parseEndpoint("Https://MinIO.Home.lan"))
+        assertEquals(S3Endpoint("https://s3.x.tld", "s3.x.tld", ""), S3Signer.parseEndpoint("https://s3.x.tld:443"))
+        assertEquals("s3.x.tld:4430", S3Signer.parseEndpoint("https://s3.x.tld:4430").host)
+        assertThrows(IllegalArgumentException::class.java) { S3Signer.parseEndpoint("https://user:pass@host.tld") }
+    }
+
+    @Test
     fun `refuse le HTTP en clair`() {
         val e = assertThrows(IllegalArgumentException::class.java) { S3Signer.parseEndpoint("http://minio.local") }
         assertEquals("Endpoint S3 invalide : HTTPS requis (attendu https://hôte).", e.message)
