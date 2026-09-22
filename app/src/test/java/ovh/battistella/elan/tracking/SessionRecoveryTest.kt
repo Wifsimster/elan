@@ -17,6 +17,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import ovh.battistella.elan.data.local.ElanDatabase
 import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.testing.TestSupport
@@ -44,7 +47,11 @@ class SessionRecoveryTest {
         db.close()
     }
 
-    private fun recovery() = SessionRecovery(repos.sessions, controller)
+    /** Lancement du processus : toutes les séances des tests sont antérieures. */
+    private val processStart = 1_800_000_000_000L
+
+    private fun recovery() =
+        SessionRecovery(repos.sessions, controller, Clock.fixed(Instant.ofEpochMilli(processStart), ZoneOffset.UTC))
 
     @Test
     fun `une sortie orpheline avec des points est finalisée depuis ses points, avec la note`() = runTest {
@@ -90,6 +97,23 @@ class SessionRecoveryTest {
         assertNull(repos.sessions.getSession(empty))
         assertNull(repos.sessions.getSession(single))
         assertNull(repos.sessions.getSession(muscu))
+    }
+
+    @Test
+    fun `la sortie démarrée par ce processus n'est ni purgée ni finalisée`() = runTest {
+        val recovery = recovery()
+        // Démarrée depuis l'écran avant la fin des tâches de démarrage.
+        val live = repos.sessions.createSession(ActivityType.VELO, processStart + 1_000)
+        // Id déjà connu du contrôleur, horloge système en retard.
+        val tracked = repos.sessions.createSession(ActivityType.COURSE, processStart - 5_000)
+        controllerState.value = OutingState(phase = OutingPhase.ACTIVE, sessionId = tracked)
+
+        val outcome = recovery.recoverOrphans()
+
+        assertEquals(RecoveryOutcome(0, 0), outcome)
+        assertNotNull(repos.sessions.getSession(live))
+        assertNotNull(repos.sessions.getSession(tracked))
+        assertEquals(2, repos.sessions.listInProgressSessions().size)
     }
 
     @Test
