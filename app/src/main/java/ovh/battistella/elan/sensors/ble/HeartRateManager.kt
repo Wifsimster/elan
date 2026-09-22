@@ -193,6 +193,12 @@ class HeartRateManager @Inject constructor(
             l.connect(CONNECT_TIMEOUT_MS)
             l.discoverServices()
             val frames = l.enableNotifications(BleUuids.HEART_RATE_SERVICE, BleUuids.HEART_RATE_MEASUREMENT)
+            if (userDisconnected) {
+                // « Déconnecter » touché pendant la connexion : on n'y donne pas suite.
+                l.close()
+                connecting = false
+                return
+            }
 
             link = l
             lostJob = scope.launch {
