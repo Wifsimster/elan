@@ -7,6 +7,10 @@ ce fichier n'ajoute que ce qui est propre à Claude Code.
 
 @AGENTS.md
 
+## Style de communication
+
+Penser en vue d'ensemble, répondre en peu de mots. Pas de remplissage, pas de reformulation du contexte, pas de sur-explication.
+
 ## Rappels pour Claude Code
 
 - **Élan 2.0 est natif** : Kotlin 2.0 + Jetpack Compose (Material 3

@@ -4,6 +4,10 @@
 projet Gradle à la racine du dépôt. Tout ce qui suit s'applique à n'importe
 quel agent de code (Claude Code, Codex, Copilot…) qui touche ce dépôt.
 
+## Style de communication
+
+Penser en vue d'ensemble, répondre en peu de mots. Pas de remplissage, pas de reformulation du contexte, pas de sur-explication.
+
 ## Le produit en trois lignes
 
 Suivi sportif **local-first** : sorties GPS (vélo, course, marche) et
