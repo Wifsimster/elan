@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.1](https://github.com/Wifsimster/elan/compare/v2.0.0...v2.0.1) (2026-09-22)
+
+### 🐛 Corrections
+
+* corrections d'une chasse aux bugs (GPS, capteurs, import, sauvegarde, interface) ([#77](https://github.com/Wifsimster/elan/issues/77)) ([99ad65e](https://github.com/Wifsimster/elan/commit/99ad65e5d5a956ce33a718b04f063036f584506b))
+
 ## [2.0.0](https://github.com/Wifsimster/elan/compare/v1.9.0...v2.0.0) (2026-09-19)
 
 
