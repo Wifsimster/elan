@@ -51,14 +51,14 @@ import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.domain.meta
 import ovh.battistella.elan.ui.components.EmptyAction
 import ovh.battistella.elan.ui.components.EmptyState
-import ovh.battistella.elan.ui.components.PulseChip
+import ovh.battistella.elan.ui.components.ElanChip
 import ovh.battistella.elan.ui.components.SessionRow
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.components.screenContent
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.common.LinkCard
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.forKey
 
@@ -110,7 +110,7 @@ fun HistoryScreen(
                     .screenContent()
                     .padding(bottom = 10.dp),
             ) {
-                Text(stringResource(R.string.nav_history), style = PulseType.title, color = colors.text)
+                Text(stringResource(R.string.nav_history), style = ElanType.title, color = colors.text)
 
                 LinkCard(
                     icon = MdiIcons.ChartLine,
@@ -230,13 +230,13 @@ private fun TypeChips(
 ) {
     val colors = ElanTheme.colors
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        PulseChip(
+        ElanChip(
             label = stringResource(R.string.history_filter_all),
             selected = selected == null,
             onClick = { onSelect(null) },
         )
         ACTIVITY_TYPES.forEach { t ->
-            PulseChip(
+            ElanChip(
                 label = t.meta.shortLabel,
                 selected = selected == t,
                 color = colors.forKey(t.meta.colorKey),
@@ -251,7 +251,7 @@ private fun TypeChips(
 private fun RangeChips(selected: HistoryRange, onSelect: (HistoryRange) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         HistoryRange.entries.forEach { r ->
-            PulseChip(label = rangeLabel(r), selected = selected == r, onClick = { onSelect(r) })
+            ElanChip(label = rangeLabel(r), selected = selected == r, onClick = { onSelect(r) })
         }
     }
 }

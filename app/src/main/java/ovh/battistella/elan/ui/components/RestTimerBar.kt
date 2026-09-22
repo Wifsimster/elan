@@ -43,7 +43,7 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.sound.Sounds
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.Elevation
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.ceil
 import kotlin.math.max
@@ -138,12 +138,12 @@ fun RestTimerBar(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 (if (done) "Repos terminé" else "Repos").uppercase(),
-                style = PulseType.overline,
+                style = ElanType.overline,
                 color = colors.textSecondary,
             )
             Text(
                 formatDuration(remainingSec),
-                style = PulseType.metric.copy(fontSize = 26.sp),
+                style = ElanType.metric.copy(fontSize = 26.sp),
                 color = if (done) colors.success else colors.text,
             )
         }

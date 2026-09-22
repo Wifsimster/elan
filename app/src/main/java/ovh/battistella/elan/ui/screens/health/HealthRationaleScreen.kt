@@ -19,7 +19,7 @@ import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.components.screenContent
 import ovh.battistella.elan.ui.screens.common.SubScreenHeader
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 
 /**
  * Justification des permissions Health Connect, ouverte par le système
@@ -43,9 +43,9 @@ fun HealthRationaleScreen(contentPadding: PaddingValues, onBack: () -> Unit) {
     ) {
         SubScreenHeader(title = stringResource(R.string.health_rationale_title), onBack = onBack)
         Text(stringResource(R.string.health_rationale_intro), style = body, color = colors.text)
-        Text(stringResource(R.string.health_rationale_writes_title), style = PulseType.headline, color = colors.text)
+        Text(stringResource(R.string.health_rationale_writes_title), style = ElanType.headline, color = colors.text)
         Text(stringResource(R.string.health_rationale_writes), style = body, color = colors.textSecondary)
-        Text(stringResource(R.string.health_rationale_reads_title), style = PulseType.headline, color = colors.text)
+        Text(stringResource(R.string.health_rationale_reads_title), style = ElanType.headline, color = colors.text)
         Text(stringResource(R.string.health_rationale_reads), style = body, color = colors.textSecondary)
         Text(stringResource(R.string.health_rationale_control), style = body, color = colors.textSecondary)
     }

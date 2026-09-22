@@ -40,7 +40,7 @@ import ovh.battistella.elan.domain.formatDateTime
 import ovh.battistella.elan.ui.components.BarChart
 import ovh.battistella.elan.ui.components.EmptyState
 import ovh.battistella.elan.ui.components.ExerciseIllustration
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.TagPill
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.components.screenContent
@@ -48,8 +48,8 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.common.SubScreenHeader
 import ovh.battistella.elan.ui.screens.common.TintedIconBox
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseGradients
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanGradients
+import ovh.battistella.elan.ui.theme.ElanType
 import kotlin.math.roundToInt
 
 /**
@@ -81,7 +81,7 @@ fun ExerciseScreen(
         SubScreenHeader(title = ui.name, onBack = onBack)
 
         ui.guide?.let { guide ->
-            PulseCard {
+            ElanCard {
                 ExerciseIllustration(imageKey = guide.imageKey, icon = guide.icon, height = 156.dp)
                 if (guide.muscles.isNotEmpty()) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -90,7 +90,7 @@ fun ExerciseScreen(
                 }
                 if (guide.howTo.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.exercise_execution).uppercase(), style = PulseType.overline, color = colors.textMuted)
+                        Text(stringResource(R.string.exercise_execution).uppercase(), style = ElanType.overline, color = colors.textMuted)
                         Text(guide.howTo, style = TextStyle(fontSize = 15.sp, lineHeight = 23.sp), color = colors.text)
                     }
                 }
@@ -107,7 +107,7 @@ fun ExerciseScreen(
         }
 
         if (!points.isNullOrEmpty()) {
-            PulseCard {
+            ElanCard {
                 Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
                     Metric(stringResource(R.string.exercise_record), "${fmtKg(ui.best)} kg", colors.muscu)
                     Metric(stringResource(R.string.exercise_current), "${fmtKg(ui.last)} kg")
@@ -121,14 +121,14 @@ fun ExerciseScreen(
             }
 
             if (ui.best1rm > 0) {
-                PulseCard {
+                ElanCard {
                     Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
                         Metric(stringResource(R.string.exercise_1rm_current), "${ui.last1rm.roundToInt()} kg")
                         Metric(stringResource(R.string.exercise_1rm_record), "${ui.best1rm.roundToInt()} kg", colors.muscu)
                     }
                     Text(
                         stringResource(R.string.exercise_1rm_hint),
-                        style = PulseType.caption,
+                        style = ElanType.caption,
                         color = colors.textMuted,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
@@ -138,12 +138,12 @@ fun ExerciseScreen(
 
             AdviceCard(ui)
 
-            PulseCard {
-                Text(stringResource(R.string.exercise_max_per_session), style = PulseType.headline, color = colors.text)
-                BarChart(data = ui.bars, gradient = PulseGradients.muscu, formatValue = { "${fmtKg(it)} kg" })
+            ElanCard {
+                Text(stringResource(R.string.exercise_max_per_session), style = ElanType.headline, color = colors.text)
+                BarChart(data = ui.bars, gradient = ElanGradients.muscu, formatValue = { "${fmtKg(it)} kg" })
             }
 
-            Text(stringResource(R.string.exercise_sessions), style = PulseType.headline, color = colors.text)
+            Text(stringResource(R.string.exercise_sessions), style = ElanType.headline, color = colors.text)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 points.asReversed().forEach { p ->
                     SessionRow(p = p, onClick = { onOpenSession(p.sessionId) })
@@ -168,7 +168,7 @@ private fun AdviceCard(ui: ExerciseUi) {
         ProgressionAdvice.REDUIS -> MdiIcons.ArrowDownBold
         ProgressionAdvice.MAINTIENS -> MdiIcons.Equal
     }
-    PulseCard {
+    ElanCard {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             TintedIconBox(
                 icon = if (ui.hasRating) adviceIcon else MdiIcons.GestureTap,
@@ -177,7 +177,7 @@ private fun AdviceCard(ui: ExerciseUi) {
                 iconSize = 22.dp,
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.exercise_advice).uppercase(), style = PulseType.overline, color = colors.textMuted)
+                Text(stringResource(R.string.exercise_advice).uppercase(), style = ElanType.overline, color = colors.textMuted)
                 if (ui.hasRating) {
                     Text(adviceLabel(advice), style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold), color = colors.text)
                     ui.lastRating?.let {
@@ -195,10 +195,10 @@ private fun AdviceCard(ui: ExerciseUi) {
 private fun SessionRow(p: ExercisePoint, onClick: () -> Unit) {
     val colors = ElanTheme.colors
     val oneRm = epley1RM(p.maxWeightKg, p.topReps)
-    PulseCard(modifier = Modifier.fillMaxWidth().pressableScale(onClick = onClick)) {
+    ElanCard(modifier = Modifier.fillMaxWidth().pressableScale(onClick = onClick)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                Text("${fmtKg(p.maxWeightKg)} kg × ${p.topReps}", style = PulseType.subtitle, color = colors.text)
+                Text("${fmtKg(p.maxWeightKg)} kg × ${p.topReps}", style = ElanType.subtitle, color = colors.text)
                 Text(formatDateTime(p.startedAt), style = TextStyle(fontSize = 13.sp), color = colors.textSecondary)
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -229,7 +229,7 @@ private fun SessionRow(p: ExercisePoint, onClick: () -> Unit) {
 private fun Metric(label: String, value: String, color: Color? = null) {
     val colors = ElanTheme.colors
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(value, style = PulseType.metric.copy(fontSize = 20.sp), color = color ?: colors.text)
-        Text(label, style = PulseType.caption, color = colors.textSecondary)
+        Text(value, style = ElanType.metric.copy(fontSize = 20.sp), color = color ?: colors.text)
+        Text(label, style = ElanType.caption, color = colors.textSecondary)
     }
 }

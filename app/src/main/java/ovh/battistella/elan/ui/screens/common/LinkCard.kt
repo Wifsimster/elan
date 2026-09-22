@@ -27,7 +27,7 @@ import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.Elevation
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
 /**
@@ -83,7 +83,7 @@ fun LinkCard(
     ) {
         TintedIconBox(icon = icon, color = color, size = iconBoxSize, iconSize = if (iconBoxSize >= 46.dp) 24.dp else 22.dp)
         Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-            Text(title, style = PulseType.subtitle, color = colors.text)
+            Text(title, style = ElanType.subtitle, color = colors.text)
             Text(subtitle, style = TextStyle(fontSize = 13.sp), color = colors.textSecondary)
         }
         Icon(

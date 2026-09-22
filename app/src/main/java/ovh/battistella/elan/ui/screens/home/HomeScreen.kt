@@ -56,8 +56,8 @@ import ovh.battistella.elan.ui.components.BarPoint
 import ovh.battistella.elan.ui.components.ButtonSize
 import ovh.battistella.elan.ui.components.EmptyState
 import ovh.battistella.elan.ui.components.HrBadge
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SessionRow
 import ovh.battistella.elan.ui.components.StatTile
 import ovh.battistella.elan.ui.components.Trend
@@ -68,7 +68,7 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.common.LinkCard
 import ovh.battistella.elan.ui.screens.common.TintedIconBox
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.forKey
 import kotlin.math.roundToInt
@@ -134,8 +134,8 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(R.string.home_greeting), style = PulseType.label, color = colors.textSecondary)
-                Text(stringResource(R.string.app_name), style = PulseType.title, color = colors.text)
+                Text(stringResource(R.string.home_greeting), style = ElanType.label, color = colors.textSecondary)
+                Text(stringResource(R.string.app_name), style = ElanType.title, color = colors.text)
             }
             HrBadge(bpm = heart.bpm, connected = heart.connected, onClick = onOpenSettings)
         }
@@ -170,8 +170,8 @@ fun HomeScreen(
 
         if (ui.goals.isNotEmpty()) GoalsProgressCard(items = ui.goals)
 
-        PulseCard {
-            Text(stringResource(R.string.home_activity_title), style = PulseType.headline, color = colors.text)
+        ElanCard {
+            Text(stringResource(R.string.home_activity_title), style = ElanType.headline, color = colors.text)
             BarChart(
                 data = ui.bars.map { BarPoint(it.label, it.value.toDouble()) },
                 formatValue = { formatDurationShort(it) },
@@ -183,7 +183,7 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(stringResource(R.string.home_recent), style = PulseType.headline, color = colors.text)
+            Text(stringResource(R.string.home_recent), style = ElanType.headline, color = colors.text)
             Text(
                 text = stringResource(R.string.home_see_all),
                 color = colors.accent,
@@ -195,7 +195,7 @@ fun HomeScreen(
         }
 
         if (ui.loaded && ui.recent.isEmpty()) {
-            PulseCard {
+            ElanCard {
                 EmptyState(
                     icon = MdiIcons.RunFast,
                     title = stringResource(R.string.home_empty_title),
@@ -228,12 +228,12 @@ internal fun TodayCard(
     val mutedStyle = TextStyle(fontSize = 12.sp)
 
     if (plan is PlannedSession.Repos) {
-        PulseCard {
+        ElanCard {
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 TintedIconBox(icon = MdiIcons.Sleep, color = colors.textSecondary, size = 46.dp, iconSize = 24.dp)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.home_today, dayName), style = PulseType.label, color = colors.textSecondary)
-                    Text(stringResource(R.string.home_rest), style = PulseType.subtitle, color = colors.text)
+                    Text(stringResource(R.string.home_today, dayName), style = ElanType.label, color = colors.textSecondary)
+                    Text(stringResource(R.string.home_rest), style = ElanType.subtitle, color = colors.text)
                     Text(stringResource(R.string.home_rest_hint), style = secondaryStyle, color = colors.textSecondary)
                     if (lastLabel != null) {
                         Text(lastLabel, style = mutedStyle, color = colors.textMuted, modifier = Modifier.padding(top = 2.dp))
@@ -260,19 +260,19 @@ internal fun TodayCard(
         stringResource(R.string.home_active_recovery)
     }
 
-    PulseCard {
+    ElanCard {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
             TintedIconBox(icon = MdiIcons.byName(meta.icon) ?: MdiIcons.Run, color = color, size = 46.dp, iconSize = 24.dp)
             Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.home_today, dayName), style = PulseType.label, color = colors.textSecondary)
-                Text(label, style = PulseType.subtitle, color = colors.text)
+                Text(stringResource(R.string.home_today, dayName), style = ElanType.label, color = colors.textSecondary)
+                Text(label, style = ElanType.subtitle, color = colors.text)
                 Text(subtitle, style = secondaryStyle, color = colors.textSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 if (lastLabel != null) {
                     Text(lastLabel, style = mutedStyle, color = colors.textMuted, modifier = Modifier.padding(top = 2.dp))
                 }
             }
         }
-        PulseButton(
+        ElanButton(
             title = stringResource(if (isResumeMuscu) R.string.home_resume else R.string.home_start_session),
             icon = MdiIcons.Play,
             color = color,
@@ -293,11 +293,11 @@ private fun StartGrid(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             stringResource(R.string.home_start_overline).uppercase(),
-            style = PulseType.overline,
+            style = ElanType.overline,
             color = colors.textSecondary,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            PulseButton(
+            ElanButton(
                 title = ActivityType.VELO.meta.shortLabel,
                 icon = MdiIcons.Bike,
                 size = ButtonSize.Lg,
@@ -305,7 +305,7 @@ private fun StartGrid(
                 onClick = { onStartOuting(ActivityType.VELO) },
                 modifier = Modifier.weight(1f),
             )
-            PulseButton(
+            ElanButton(
                 title = if (resumable) stringResource(R.string.home_resume) else ActivityType.MUSCU.meta.shortLabel,
                 icon = if (resumable) MdiIcons.Play else MdiIcons.Dumbbell,
                 size = ButtonSize.Lg,
@@ -315,7 +315,7 @@ private fun StartGrid(
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            PulseButton(
+            ElanButton(
                 title = ActivityType.COURSE.meta.shortLabel,
                 icon = MdiIcons.Run,
                 size = ButtonSize.Lg,
@@ -323,7 +323,7 @@ private fun StartGrid(
                 onClick = { onStartOuting(ActivityType.COURSE) },
                 modifier = Modifier.weight(1f),
             )
-            PulseButton(
+            ElanButton(
                 title = ActivityType.MARCHE.meta.shortLabel,
                 icon = MdiIcons.Walk,
                 size = ButtonSize.Lg,
@@ -345,14 +345,14 @@ private fun WeekCard(stats: PeriodStats?, lastStats: PeriodStats?) {
         if (both) buildTrend(current, previous, stable, fmt) else null
     val distance = distanceParts(stats?.totalDistanceM ?: 0.0)
 
-    PulseCard {
+    ElanCard {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(stringResource(R.string.home_week_title), style = PulseType.headline, color = colors.text)
-            if (both) Text(stringResource(R.string.home_vs_last_week), style = PulseType.caption, color = colors.textMuted)
+            Text(stringResource(R.string.home_week_title), style = ElanType.headline, color = colors.text)
+            if (both) Text(stringResource(R.string.home_vs_last_week), style = ElanType.caption, color = colors.textMuted)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             StatTile(
@@ -405,8 +405,8 @@ private fun WeekCard(stats: PeriodStats?, lastStats: PeriodStats?) {
 @Composable
 internal fun GoalsProgressCard(items: List<GoalProgress>) {
     val colors = ElanTheme.colors
-    PulseCard {
-        Text(stringResource(R.string.home_goals_title), style = PulseType.headline, color = colors.text)
+    ElanCard {
+        Text(stringResource(R.string.home_goals_title), style = ElanType.headline, color = colors.text)
         items.forEach { p ->
             val pct = (p.ratio * 100).roundToInt()
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -471,7 +471,7 @@ internal fun GoalsProgressCard(items: List<GoalProgress>) {
 internal fun PlanUpdateBanner(state: AutoProgressionState, onOpen: () -> Unit, onDismiss: () -> Unit) {
     val colors = ElanTheme.colors
     val dismissLabel = stringResource(R.string.plan_update_dismiss)
-    PulseCard {
+    ElanCard {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -482,7 +482,7 @@ internal fun PlanUpdateBanner(state: AutoProgressionState, onOpen: () -> Unit, o
             ) {
                 TintedIconBox(icon = MdiIcons.TrendingUp, color = colors.muscu, size = 42.dp, iconSize = 22.dp)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.plan_update_title), style = PulseType.subtitle, color = colors.text)
+                    Text(stringResource(R.string.plan_update_title), style = ElanType.subtitle, color = colors.text)
                     Text(changeSummaryLine(state.changes), style = TextStyle(fontSize = 13.sp), color = colors.textSecondary)
                 }
             }

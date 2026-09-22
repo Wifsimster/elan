@@ -11,18 +11,18 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseColors
-import ovh.battistella.elan.ui.theme.PulseGradients
+import ovh.battistella.elan.ui.theme.ElanColors
+import ovh.battistella.elan.ui.theme.ElanGradients
 
 @RunWith(RobolectricTestRunner::class)
-class PulseButtonTest {
+class ElanButtonTest {
 
     @get:Rule val compose = createComposeRule()
 
     @Test
     fun clickInvokesCallback() {
         var clicks = 0
-        compose.setContent { ElanTheme { PulseButton(title = "Démarrer", onClick = { clicks++ }) } }
+        compose.setContent { ElanTheme { ElanButton(title = "Démarrer", onClick = { clicks++ }) } }
 
         compose.onNodeWithText("Démarrer").assertIsDisplayed().performClick()
 
@@ -33,7 +33,7 @@ class PulseButtonTest {
     fun disabledButtonIgnoresClicks() {
         var clicks = 0
         compose.setContent {
-            ElanTheme { PulseButton(title = "Démarrer", enabled = false, onClick = { clicks++ }) }
+            ElanTheme { ElanButton(title = "Démarrer", enabled = false, onClick = { clicks++ }) }
         }
 
         compose.onNodeWithText("Démarrer").assertIsNotEnabled().performClick()
@@ -43,21 +43,21 @@ class PulseButtonTest {
 
     @Test
     fun loadingHidesTheLabel() {
-        compose.setContent { ElanTheme { PulseButton(title = "Sauvegarder", loading = true, onClick = {}) } }
+        compose.setContent { ElanTheme { ElanButton(title = "Sauvegarder", loading = true, onClick = {}) } }
 
         compose.onNodeWithText("Sauvegarder").assertDoesNotExist()
     }
 
     @Test
     fun gradientIsInferredFromActivityColour() {
-        val c = PulseColors.Light
-        assertEquals(PulseGradients.velo, gradientFor(c.velo, c))
-        assertEquals(PulseGradients.muscu, gradientFor(c.muscu, c))
-        assertEquals(PulseGradients.course, gradientFor(c.course, c))
-        assertEquals(PulseGradients.marche, gradientFor(c.marche, c))
-        assertEquals(PulseGradients.heart, gradientFor(c.heart, c))
-        assertEquals(PulseGradients.fire, gradientFor(c.warning, c))
-        assertEquals(PulseGradients.accent, gradientFor(c.accent, c))
-        assertEquals(PulseGradients.accent, gradientFor(null, c))
+        val c = ElanColors.Light
+        assertEquals(ElanGradients.velo, gradientFor(c.velo, c))
+        assertEquals(ElanGradients.muscu, gradientFor(c.muscu, c))
+        assertEquals(ElanGradients.course, gradientFor(c.course, c))
+        assertEquals(ElanGradients.marche, gradientFor(c.marche, c))
+        assertEquals(ElanGradients.heart, gradientFor(c.heart, c))
+        assertEquals(ElanGradients.fire, gradientFor(c.warning, c))
+        assertEquals(ElanGradients.accent, gradientFor(c.accent, c))
+        assertEquals(ElanGradients.accent, gradientFor(null, c))
     }
 }

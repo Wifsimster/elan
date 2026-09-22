@@ -29,8 +29,8 @@ import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.ui.haptics.HapticKind
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.Elevation
-import ovh.battistella.elan.ui.theme.PulseColors
-import ovh.battistella.elan.ui.theme.PulseGradients
+import ovh.battistella.elan.ui.theme.ElanColors
+import ovh.battistella.elan.ui.theme.ElanGradients
 import ovh.battistella.elan.ui.theme.Radius
 
 enum class ButtonVariant { Primary, Secondary, Danger, Ghost }
@@ -41,25 +41,25 @@ enum class ButtonSize { Md, Lg }
  * table que `gradientFor` dans l'app d'origine) : velo / muscu / course /
  * marche / heart, warning → fire, sinon accent.
  */
-fun gradientFor(color: Color?, colors: PulseColors): List<Color> = when (color) {
-    colors.velo -> PulseGradients.velo
-    colors.muscu -> PulseGradients.muscu
-    colors.course -> PulseGradients.course
-    colors.marche -> PulseGradients.marche
-    colors.heart -> PulseGradients.heart
-    colors.warning -> PulseGradients.fire
-    else -> PulseGradients.accent
+fun gradientFor(color: Color?, colors: ElanColors): List<Color> = when (color) {
+    colors.velo -> ElanGradients.velo
+    colors.muscu -> ElanGradients.muscu
+    colors.course -> ElanGradients.course
+    colors.marche -> ElanGradients.marche
+    colors.heart -> ElanGradients.heart
+    colors.warning -> ElanGradients.fire
+    else -> ElanGradients.accent
 }
 
 /**
- * Bouton PULSE : remplissage en dégradé + ombre teintée pour l'action
+ * Bouton Sillage : remplissage en dégradé + ombre teintée pour l'action
  * principale (et la variante danger), contour 1,5 dp pour le secondaire,
  * plat pour le ghost. Appui « ressort » et haptique inclus (light pour
  * primary, selection sinon). En [loading], l'étiquette laisse place à un
  * indicateur ; le bouton est alors inactif comme s'il était désactivé.
  */
 @Composable
-fun PulseButton(
+fun ElanButton(
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -76,11 +76,11 @@ fun PulseButton(
     val colors = ElanTheme.colors
     val accent = color ?: colors.accent
     val grad = gradient
-        ?: if (variant == ButtonVariant.Danger) PulseGradients.danger else gradientFor(accent, colors)
+        ?: if (variant == ButtonVariant.Danger) ElanGradients.danger else gradientFor(accent, colors)
     val filled = variant == ButtonVariant.Primary || variant == ButtonVariant.Danger
 
     val fg = when {
-        filled -> PulseGradients.inkOn(grad)
+        filled -> ElanGradients.inkOn(grad)
         variant == ButtonVariant.Ghost -> colors.textSecondary
         else -> accent
     }

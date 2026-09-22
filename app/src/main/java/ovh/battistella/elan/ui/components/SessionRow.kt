@@ -31,7 +31,7 @@ import ovh.battistella.elan.domain.meta
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.Elevation
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.forKey
 
@@ -96,7 +96,7 @@ fun SessionRow(
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-            Text(meta.label, style = PulseType.subtitle, color = colors.text)
+            Text(meta.label, style = ElanType.subtitle, color = colors.text)
             Text(formatDateTime(session.startedAt), style = secondaryStyle, color = colors.textSecondary)
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp), horizontalAlignment = Alignment.End) {

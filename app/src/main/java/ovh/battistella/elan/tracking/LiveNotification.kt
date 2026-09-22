@@ -45,7 +45,7 @@ object LiveNotification {
     /** Extra posé sur l'intent de `MainActivity` : route à ouvrir (`LiveKind.route`). */
     const val EXTRA_OPEN_ROUTE = "ovh.battistella.elan.OPEN_ROUTE"
 
-    /** Couleur d'accent des notifications (fond PULSE). */
+    /** Couleur d'accent des notifications (fond Sillage). */
     private const val ACCENT = "#0A0C10"
 
     /**

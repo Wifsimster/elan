@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import ovh.battistella.elan.R
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
@@ -33,7 +33,7 @@ fun HealthConnectCard(
     val colors = ElanTheme.colors
     val launcher = rememberLauncherForActivityResult(contract) { granted -> onPermissionResult(granted) }
 
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.HeartPlusOutline, color = colors.accent, title = stringResource(R.string.settings_health_title))
         SwitchRow(
             label = stringResource(R.string.settings_health_toggle),

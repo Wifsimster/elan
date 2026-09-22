@@ -5,7 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import ovh.battistella.elan.R
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.components.SettingField
 import ovh.battistella.elan.ui.icons.MdiIcons
@@ -26,7 +26,7 @@ fun MapCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = ElanTheme.colors
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.MapOutline, color = colors.velo, title = stringResource(R.string.settings_map_title))
         SwitchRow(label = stringResource(R.string.settings_map_toggle), checked = enabled, onCheckedChange = onEnabledChange, color = colors.velo)
         CardText(stringResource(if (enabled) R.string.settings_map_on_text else R.string.settings_map_off_text))

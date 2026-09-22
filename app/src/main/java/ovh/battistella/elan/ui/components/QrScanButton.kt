@@ -32,7 +32,7 @@ fun QrScanButton(
     }
     if (!available) return
 
-    PulseButton(
+    ElanButton(
         title = title,
         icon = MdiIcons.QrcodeScan,
         variant = ButtonVariant.Secondary,

@@ -86,9 +86,9 @@ import ovh.battistella.elan.ui.components.ButtonVariant
 import ovh.battistella.elan.ui.components.ExerciseCatalog
 import ovh.battistella.elan.ui.components.ExerciseInfo
 import ovh.battistella.elan.ui.components.ExerciseInfoSheet
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
-import ovh.battistella.elan.ui.components.PulseChip
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
+import ovh.battistella.elan.ui.components.ElanChip
 import ovh.battistella.elan.ui.components.RestTimerBar
 import ovh.battistella.elan.ui.components.Stepper
 import ovh.battistella.elan.ui.components.pressableScale
@@ -99,7 +99,7 @@ import ovh.battistella.elan.ui.screens.common.ConfirmDialog
 import ovh.battistella.elan.ui.screens.common.HeaderAction
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.Elevation
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.roundToInt
 
@@ -176,7 +176,7 @@ fun StrengthScreen(
                 HeaderAction(icon = MdiIcons.Close, label = stringResource(R.string.muscu_quit), onClick = viewModel::requestExit, size = 26.dp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(painter = painterResource(MdiIcons.Dumbbell), contentDescription = null, tint = colors.muscu, modifier = Modifier.size(22.dp))
-                    Text(stringResource(R.string.muscu_title), style = PulseType.headline, color = colors.text)
+                    Text(stringResource(R.string.muscu_title), style = ElanType.headline, color = colors.text)
                 }
                 Spacer(Modifier.width(38.dp))
             }
@@ -295,7 +295,7 @@ private fun InfoDialog(title: Int, text: Int, onDismiss: () -> Unit) {
 private fun SummaryCard(ui: StrengthUi) {
     val colors = ElanTheme.colors
     val stats = ui.stats
-    PulseCard {
+    ElanCard {
         Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
             Summary(stringResource(R.string.muscu_duration), formatDuration(ui.elapsedSec))
             Summary(stringResource(R.string.muscu_sets), if (stats.totalSets > 0) "${stats.doneSets}/${stats.totalSets}" else "0")
@@ -311,9 +311,9 @@ private fun Summary(label: String, value: String, color: Color? = null) {
     val density = LocalDensity.current
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.2f))) {
-            Text(value, style = PulseType.metric.copy(fontSize = 20.sp), color = color ?: colors.text, maxLines = 1)
+            Text(value, style = ElanType.metric.copy(fontSize = 20.sp), color = color ?: colors.text, maxLines = 1)
         }
-        Text(label, style = PulseType.caption, color = colors.textSecondary)
+        Text(label, style = ElanType.caption, color = colors.textSecondary)
     }
 }
 
@@ -322,9 +322,9 @@ private fun Summary(label: String, value: String, color: Color? = null) {
 @Composable
 private fun TemplatePicker(onPick: (WorkoutTemplate) -> Unit) {
     val colors = ElanTheme.colors
-    PulseCard {
-        Text(stringResource(R.string.muscu_load_program), style = PulseType.subtitle, color = colors.text)
-        Text(stringResource(R.string.muscu_load_program_hint), style = PulseType.caption, color = colors.textSecondary)
+    ElanCard {
+        Text(stringResource(R.string.muscu_load_program), style = ElanType.subtitle, color = colors.text)
+        Text(stringResource(R.string.muscu_load_program_hint), style = ElanType.caption, color = colors.textSecondary)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -356,7 +356,7 @@ private fun TemplatePicker(onPick: (WorkoutTemplate) -> Unit) {
 @Composable
 private fun ExerciseCard(ex: StrengthExercise, viewModel: StrengthViewModel) {
     val colors = ElanTheme.colors
-    PulseCard {
+    ElanCard {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(ex.name, style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.ExtraBold), color = colors.text)
@@ -415,10 +415,10 @@ private fun ExerciseCard(ex: StrengthExercise, viewModel: StrengthViewModel) {
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.muscu_feeling), style = PulseType.label, color = colors.textSecondary)
+            Text(stringResource(R.string.muscu_feeling), style = ElanType.label, color = colors.textSecondary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Difficulty.entries.forEach { d ->
-                    PulseChip(
+                    ElanChip(
                         label = difficultyLabel(d),
                         selected = ex.difficulty == d,
                         color = colors.muscu,
@@ -501,17 +501,17 @@ private fun AddExerciseCard(onBrowse: () -> Unit, onAdd: (String) -> Unit) {
         onAdd(draft)
         draft = ""
     }
-    PulseCard {
-        Text(stringResource(R.string.muscu_add_exercise), style = PulseType.subtitle, color = colors.text)
-        PulseButton(
+    ElanCard {
+        Text(stringResource(R.string.muscu_add_exercise), style = ElanType.subtitle, color = colors.text)
+        ElanButton(
             title = stringResource(R.string.muscu_browse_catalog),
             icon = MdiIcons.ViewGridOutline,
             color = colors.muscu,
             onClick = onBrowse,
             modifier = Modifier.fillMaxWidth(),
         )
-        Text(stringResource(R.string.muscu_catalog_hint), style = PulseType.caption, color = colors.textSecondary)
-        Text(stringResource(R.string.muscu_or_type), style = PulseType.caption, color = colors.textMuted)
+        Text(stringResource(R.string.muscu_catalog_hint), style = ElanType.caption, color = colors.textSecondary)
+        Text(stringResource(R.string.muscu_or_type), style = ElanType.caption, color = colors.textMuted)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val shape = RoundedCornerShape(Radius.sm)
             val placeholder = stringResource(R.string.muscu_exercise_name)
@@ -556,7 +556,7 @@ private fun AddExerciseCard(onBrowse: () -> Unit, onAdd: (String) -> Unit) {
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             COMMON_EXERCISES.forEach { name ->
-                PulseChip(label = name, selected = false, color = colors.muscu, onClick = { onAdd(name) })
+                ElanChip(label = name, selected = false, color = colors.muscu, onClick = { onAdd(name) })
             }
         }
     }
@@ -585,7 +585,7 @@ private fun CatalogDialog(ui: StrengthUi, viewModel: StrengthViewModel) {
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(painter = painterResource(MdiIcons.ViewGridOutline), contentDescription = null, tint = colors.muscu, modifier = Modifier.size(22.dp))
-                    Text(stringResource(R.string.muscu_catalog), style = PulseType.headline, color = colors.text)
+                    Text(stringResource(R.string.muscu_catalog), style = ElanType.headline, color = colors.text)
                 }
                 HeaderAction(icon = MdiIcons.Close, label = stringResource(R.string.muscu_catalog_close), onClick = { viewModel.setCatalogOpen(false) }, size = 26.dp)
             }
@@ -622,7 +622,7 @@ private fun ControlBar(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.screenContent().padding(vertical = 12.dp),
         ) {
-            PulseButton(
+            ElanButton(
                 title = stringResource(if (paused) R.string.muscu_resume else R.string.muscu_pause),
                 icon = if (paused) MdiIcons.Play else MdiIcons.Pause,
                 variant = ButtonVariant.Secondary,
@@ -631,7 +631,7 @@ private fun ControlBar(
                 onClick = if (paused) onResume else onPause,
                 modifier = Modifier.weight(1f),
             )
-            PulseButton(
+            ElanButton(
                 title = stringResource(R.string.muscu_finish),
                 icon = MdiIcons.FlagCheckered,
                 color = colors.muscu,

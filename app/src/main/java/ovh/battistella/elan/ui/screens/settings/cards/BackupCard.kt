@@ -15,8 +15,8 @@ import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.formatDateTime
 import ovh.battistella.elan.ui.components.ButtonVariant
 import ovh.battistella.elan.ui.components.ErrorNotice
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.common.ConfirmDialog
@@ -37,7 +37,7 @@ fun BackupCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = ElanTheme.colors
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.CloudUploadOutline, color = colors.accent, title = stringResource(R.string.settings_backup_title))
         CardText(stringResource(R.string.settings_backup_intro))
 
@@ -55,7 +55,7 @@ fun BackupCard(
 
         ui.error?.let { ErrorNotice(it) }
 
-        PulseButton(
+        ElanButton(
             title = stringResource(R.string.settings_backup_now),
             icon = MdiIcons.CloudUpload,
             loading = ui.status == BackupStatus.Saving,
@@ -63,7 +63,7 @@ fun BackupCard(
             onClick = onBackupNow,
             modifier = Modifier.fillMaxWidth(),
         )
-        PulseButton(
+        ElanButton(
             title = stringResource(R.string.settings_backup_restore),
             icon = MdiIcons.CloudDownloadOutline,
             variant = ButtonVariant.Secondary,

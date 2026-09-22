@@ -13,12 +13,12 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
 /**
- * Schéma Material 3 dérivé des jetons PULSE, pour que les composants Material
+ * Schéma Material 3 dérivé des jetons Sillage, pour que les composants Material
  * (boutons, switches, barre de navigation, snackbar) parlent la même langue
  * que les composants maison. Pas de couleur dynamique (Material You) : la
  * marque est fixe.
  */
-private fun colorSchemeFrom(c: PulseColors, dark: Boolean): ColorScheme {
+private fun colorSchemeFrom(c: ElanColors, dark: Boolean): ColorScheme {
     val onAccent = Color.White
     return if (dark) {
         darkColorScheme(
@@ -84,15 +84,15 @@ private fun colorSchemeFrom(c: PulseColors, dark: Boolean): ColorScheme {
 /**
  * Point d'entrée du thème d'Élan. Enveloppe [MaterialExpressiveTheme] — qui
  * fournit le [MotionScheme] à ressorts de Material 3 Expressive et les
- * défauts des composants — et fournit la couche de jetons PULSE
- * ([PulseColors], zones FC) par-dessus.
+ * défauts des composants — et fournit la couche de jetons Sillage
+ * ([ElanColors], zones FC) par-dessus.
  */
 @Composable
 fun ElanTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val pulseColors = if (darkTheme) PulseColors.Dark else PulseColors.Light
+    val elanColors = if (darkTheme) ElanColors.Dark else ElanColors.Light
     val hrZones = if (darkTheme) HrZoneColors.Dark else HrZoneColors.Light
     // « Animations réduites » (échelle d'animation système à 0) : plus de rebond
     // ni de halo pulsant (pressableScale, RouteCanvas) et ressorts Material
@@ -100,12 +100,12 @@ fun ElanTheme(
     val reducedMotion = rememberSystemReducedMotion()
 
     CompositionLocalProvider(
-        LocalPulseColors provides pulseColors,
+        LocalElanColors provides elanColors,
         LocalHrZoneColors provides hrZones,
         LocalReducedMotion provides reducedMotion,
     ) {
         MaterialExpressiveTheme(
-            colorScheme = colorSchemeFrom(pulseColors, darkTheme),
+            colorScheme = colorSchemeFrom(elanColors, darkTheme),
             motionScheme = if (reducedMotion) MotionScheme.standard() else MotionScheme.expressive(),
             content = content,
         )
@@ -113,13 +113,13 @@ fun ElanTheme(
 }
 
 /**
- * Accès aux jetons PULSE, à la manière dont [MaterialTheme] expose ses
+ * Accès aux jetons Sillage, à la manière dont [MaterialTheme] expose ses
  * sous-systèmes (`ElanTheme.colors.accent`). Une fonction et un objet peuvent
  * partager un nom en Kotlin : `ElanTheme { }` et `ElanTheme.colors` coexistent.
  */
 object ElanTheme {
-    val colors: PulseColors
-        @Composable @ReadOnlyComposable get() = LocalPulseColors.current
+    val colors: ElanColors
+        @Composable @ReadOnlyComposable get() = LocalElanColors.current
     val hrZones: List<Color>
         @Composable @ReadOnlyComposable get() = LocalHrZoneColors.current
 }

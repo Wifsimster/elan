@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseGradients
+import ovh.battistella.elan.ui.theme.ElanGradients
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.max
 import kotlin.math.roundToLong
@@ -39,7 +39,7 @@ internal fun barChartSummary(data: List<BarPoint>, formatValue: (Double) -> Stri
     data.joinToString(", ") { "${it.label} ${formatValue(it.value)}" }
 
 /**
- * Histogramme PULSE : une colonne par point, valeur au-dessus des barres non
+ * Histogramme Sillage : une colonne par point, valeur au-dessus des barres non
  * nulles (ou espaceur de 14 dp pour garder l'alignement), rail de fond pleine
  * hauteur en `hairline` (chaque jour garde une présence visuelle — sans rail,
  * une semaine creuse paraît « cassée »), barre en dégradé vertical sur 64 % de
@@ -49,7 +49,7 @@ internal fun barChartSummary(data: List<BarPoint>, formatValue: (Double) -> Stri
 fun BarChart(
     data: List<BarPoint>,
     modifier: Modifier = Modifier,
-    gradient: List<Color> = PulseGradients.accent,
+    gradient: List<Color> = ElanGradients.accent,
     height: Dp = 120.dp,
     /** Formate la valeur affichée au-dessus de chaque barre non nulle. */
     formatValue: ((Double) -> String)? = null,

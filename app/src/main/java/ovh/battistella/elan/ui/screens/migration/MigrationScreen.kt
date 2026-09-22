@@ -27,7 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.data.legacy.MigrationState
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Spacing
 
 /** Fond sombre fixe, identique quel que soit le thème : l'écran précède le thème utilisateur. */
@@ -70,7 +70,7 @@ fun MigrationScreen(
 private fun RunningContent(state: MigrationState.Running) {
     Text(
         text = stringResource(R.string.migration_title),
-        style = PulseType.title,
+        style = ElanType.title,
         color = MigrationText,
         textAlign = TextAlign.Center,
     )
@@ -86,7 +86,7 @@ private fun RunningContent(state: MigrationState.Running) {
         )
         Text(
             text = stringResource(R.string.migration_progress, state.copied, state.total),
-            style = PulseType.caption,
+            style = ElanType.caption,
             color = MigrationTextSecondary,
             modifier = Modifier.padding(top = Spacing.two),
         )
@@ -95,7 +95,7 @@ private fun RunningContent(state: MigrationState.Running) {
     }
     Text(
         text = stringResource(R.string.migration_keep_open),
-        style = PulseType.body,
+        style = ElanType.body,
         color = MigrationTextSecondary,
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = Spacing.four),
@@ -113,20 +113,20 @@ private fun FailedContent(
 
     Text(
         text = stringResource(R.string.migration_failed_title),
-        style = PulseType.title,
+        style = ElanType.title,
         color = MigrationText,
         textAlign = TextAlign.Center,
     )
     Text(
         text = state.reason,
-        style = PulseType.body,
+        style = ElanType.body,
         color = MigrationDanger,
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = Spacing.three),
     )
     Text(
         text = stringResource(R.string.migration_failed_hint),
-        style = PulseType.body,
+        style = ElanType.body,
         color = MigrationTextSecondary,
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = Spacing.three),

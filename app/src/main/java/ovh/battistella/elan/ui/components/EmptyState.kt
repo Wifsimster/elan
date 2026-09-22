@@ -21,7 +21,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
 /** Action proposée pour sortir de l'état vide (ex. « Importer depuis Strava »). */
@@ -32,7 +32,7 @@ data class EmptyAction(
 )
 
 /**
- * État vide PULSE : pastille d'icône teintée 64 dp (comme les autres surfaces
+ * État vide Sillage : pastille d'icône teintée 64 dp (comme les autres surfaces
  * de repos), titre/sous-titre sur l'échelle typographique, et une action
  * secondaire facultative pour ne jamais laisser l'utilisateur dans une impasse.
  */
@@ -69,13 +69,13 @@ fun EmptyState(
                 modifier = Modifier.size(32.dp),
             )
         }
-        Text(title, style = PulseType.headline, color = colors.text, textAlign = TextAlign.Center)
+        Text(title, style = ElanType.headline, color = colors.text, textAlign = TextAlign.Center)
         if (subtitle != null) {
-            Text(subtitle, style = PulseType.body, color = colors.textSecondary, textAlign = TextAlign.Center)
+            Text(subtitle, style = ElanType.body, color = colors.textSecondary, textAlign = TextAlign.Center)
         }
         if (action != null) {
             Spacer(Modifier.height(8.dp))
-            PulseButton(
+            ElanButton(
                 title = action.label,
                 icon = action.icon,
                 variant = ButtonVariant.Secondary,

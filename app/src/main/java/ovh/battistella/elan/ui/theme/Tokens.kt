@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Jetons du design system PULSE (docs/port-spec/02-interface.md §5) — les
+ * Jetons du design system Sillage (docs/port-spec/02-interface.md §5) — les
  * valeurs nommées dont toute l'interface est construite.
  *
  * Material 3 (via [ElanTheme]) garde la main sur le schéma de couleurs de
@@ -19,9 +19,9 @@ import androidx.compose.ui.unit.dp
  * de formes partagés, pour qu'un changement ici se propage à chaque écran.
  */
 
-/** Couleurs sémantiques PULSE ; une instance claire et une sombre. */
+/** Couleurs sémantiques Sillage ; une instance claire et une sombre. */
 @Immutable
-data class PulseColors(
+data class ElanColors(
     val text: Color,
     val textSecondary: Color,
     val textMuted: Color,
@@ -49,7 +49,7 @@ data class PulseColors(
     val warning: Color,
 ) {
     companion object {
-        val Light = PulseColors(
+        val Light = ElanColors(
             text = Color(0xFF0B0E13),
             textSecondary = Color(0xFF5A6472),
             textMuted = Color(0xFF6B7280),
@@ -73,7 +73,7 @@ data class PulseColors(
             warning = Color(0xFFE08600),
         )
 
-        val Dark = PulseColors(
+        val Dark = ElanColors(
             text = Color(0xFFF4F7FB),
             textSecondary = Color(0xFF9AA3B0),
             textMuted = Color(0xFF868FA0),
@@ -100,11 +100,11 @@ data class PulseColors(
 }
 
 /**
- * Dégradés PULSE, identiques en clair et en sombre, tracés en diagonale
+ * Dégradés Sillage, identiques en clair et en sombre, tracés en diagonale
  * (0,0) → (1,1). Chaque entrée est la paire [début, fin] à passer à
  * `Brush.linearGradient`.
  */
-object PulseGradients {
+object ElanGradients {
     val accent: List<Color> = listOf(Color(0xFF6478FF), Color(0xFF7A3BFF))
     val velo: List<Color> = listOf(Color(0xFF2DE0C0), Color(0xFF0BA9B5))
     val muscu: List<Color> = listOf(Color(0xFFB07BFF), Color(0xFF7A3BFF))
@@ -166,7 +166,7 @@ object Spacing {
     val six: Dp = 64.dp
 }
 
-/** Élévations (ombres Material) correspondant aux trois paliers PULSE. */
+/** Élévations (ombres Material) correspondant aux trois paliers Sillage. */
 object Elevation {
     val sm: Dp = 3.dp
     val md: Dp = 8.dp
@@ -174,7 +174,7 @@ object Elevation {
 }
 
 /**
- * Ressorts PULSE transposés en [SpringSpec] Compose.
+ * Ressorts Sillage transposés en [SpringSpec] Compose.
  *
  * React Native décrit un ressort par `{damping, stiffness, mass}` ; Compose
  * par `{dampingRatio, stiffness}` avec une masse implicite de 1. La
@@ -199,7 +199,7 @@ object Motion {
 /** Largeur maximale du contenu sur tablette / paysage. */
 val MaxContentWidth: Dp = 800.dp
 
-internal val LocalPulseColors = staticCompositionLocalOf<PulseColors> {
-    error("PulseColors non fournies — envelopper le contenu dans ElanTheme { }")
+internal val LocalElanColors = staticCompositionLocalOf<ElanColors> {
+    error("ElanColors non fournies — envelopper le contenu dans ElanTheme { }")
 }
 internal val LocalHrZoneColors = staticCompositionLocalOf<List<Color>> { HrZoneColors.Light }

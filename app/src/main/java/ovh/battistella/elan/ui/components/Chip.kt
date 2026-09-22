@@ -17,21 +17,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseGradients
+import ovh.battistella.elan.ui.theme.ElanGradients
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.bestInk
 
 /** Encre posée sur une puce sélectionnée de teinte [tint] : la plus lisible entre `OnBright` et blanc. */
-fun chipInk(tint: Color): Color = bestInk(tint, listOf(PulseGradients.OnBright, Color.White))
+fun chipInk(tint: Color): Color = bestInk(tint, listOf(ElanGradients.OnBright, Color.White))
 
 /**
- * Pastille de filtre / suggestion PULSE, sélectionnable, avec appui ressort
+ * Pastille de filtre / suggestion Sillage, sélectionnable, avec appui ressort
  * (échelle 0,94). Sélectionnée, la puce peint son fond avec la teinte :
  * l'encre est choisie pour rester lisible dessus (du blanc sur le lime de la
  * marche ou le teal du vélo tombe sous 2:1).
  */
 @Composable
-fun PulseChip(
+fun ElanChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,

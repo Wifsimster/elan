@@ -12,7 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import ovh.battistella.elan.R
 import ovh.battistella.elan.data.settings.NotificationConfig
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.components.SettingStepper
 import ovh.battistella.elan.ui.icons.MdiIcons
@@ -38,7 +38,7 @@ fun NotificationsCard(
         if (granted) onEnabledChange(true) else onDenied()
     }
 
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.BellOutline, color = colors.accent, title = stringResource(R.string.settings_notif_title))
         CardText(stringResource(R.string.settings_notif_text))
         SwitchRow(

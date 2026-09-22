@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Thème de base. Les vraies couleurs sont pilotées par Compose (PULSE),
+    <!-- Thème de base. Les vraies couleurs sont pilotées par Compose (Sillage),
          ceci ne sert qu'à un splash cohérent et à des barres transparentes. -->
     <style name="Theme.Elan" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>

@@ -35,7 +35,7 @@ import ovh.battistella.elan.ui.screens.settings.cards.ProgressionAutoCard
 import ovh.battistella.elan.ui.screens.settings.cards.StravaImportCard
 import ovh.battistella.elan.ui.screens.settings.cards.WeekPlanCard
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 
 /**
  * Réglages : assemblage de cartes autonomes, dans l'ordre de l'app d'origine
@@ -67,7 +67,7 @@ fun SettingsScreen(
             .screenContent()
             .padding(top = 12.dp, bottom = 40.dp),
     ) {
-        Text(stringResource(R.string.nav_settings), style = PulseType.title, color = colors.text)
+        Text(stringResource(R.string.nav_settings), style = ElanType.title, color = colors.text)
 
         HeartRateCard(
             state = hr,

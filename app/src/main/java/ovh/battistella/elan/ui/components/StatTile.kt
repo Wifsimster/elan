@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
 /** Ton d'une tendance : [Positive] = vert, [Negative] = atténué, [Neutral] = stable. */
@@ -40,7 +40,7 @@ data class Trend(val label: String, val tone: Tone)
 
 /**
  * Tuile de métrique « bento » : pastille d'icône teintée + grand chiffre
- * tabulaire. Conçue pour s'aligner en grille fluide dans une [PulseCard] :
+ * tabulaire. Conçue pour s'aligner en grille fluide dans une [ElanCard] :
  * largeur mini 96 dp (pleine largeur en [hero]), et se laisse pondérer par
  * `Modifier.weight(1f)` dans une Row.
  */
@@ -101,7 +101,7 @@ fun StatTile(
             }
             Text(
                 text = label,
-                style = PulseType.label,
+                style = ElanType.label,
                 color = colors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -113,7 +113,7 @@ fun StatTile(
         ) {
             Text(
                 text = value,
-                style = PulseType.metric.copy(fontSize = valueSize),
+                style = ElanType.metric.copy(fontSize = valueSize),
                 color = tint,
                 maxLines = 1,
             )
@@ -147,7 +147,7 @@ fun StatTile(
                     tint = trendColor,
                     modifier = Modifier.size(12.dp),
                 )
-                Text(trend.label, style = PulseType.caption, color = trendColor)
+                Text(trend.label, style = ElanType.caption, color = trendColor)
             }
         }
     }

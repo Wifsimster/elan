@@ -12,9 +12,9 @@ import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.PRIVACY_ZONE_OPTIONS
 import ovh.battistella.elan.ui.components.ButtonVariant
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
-import ovh.battistella.elan.ui.components.PulseChip
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
+import ovh.battistella.elan.ui.components.ElanChip
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.settings.ExportKind
@@ -36,7 +36,7 @@ fun DataExportCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = ElanTheme.colors
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.ExportVariant, color = colors.accent, title = stringResource(R.string.settings_export_card_title))
         CardText(stringResource(R.string.settings_export_intro))
 
@@ -46,7 +46,7 @@ fun DataExportCard(
             CardText(stringResource(R.string.settings_privacy_text))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 PRIVACY_ZONE_OPTIONS.forEach { m ->
-                    PulseChip(
+                    ElanChip(
                         label = if (m == 0) stringResource(R.string.settings_privacy_off) else stringResource(R.string.settings_privacy_m, m),
                         selected = privacyZoneM == m,
                         color = colors.velo,
@@ -56,7 +56,7 @@ fun DataExportCard(
             }
         }
 
-        PulseButton(
+        ElanButton(
             title = stringResource(R.string.settings_export_markdown),
             icon = MdiIcons.FileDocumentOutline,
             loading = exporting == ExportKind.Markdown,
@@ -64,7 +64,7 @@ fun DataExportCard(
             onClick = onExportMarkdown,
             modifier = Modifier.fillMaxWidth(),
         )
-        PulseButton(
+        ElanButton(
             title = stringResource(R.string.settings_export_json),
             icon = MdiIcons.CodeJson,
             variant = ButtonVariant.Secondary,

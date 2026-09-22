@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Fond de l'icône adaptative : même halo radial que l'icône 1.x
-     (#252A5D au centre → #0A0C10 aux bords, fond PULSE). -->
+     (#252A5D au centre → #0A0C10 aux bords, fond Sillage). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"

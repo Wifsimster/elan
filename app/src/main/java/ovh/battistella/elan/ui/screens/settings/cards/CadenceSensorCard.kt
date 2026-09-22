@@ -38,8 +38,8 @@ import ovh.battistella.elan.domain.matchWheelSize
 import ovh.battistella.elan.sensors.ble.CscState
 import ovh.battistella.elan.sensors.ble.SensorStatus
 import ovh.battistella.elan.ui.components.ButtonVariant
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.components.SettingStepper
 import ovh.battistella.elan.ui.components.pressableScale
@@ -47,7 +47,7 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.settings.WHEEL_MM_MAX
 import ovh.battistella.elan.ui.screens.settings.WHEEL_MM_MIN
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import java.util.Locale
 
@@ -69,7 +69,7 @@ fun CadenceSensorCard(
         onDenied = { permissionDenied = true },
     )
 
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.RotateRight, color = colors.velo, title = stringResource(R.string.settings_csc_title))
         CardText(stringResource(R.string.settings_csc_intro))
 
@@ -99,7 +99,7 @@ fun CadenceSensorCard(
         }
 
         if (state.status == SensorStatus.Scanning) {
-            PulseButton(
+            ElanButton(
                 title = stringResource(R.string.settings_scan_stop),
                 icon = MdiIcons.BluetoothOff,
                 variant = ButtonVariant.Secondary,
@@ -108,7 +108,7 @@ fun CadenceSensorCard(
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            PulseButton(
+            ElanButton(
                 title = stringResource(if (state.status == SensorStatus.Reconnecting) R.string.settings_hr_reconnecting else R.string.settings_csc_scan),
                 icon = MdiIcons.Bluetooth,
                 color = colors.velo,
@@ -192,7 +192,7 @@ private fun WheelSizePicker(valueMm: Int, onSelect: (Int) -> Unit) {
             ) {
                 Text(
                     text = title.uppercase(),
-                    style = PulseType.overline,
+                    style = ElanType.overline,
                     color = colors.textSecondary,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp),
                 )

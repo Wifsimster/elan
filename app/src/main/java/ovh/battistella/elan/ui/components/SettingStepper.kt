@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 
 /**
  * Incrémenteur numérique d'un réglage (poids, taille, FC max, heure de rappel,
@@ -63,7 +63,7 @@ fun SettingStepper(
             )
             Text(
                 text = "$value $unit",
-                style = PulseType.metric.copy(fontSize = 17.sp, letterSpacing = 0.sp),
+                style = ElanType.metric.copy(fontSize = 17.sp, letterSpacing = 0.sp),
                 color = colors.text,
                 textAlign = TextAlign.Center,
                 modifier = Modifier

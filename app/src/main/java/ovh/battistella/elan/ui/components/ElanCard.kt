@@ -24,11 +24,11 @@ import ovh.battistella.elan.ui.theme.Radius
 enum class CardVariant { Elevated, Inset, Plain }
 
 /**
- * Surface de contenu PULSE : coins `Radius.lg`, padding 16, contenu en
+ * Surface de contenu Sillage : coins `Radius.lg`, padding 16, contenu en
  * colonne espacée de 12. La profondeur vient de l'ombre, pas de la bordure.
  */
 @Composable
-fun PulseCard(
+fun ElanCard(
     modifier: Modifier = Modifier,
     variant: CardVariant = CardVariant.Elevated,
     content: @Composable ColumnScope.() -> Unit,

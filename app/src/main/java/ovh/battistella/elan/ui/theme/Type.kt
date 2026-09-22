@@ -6,13 +6,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * Les onze styles de texte PULSE (docs/port-spec/02-interface.md §5), en
+ * Les onze styles de texte Sillage (docs/port-spec/02-interface.md §5), en
  * police système (aucune police embarquée). Les styles de métriques utilisent
  * des chiffres tabulaires (`tnum`) pour que les valeurs qui défilent ne
  * sautent pas. L'overline est en MAJUSCULES : la transformation est laissée
  * aux appelants (`text.uppercase()`), Compose n'ayant pas de textTransform.
  */
-object PulseType {
+object ElanType {
     private const val TABULAR = "tnum"
 
     val display = TextStyle(

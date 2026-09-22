@@ -13,8 +13,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.components.ButtonVariant
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
@@ -23,20 +23,20 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 @Composable
 fun DataCard(onClearSessions: () -> Unit, onResetAll: () -> Unit, modifier: Modifier = Modifier) {
     val colors = ElanTheme.colors
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.DatabaseOutline, color = colors.accent, title = stringResource(R.string.settings_data_title))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
             Icon(painter = painterResource(MdiIcons.LockOutline), contentDescription = null, tint = colors.success, modifier = Modifier.size(18.dp))
             CardText(stringResource(R.string.settings_data_privacy), modifier = Modifier.weight(1f))
         }
-        PulseButton(
+        ElanButton(
             title = stringResource(R.string.settings_data_clear),
             icon = MdiIcons.TrashCanOutline,
             variant = ButtonVariant.Danger,
             onClick = onClearSessions,
             modifier = Modifier.fillMaxWidth(),
         )
-        PulseButton(
+        ElanButton(
             title = stringResource(R.string.settings_data_reset),
             icon = MdiIcons.DeleteForeverOutline,
             variant = ButtonVariant.Secondary,

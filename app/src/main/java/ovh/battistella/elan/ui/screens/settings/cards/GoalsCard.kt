@@ -25,9 +25,9 @@ import ovh.battistella.elan.domain.GoalMetric
 import ovh.battistella.elan.domain.GoalPeriod
 import ovh.battistella.elan.domain.describeGoal
 import ovh.battistella.elan.domain.meta
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
-import ovh.battistella.elan.ui.components.PulseChip
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
+import ovh.battistella.elan.ui.components.ElanChip
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.components.SettingStepper
 import ovh.battistella.elan.ui.components.pressableScale
@@ -35,7 +35,7 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.settings.GoalForm
 import ovh.battistella.elan.ui.screens.settings.goalActivityAllowed
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.forKey
 
 /**
@@ -57,7 +57,7 @@ fun GoalsCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = ElanTheme.colors
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.Target, color = colors.accent, title = stringResource(R.string.settings_goals_title))
         CardText(stringResource(R.string.settings_goals_intro))
 
@@ -81,29 +81,29 @@ fun GoalsCard(
 
         Hairline()
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
-            Text(stringResource(R.string.settings_goals_new), style = PulseType.label, color = colors.textSecondary)
+            Text(stringResource(R.string.settings_goals_new), style = ElanType.label, color = colors.textSecondary)
 
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                PulseChip(stringResource(R.string.settings_goal_metric_sessions), form.metric == GoalMetric.SESSIONS, { onMetric(GoalMetric.SESSIONS) })
-                PulseChip(stringResource(R.string.settings_goal_metric_distance), form.metric == GoalMetric.DISTANCE, { onMetric(GoalMetric.DISTANCE) })
-                PulseChip(stringResource(R.string.settings_goal_metric_tonnage), form.metric == GoalMetric.TONNAGE, { onMetric(GoalMetric.TONNAGE) })
+                ElanChip(stringResource(R.string.settings_goal_metric_sessions), form.metric == GoalMetric.SESSIONS, { onMetric(GoalMetric.SESSIONS) })
+                ElanChip(stringResource(R.string.settings_goal_metric_distance), form.metric == GoalMetric.DISTANCE, { onMetric(GoalMetric.DISTANCE) })
+                ElanChip(stringResource(R.string.settings_goal_metric_tonnage), form.metric == GoalMetric.TONNAGE, { onMetric(GoalMetric.TONNAGE) })
             }
 
             // Type d'activité : séances et distance ; le tonnage n'existe qu'en muscu.
             if (form.metric != GoalMetric.TONNAGE) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PulseChip(stringResource(R.string.settings_goal_activity_all), form.activity == GoalActivity.ALL, { onActivity(GoalActivity.ALL) })
+                    ElanChip(stringResource(R.string.settings_goal_activity_all), form.activity == GoalActivity.ALL, { onActivity(GoalActivity.ALL) })
                     ACTIVITY_TYPES.forEach { t ->
                         val a = GoalActivity.fromKey(t.key) ?: return@forEach
                         if (!goalActivityAllowed(form.metric, a)) return@forEach
-                        PulseChip(t.meta.shortLabel, form.activity == a, { onActivity(a) }, color = colors.forKey(t.meta.colorKey))
+                        ElanChip(t.meta.shortLabel, form.activity == a, { onActivity(a) }, color = colors.forKey(t.meta.colorKey))
                     }
                 }
             }
 
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                PulseChip(stringResource(R.string.settings_goal_period_week), form.period == GoalPeriod.WEEK, { onPeriod(GoalPeriod.WEEK) }, color = colors.velo)
-                PulseChip(stringResource(R.string.settings_goal_period_month), form.period == GoalPeriod.MONTH, { onPeriod(GoalPeriod.MONTH) }, color = colors.velo)
+                ElanChip(stringResource(R.string.settings_goal_period_week), form.period == GoalPeriod.WEEK, { onPeriod(GoalPeriod.WEEK) }, color = colors.velo)
+                ElanChip(stringResource(R.string.settings_goal_period_month), form.period == GoalPeriod.MONTH, { onPeriod(GoalPeriod.MONTH) }, color = colors.velo)
             }
 
             SettingStepper(
@@ -116,7 +116,7 @@ fun GoalsCard(
                 onChange = onTarget,
             )
 
-            PulseButton(title = stringResource(R.string.settings_goals_add), icon = MdiIcons.Plus, onClick = onAdd, modifier = Modifier.fillMaxWidth())
+            ElanButton(title = stringResource(R.string.settings_goals_add), icon = MdiIcons.Plus, onClick = onAdd, modifier = Modifier.fillMaxWidth())
         }
     }
 }

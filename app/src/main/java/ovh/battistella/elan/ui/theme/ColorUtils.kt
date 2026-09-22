@@ -10,7 +10,7 @@ import ovh.battistella.elan.domain.bestInk
  * connaissent pas le thème : c'est ici que « velo » devient un teal clair ou
  * sombre. Une clé inconnue retombe sur l'accent.
  */
-fun PulseColors.forKey(key: String): Color = when (key) {
+fun ElanColors.forKey(key: String): Color = when (key) {
     "velo" -> velo
     "muscu" -> muscu
     "course" -> course

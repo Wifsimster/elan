@@ -2,7 +2,7 @@
 <!-- Avant-plan de l'icône adaptative : le « É » d'Élan (assets/images/elan-logo.svg
      transposé en Béziers, skew et rotation pré-appliqués car VectorDrawable ne
      connaît pas skewX), recentré et réduit à 81 % pour tenir dans le cercle sûr de 66 dp.
-     Dégradé accent PULSE #6478FF → #7A3BFF, identique à l'icône 1.x. -->
+     Dégradé accent Sillage #6478FF → #7A3BFF, identique à l'icône 1.x. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"

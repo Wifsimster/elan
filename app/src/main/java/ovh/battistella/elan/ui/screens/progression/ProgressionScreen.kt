@@ -37,14 +37,14 @@ import ovh.battistella.elan.domain.fmtKg
 import ovh.battistella.elan.domain.formatDateShort
 import ovh.battistella.elan.ui.components.EmptyAction
 import ovh.battistella.elan.ui.components.EmptyState
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.components.screenContent
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.common.SubScreenHeader
 import ovh.battistella.elan.ui.screens.common.TintedIconBox
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 
 /**
  * Progression muscu : carte « Changements de la semaine » (progression auto),
@@ -75,14 +75,14 @@ fun ProgressionScreen(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.screenContent()) {
                 SubScreenHeader(title = stringResource(R.string.progression_title), onBack = onBack)
                 if (ui.changes.isNotEmpty()) {
-                    PulseCard {
+                    ElanCard {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(painter = painterResource(MdiIcons.TrendingUp), contentDescription = null, tint = colors.muscu, modifier = Modifier.size(20.dp))
-                            Text(stringResource(R.string.progression_changes_title), style = PulseType.subtitle, color = colors.text)
+                            Text(stringResource(R.string.progression_changes_title), style = ElanType.subtitle, color = colors.text)
                         }
                         Text(
                             stringResource(R.string.progression_changes_text, changeSummaryLine(ui.changes)),
-                            style = PulseType.caption,
+                            style = ElanType.caption,
                             color = colors.textSecondary,
                         )
                         ui.changes.forEach { c ->
@@ -99,7 +99,7 @@ fun ProgressionScreen(
                         }
                     }
                 }
-                Text(stringResource(R.string.progression_intro), style = PulseType.label, color = colors.textSecondary)
+                Text(stringResource(R.string.progression_intro), style = ElanType.label, color = colors.textSecondary)
                 if (ui.items?.isEmpty() == true) {
                     EmptyState(
                         icon = MdiIcons.ChartLine,
@@ -130,11 +130,11 @@ private fun ExerciseSummaryRow(item: ExerciseSummary, onClick: () -> Unit) {
     } else {
         stringResource(R.string.progression_sessions, item.sessions, formatDateShort(item.lastAt))
     }
-    PulseCard(modifier = Modifier.fillMaxWidth().pressableScale(onClick = onClick)) {
+    ElanCard(modifier = Modifier.fillMaxWidth().pressableScale(onClick = onClick)) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
             TintedIconBox(icon = MdiIcons.Dumbbell, color = colors.muscu, size = 46.dp, iconSize = 22.dp)
             Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                Text(item.exercise, style = PulseType.subtitle, color = colors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.exercise, style = ElanType.subtitle, color = colors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(sessionsLabel, style = TextStyle(fontSize = 13.sp), color = colors.textSecondary)
             }
             Text(
