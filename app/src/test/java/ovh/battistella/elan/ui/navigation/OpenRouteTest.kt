@@ -45,6 +45,8 @@ class OpenRouteTest {
         // Type inconnu ou absent : type courant du contrôleur.
         assertEquals("outing/marche", openRouteFor(view("elan://outing/xyz"), ActivityType.MARCHE, outingLive = false))
         assertEquals("outing/marche", openRouteFor(view("elan://outing"), ActivityType.MARCHE, outingLive = false))
+        // Muscu n'est pas une sortie GPS : type courant à la place.
+        assertEquals("outing/course", openRouteFor(view("elan://outing/muscu"), ActivityType.COURSE, outingLive = false))
         assertEquals("muscu", openRouteFor(view("elan://muscu"), ActivityType.VELO, outingLive = false))
     }
 

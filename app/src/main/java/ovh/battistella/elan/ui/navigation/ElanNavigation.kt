@@ -24,9 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -120,38 +122,38 @@ fun ElanRoot(
             popEnterTransition = { fadeIn() },
             popExitTransition = { fadeOut() },
         ) {
-            composable(Routes.HOME) {
+            composable(Routes.HOME) { entry ->
                 HomeScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
-                    onStartOuting = { navController.navigate(Routes.outing(it)) },
-                    onStartMuscu = { navController.navigate(Routes.muscu(it)) },
-                    onOpenCatalog = { navController.navigate(Routes.CATALOG) },
-                    onOpenProgression = { navController.navigate(Routes.PROGRESSION) },
-                    onOpenHistory = { navController.navigateToTab(Routes.HISTORY) },
-                    onOpenSession = { navController.navigate(Routes.session(it)) },
-                    onOpenSettings = { navController.navigateToTab(Routes.SETTINGS) },
+                    onStartOuting = { entry.ifResumed { navController.navigate(Routes.outing(it)) } },
+                    onStartMuscu = { entry.ifResumed { navController.navigate(Routes.muscu(it)) } },
+                    onOpenCatalog = { entry.ifResumed { navController.navigate(Routes.CATALOG) } },
+                    onOpenProgression = { entry.ifResumed { navController.navigate(Routes.PROGRESSION) } },
+                    onOpenHistory = { entry.ifResumed { navController.navigateToTab(Routes.HISTORY) } },
+                    onOpenSession = { entry.ifResumed { navController.navigate(Routes.session(it)) } },
+                    onOpenSettings = { entry.ifResumed { navController.navigateToTab(Routes.SETTINGS) } },
                     restoreSheet = { onCancel, onRestored ->
                         RestoreSheet(onCancel = onCancel, onRestored = onRestored, viewModel = screenViewModel(viewModelFactory))
                     },
                 )
             }
-            composable(Routes.HISTORY) {
+            composable(Routes.HISTORY) { entry ->
                 HistoryScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
-                    onOpenSession = { navController.navigate(Routes.session(it)) },
-                    onOpenProgression = { navController.navigate(Routes.PROGRESSION) },
-                    onOpenSettings = { navController.navigateToTab(Routes.SETTINGS) },
+                    onOpenSession = { entry.ifResumed { navController.navigate(Routes.session(it)) } },
+                    onOpenProgression = { entry.ifResumed { navController.navigate(Routes.PROGRESSION) } },
+                    onOpenSettings = { entry.ifResumed { navController.navigateToTab(Routes.SETTINGS) } },
                 )
             }
-            composable(Routes.SETTINGS) {
+            composable(Routes.SETTINGS) { entry ->
                 SettingsScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
                     sensorsViewModel = screenViewModel(viewModelFactory),
                     backupViewModel = screenViewModel(viewModelFactory),
-                    onOpenWeight = { navController.navigate(Routes.WEIGHT) },
+                    onOpenWeight = { entry.ifResumed { navController.navigate(Routes.WEIGHT) } },
                 )
             }
 
@@ -160,11 +162,11 @@ fun ElanRoot(
                 route = Routes.OUTING,
                 arguments = listOf(navArgument("type") { type = NavType.StringType }),
                 enterTransition = { fadeIn() },
-            ) {
+            ) { entry ->
                 OutingScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
-                    onExit = { navController.popBackStack() },
+                    onExit = { entry.ifResumed { navController.popBackStack() } },
                     // `router.replace(détail)` : la sortie quitte la pile.
                     onSaved = { id ->
                         navController.navigate(Routes.session(id)) {
@@ -180,11 +182,11 @@ fun ElanRoot(
                     navArgument("add") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
                 enterTransition = { fadeIn() },
-            ) {
+            ) { entry ->
                 StrengthScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
-                    onExit = { navController.popBackStack() },
+                    onExit = { entry.ifResumed { navController.popBackStack() } },
                     // `router.replace(détail)` : la séance quitte la pile.
                     onSaved = { id ->
                         navController.navigate(Routes.session(id)) {
@@ -197,61 +199,61 @@ fun ElanRoot(
             composable(
                 route = Routes.SESSION,
                 arguments = listOf(navArgument("id") { type = NavType.LongType }),
-            ) {
+            ) { entry ->
                 SessionDetailScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
-                    onBack = { navController.popBackStack() },
-                    onOpenMap = { navController.navigate(Routes.sessionMap(it)) },
-                    onOpenExercise = { navController.navigate(Routes.exercise(it)) },
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onOpenMap = { entry.ifResumed { navController.navigate(Routes.sessionMap(it)) } },
+                    onOpenExercise = { entry.ifResumed { navController.navigate(Routes.exercise(it)) } },
                 )
             }
             composable(
                 route = Routes.SESSION_MAP,
                 arguments = listOf(navArgument("id") { type = NavType.LongType }),
-            ) {
+            ) { entry ->
                 SessionMapScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
-                    onBack = { navController.popBackStack() },
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
                 )
             }
-            composable(Routes.WEIGHT) {
+            composable(Routes.WEIGHT) { entry ->
                 WeightScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
-                    onBack = { navController.popBackStack() },
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
                 )
             }
-            composable(Routes.PROGRESSION) {
+            composable(Routes.PROGRESSION) { entry ->
                 ProgressionScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
-                    onBack = { navController.popBackStack() },
-                    onOpenExercise = { navController.navigate(Routes.exercise(it)) },
-                    onStartMuscu = { navController.navigate(Routes.muscu()) },
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onOpenExercise = { entry.ifResumed { navController.navigate(Routes.exercise(it)) } },
+                    onStartMuscu = { entry.ifResumed { navController.navigate(Routes.muscu()) } },
                 )
             }
-            composable(Routes.HEALTH_RATIONALE) {
-                HealthRationaleScreen(contentPadding = innerPadding, onBack = { navController.popBackStack() })
+            composable(Routes.HEALTH_RATIONALE) { entry ->
+                HealthRationaleScreen(contentPadding = innerPadding, onBack = { entry.ifResumed { navController.popBackStack() } })
             }
-            composable(Routes.CATALOG) {
+            composable(Routes.CATALOG) { entry ->
                 CatalogScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
-                    onBack = { navController.popBackStack() },
-                    onAddToSession = { navController.navigate(Routes.muscuAdd(it)) },
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onAddToSession = { entry.ifResumed { navController.navigate(Routes.muscuAdd(it)) } },
                 )
             }
             composable(
                 route = Routes.EXERCISE,
                 arguments = listOf(navArgument("name") { type = NavType.StringType }),
-            ) {
+            ) { entry ->
                 ExerciseScreen(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
-                    onBack = { navController.popBackStack() },
-                    onOpenSession = { navController.navigate(Routes.session(it)) },
+                    onBack = { entry.ifResumed { navController.popBackStack() } },
+                    onOpenSession = { entry.ifResumed { navController.navigate(Routes.session(it)) } },
                 )
             }
         }
@@ -296,3 +298,11 @@ private fun BottomBar(
     }
 }
 
+/**
+ * N'exécute une navigation que si l'écran est au premier plan : un double
+ * appui (ou un événement émis pendant la transition de sortie) dépilerait
+ * deux fois — NavHost vide — ou empilerait deux fois le même écran.
+ */
+private inline fun NavBackStackEntry.ifResumed(action: () -> Unit) {
+    if (lifecycle.currentState == Lifecycle.State.RESUMED) action()
+}

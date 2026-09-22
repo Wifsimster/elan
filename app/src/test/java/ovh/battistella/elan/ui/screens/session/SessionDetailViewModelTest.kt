@@ -219,6 +219,7 @@ class SessionDetailViewModelTest {
 
         vm.requestDelete()
         vm.confirmDelete()
+        vm.confirmDelete() // double appui : ignoré
         advanceUntilIdle()
         assertNull(repos.sessions.getSession(id))
         assertTrue(repos.sessions.getTrackPoints(id).isEmpty())

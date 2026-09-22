@@ -94,17 +94,26 @@ class WeightViewModel @Inject constructor(
 
     /** « Enregistrer » : valide, journalise (le profil suit) et recharge. */
     fun save() {
+        // Double appui : une seule pesée journalisée.
+        if (saving) return
         val weightKg = parseWeightInput(_ui.value.input)
         if (weightKg == null) {
             _ui.update { it.copy(error = true) }
             return
         }
         _ui.update { it.copy(error = false) }
+        saving = true
         viewModelScope.launch {
-            bodyWeight.logBodyWeight(weightKg, clock.millis())
+            try {
+                bodyWeight.logBodyWeight(weightKg, clock.millis())
+            } finally {
+                saving = false
+            }
             load()
         }
     }
+
+    private var saving = false
 
     fun requestDelete(measurement: BodyMeasurement) = _ui.update { it.copy(pendingDelete = measurement) }
 
