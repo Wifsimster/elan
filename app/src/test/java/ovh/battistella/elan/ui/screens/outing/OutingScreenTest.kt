@@ -24,6 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.Shadows.shadowOf
 import ovh.battistella.elan.R
+import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.domain.GpsStatus
 import ovh.battistella.elan.domain.LatLon
 import ovh.battistella.elan.ui.screens.FakeCadencePort
@@ -64,7 +65,7 @@ class OutingScreenTest {
 
     @Test
     fun `course - allure et meilleure allure, tuiles vélo absentes`() {
-        val port = FakeOutingPort(OutingUi(phase = OutingPhase.Active, speedKmh = 12.0, maxSpeedKmh = 15.0, gpsStatus = GpsStatus.TRACKING, accuracyM = 5.0, wheelSpeedKmh = 20.0, cadenceRpm = 80))
+        val port = FakeOutingPort(OutingUi(phase = OutingPhase.Active, type = ActivityType.COURSE, speedKmh = 12.0, maxSpeedKmh = 15.0, gpsStatus = GpsStatus.TRACKING, accuracyM = 5.0, wheelSpeedKmh = 20.0, cadenceRpm = 80))
         compose.setContent { ElanTheme { OutingScreen(contentPadding = PaddingValues(), viewModel = vm("course", port, FakeCadencePort(hasSensor = true))) } }
         compose.waitForIdle()
 
