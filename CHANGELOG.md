@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.0](https://github.com/Wifsimster/elan/compare/v2.0.1...v2.1.0) (2026-09-23)
+
+### ✨ Fonctionnalités
+
+* **design:** identité Sillage — Encre, Volt, Archivo et logotype « élan » ([#78](https://github.com/Wifsimster/elan/issues/78)) ([8b9e488](https://github.com/Wifsimster/elan/commit/8b9e48827e743c5ac2934b4a067b2c3977c58f8b))
+
 ## [2.0.1](https://github.com/Wifsimster/elan/compare/v2.0.0...v2.0.1) (2026-09-22)
 
 ### 🐛 Corrections
