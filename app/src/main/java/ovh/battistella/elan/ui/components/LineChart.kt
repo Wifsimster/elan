@@ -15,14 +15,13 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 import kotlin.math.roundToLong
 
 /** Un point d'une série (x croissant). */
@@ -50,8 +49,8 @@ internal fun lineChartSummary(
 private fun defaultFormat(v: Double): String = v.roundToLong().toString()
 
 /**
- * Graphe d'aire façon Strava : tracé + remplissage en dégradé vertical
- * (couleur 0,35 → 0,02), grille discrète (3 lignes), ligne de moyenne
+ * Graphe d'aire façon Strava : tracé + remplissage en « sillage » vertical
+ * (couleur 0,35 → transparent), grille discrète (3 lignes), ligne de moyenne
  * pointillée « moy. » et libellés d'axes (3 ticks Y, 5 ticks X). 100 % local,
  * aucune dépendance réseau. Ne dessine rien sous 2 points. Le tracé étant
  * invisible pour les lecteurs d'écran, un résumé min / max / moyenne est
@@ -98,8 +97,8 @@ fun LineChart(
     val xTickCount = 4
     val xTicks = List(xTickCount + 1) { i -> minX + (maxX - minX) * i / xTickCount }
 
-    val tickStyle = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = muted, fontFeatureSettings = "tnum")
-    val avgStyle = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold, color = muted)
+    val tickStyle = ElanType.micro.copy(color = muted, fontFeatureSettings = "tnum")
+    val avgStyle = ElanType.micro.copy(color = muted, fontWeight = FontWeight.Bold)
 
     Canvas(
         modifier = modifier
@@ -141,8 +140,9 @@ fun LineChart(
         drawPath(
             path = area,
             brush = Brush.verticalGradient(
+                // Sillage : la teinte de la série s'efface jusqu'au transparent.
                 0f to color.copy(alpha = 0.35f),
-                1f to color.copy(alpha = 0.02f),
+                1f to color.copy(alpha = 0f),
                 startY = padT,
                 endY = baseY,
             ),

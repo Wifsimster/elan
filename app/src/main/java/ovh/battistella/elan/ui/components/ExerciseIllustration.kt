@@ -31,8 +31,8 @@ import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseGradients
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanGradients
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
 /**
@@ -60,14 +60,14 @@ fun ExerciseIllustration(
                 .fillMaxWidth()
                 .height(132.dp)
                 .background(
-                    Brush.linearGradient(PulseGradients.muscu, start = Offset.Zero, end = Offset.Infinite),
+                    Brush.linearGradient(ElanGradients.muscu, start = Offset.Zero, end = Offset.Infinite),
                     RoundedCornerShape(Radius.lg),
                 ),
         ) {
             Icon(
                 painter = painterResource(icon?.let(MdiIcons::byName) ?: MdiIcons.Dumbbell),
                 contentDescription = null,
-                tint = Color.White,
+                tint = ElanGradients.inkOn(ElanGradients.muscu),
                 modifier = Modifier.size(72.dp),
             )
         }
@@ -112,10 +112,11 @@ private fun HeroPhoto(@DrawableRes res: Int, label: String, height: Dp, modifier
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(8.dp)
-                .background(Color(0xB3000000), RoundedCornerShape(Radius.pill))
+                .background(colors.scrim, RoundedCornerShape(Radius.pill))
                 .padding(horizontal = 10.dp, vertical = 4.dp),
         ) {
-            Text(label.uppercase(), style = PulseType.overline, color = Color.White)
+            // Blanc fixe : le voile [scrim] est noir dans les deux thèmes.
+            Text(label.uppercase(), style = ElanType.overline, color = Color.White)
         }
     }
 }

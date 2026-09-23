@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Accent du logotype — le trait d'élan —, même repère que brand_wordmark.
+     Généré par scripts/gen-brand-assets.py — ne pas éditer à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72.74dp"
+    android:height="32dp"
+    android:viewportWidth="1673.0"
+    android:viewportHeight="736.0">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M214.0 132.0 303.0 0.0H441.0V3.0L312.0 132.0Z" />
+</vector>

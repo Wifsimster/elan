@@ -9,7 +9,12 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.ui.text.font.FontWeight
+import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
+import ovh.battistella.elan.ui.theme.Elevation
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -283,7 +288,17 @@ private fun BottomBar(
     navController: NavHostController,
     currentDestination: NavDestination?,
 ) {
-    NavigationBar {
+    val colors = ElanTheme.colors
+    // Onglet actif : pastille Volt sous encre sombre, libellé à l'encre
+    // principale ; les autres restent en retrait. Barre tonale, sans ombre.
+    val itemColors = NavigationBarItemDefaults.colors(
+        indicatorColor = colors.brand,
+        selectedIconColor = colors.onBrand,
+        selectedTextColor = colors.text,
+        unselectedIconColor = colors.textMuted,
+        unselectedTextColor = colors.textMuted,
+    )
+    NavigationBar(containerColor = colors.backgroundElement, tonalElevation = Elevation.none) {
         TopLevelDestination.entries.forEach { dest ->
             val selected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
             NavigationBarItem(
@@ -291,8 +306,9 @@ private fun BottomBar(
                 onClick = { if (!selected) navController.navigateToTab(dest.route) },
                 // Le libellé est affiché en texte dessous ; null évite que
                 // TalkBack le lise deux fois.
+                colors = itemColors,
                 icon = { Icon(painterResource(dest.icon), contentDescription = null) },
-                label = { Text(stringResource(dest.labelRes)) },
+                label = { Text(stringResource(dest.labelRes), style = ElanType.micro.copy(fontWeight = FontWeight.Bold)) },
             )
         }
     }

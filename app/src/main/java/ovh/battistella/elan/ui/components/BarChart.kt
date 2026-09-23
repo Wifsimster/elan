@@ -15,18 +15,18 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseGradients
+import ovh.battistella.elan.ui.theme.ElanFonts
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.max
 import kotlin.math.roundToLong
@@ -39,17 +39,20 @@ internal fun barChartSummary(data: List<BarPoint>, formatValue: (Double) -> Stri
     data.joinToString(", ") { "${it.label} ${formatValue(it.value)}" }
 
 /**
- * Histogramme PULSE : une colonne par point, valeur au-dessus des barres non
+ * Histogramme Sillage : une colonne par point, valeur au-dessus des barres non
  * nulles (ou espaceur de 14 dp pour garder l'alignement), rail de fond pleine
  * hauteur en `hairline` (chaque jour garde une présence visuelle — sans rail,
- * une semaine creuse paraît « cassée »), barre en dégradé vertical sur 64 % de
- * la largeur de colonne, hauteur mini 4 dp, libellé 11/600.
+ * une semaine creuse paraît « cassée »), barre « sillage » (la teinte pleine
+ * en haut, qui s'estompe vers la base) sur 56 % de la largeur de colonne,
+ * hauteur mini 4 dp. La dernière barre — la plus récente, « aujourd'hui » —
+ * reste pleine et son libellé passe à l'encre principale.
  */
 @Composable
 fun BarChart(
     data: List<BarPoint>,
     modifier: Modifier = Modifier,
-    gradient: List<Color> = PulseGradients.accent,
+    /** Teinte des barres (défaut : la marque en trait, `accent`). */
+    color: Color? = null,
     height: Dp = 120.dp,
     /** Formate la valeur affichée au-dessus de chaque barre non nulle. */
     formatValue: ((Double) -> String)? = null,
@@ -57,7 +60,9 @@ fun BarChart(
     val colors = ElanTheme.colors
     val maxValue = max(1.0, data.maxOfOrNull { it.value } ?: 0.0)
     val railColor = colors.hairline
-    val brush = Brush.verticalGradient(gradient)
+    val tint = color ?: colors.accent
+    val trail = Brush.verticalGradient(listOf(tint, tint.copy(alpha = 0.45f)))
+    val lastIndex = data.lastIndex
     val summary = if (data.isEmpty()) {
         stringResource(R.string.bar_chart_a11y_empty)
     } else {
@@ -71,7 +76,8 @@ fun BarChart(
             .fillMaxWidth()
             .semantics(mergeDescendants = true) { contentDescription = summary },
     ) {
-        data.forEach { point ->
+        data.forEachIndexed { index, point ->
+            val latest = index == lastIndex
             val hasValue = point.value > 0
             val ratio = (point.value / maxValue).toFloat()
             Column(
@@ -82,8 +88,8 @@ fun BarChart(
                 if (hasValue && formatValue != null) {
                     Text(
                         text = formatValue(point.value),
-                        color = colors.textSecondary,
-                        style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold),
+                        color = if (latest) colors.text else colors.textSecondary,
+                        style = ElanType.micro.copy(fontFamily = ElanFonts.condensed, fontWeight = FontWeight.Bold),
                         maxLines = 1,
                     )
                 } else {
@@ -91,15 +97,15 @@ fun BarChart(
                 }
                 Canvas(
                     modifier = Modifier
-                        .fillMaxWidth(0.64f)
+                        .fillMaxWidth(0.56f)
                         .height(height),
                 ) {
-                    val radius = CornerRadius(Radius.sm.toPx())
+                    val radius = CornerRadius(Radius.xs.toPx())
                     drawRoundRect(color = railColor, cornerRadius = radius)
                     if (hasValue) {
                         val barHeight = max(4.dp.toPx(), ratio * size.height)
                         drawRoundRect(
-                            brush = brush,
+                            brush = if (latest) SolidColor(tint) else trail,
                             topLeft = Offset(0f, size.height - barHeight),
                             size = Size(size.width, barHeight),
                             cornerRadius = radius,
@@ -108,8 +114,8 @@ fun BarChart(
                 }
                 Text(
                     text = point.label,
-                    color = colors.textSecondary,
-                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                    color = if (latest) colors.text else colors.textMuted,
+                    style = if (latest) ElanType.micro.copy(fontWeight = FontWeight.ExtraBold) else ElanType.micro,
                     maxLines = 1,
                 )
             }

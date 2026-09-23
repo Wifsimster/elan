@@ -27,10 +27,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.WHEEL_SIZES
@@ -38,8 +36,8 @@ import ovh.battistella.elan.domain.matchWheelSize
 import ovh.battistella.elan.sensors.ble.CscState
 import ovh.battistella.elan.sensors.ble.SensorStatus
 import ovh.battistella.elan.ui.components.ButtonVariant
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.components.SettingStepper
 import ovh.battistella.elan.ui.components.pressableScale
@@ -47,7 +45,7 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.settings.WHEEL_MM_MAX
 import ovh.battistella.elan.ui.screens.settings.WHEEL_MM_MIN
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import java.util.Locale
 
@@ -69,7 +67,7 @@ fun CadenceSensorCard(
         onDenied = { permissionDenied = true },
     )
 
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.RotateRight, color = colors.velo, title = stringResource(R.string.settings_csc_title))
         CardText(stringResource(R.string.settings_csc_intro))
 
@@ -77,14 +75,14 @@ fun CadenceSensorCard(
             val disconnectLabel = stringResource(R.string.settings_csc_disconnect, d.name)
             HairlineRow {
                 StatusDot(colors.success, size = 9)
-                Text(d.name, color = colors.text, style = TextStyle(fontWeight = FontWeight.SemiBold), modifier = Modifier.weight(1f))
+                Text(d.name, color = colors.text, style = ElanType.subtitle, modifier = Modifier.weight(1f))
                 val live = when {
                     state.cadenceRpm != null -> stringResource(R.string.settings_csc_rpm, state.cadenceRpm)
                     state.speedKmh != null -> stringResource(R.string.settings_csc_kmh, String.format(Locale.FRANCE, "%.1f", state.speedKmh))
                     else -> null
                 }
                 if (live != null) {
-                    Text(live, color = colors.velo, style = TextStyle(fontWeight = FontWeight.ExtraBold, fontFeatureSettings = "tnum"))
+                    Text(live, color = colors.velo, style = ElanType.metricSm)
                 }
                 Icon(
                     painter = painterResource(MdiIcons.BluetoothOff),
@@ -99,7 +97,7 @@ fun CadenceSensorCard(
         }
 
         if (state.status == SensorStatus.Scanning) {
-            PulseButton(
+            ElanButton(
                 title = stringResource(R.string.settings_scan_stop),
                 icon = MdiIcons.BluetoothOff,
                 variant = ButtonVariant.Secondary,
@@ -108,7 +106,7 @@ fun CadenceSensorCard(
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            PulseButton(
+            ElanButton(
                 title = stringResource(if (state.status == SensorStatus.Reconnecting) R.string.settings_hr_reconnecting else R.string.settings_csc_scan),
                 icon = MdiIcons.Bluetooth,
                 color = colors.velo,
@@ -176,7 +174,7 @@ private fun WheelSizePicker(valueMm: Int, onSelect: (Int) -> Unit) {
         Text(
             text = current?.label ?: stringResource(R.string.settings_wheel_custom),
             color = colors.text,
-            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 14.sp),
+            style = ElanType.label.copy(fontWeight = FontWeight.Bold),
         )
         Icon(painter = painterResource(MdiIcons.ChevronDown), contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(22.dp))
     }
@@ -192,7 +190,7 @@ private fun WheelSizePicker(valueMm: Int, onSelect: (Int) -> Unit) {
             ) {
                 Text(
                     text = title.uppercase(),
-                    style = PulseType.overline,
+                    style = ElanType.overline,
                     color = colors.textSecondary,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp),
                 )
@@ -211,9 +209,9 @@ private fun WheelSizePicker(valueMm: Int, onSelect: (Int) -> Unit) {
                             Text(
                                 text = w.label,
                                 color = if (active) colors.velo else colors.text,
-                                style = TextStyle(fontSize = 15.sp, fontWeight = if (active) FontWeight.ExtraBold else FontWeight.SemiBold),
+                                style = if (active) ElanType.subtitle.copy(fontWeight = FontWeight.ExtraBold) else ElanType.subtitle,
                             )
-                            Text(stringResource(R.string.settings_wheel_mm, w.mm), color = colors.textSecondary, style = TextStyle(fontSize = 13.sp))
+                            Text(stringResource(R.string.settings_wheel_mm, w.mm), color = colors.textSecondary, style = ElanType.bodySm)
                         }
                     }
                 }

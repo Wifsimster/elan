@@ -16,18 +16,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.Elevation
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
 /**
@@ -76,15 +72,14 @@ fun LinkCard(
         modifier = modifier
             .fillMaxWidth()
             .pressableScale(onClick = onClick)
-            .shadow(Elevation.sm, shape)
             .background(colors.backgroundElement, shape)
             .clip(shape)
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
         TintedIconBox(icon = icon, color = color, size = iconBoxSize, iconSize = if (iconBoxSize >= 46.dp) 24.dp else 22.dp)
         Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-            Text(title, style = PulseType.subtitle, color = colors.text)
-            Text(subtitle, style = TextStyle(fontSize = 13.sp), color = colors.textSecondary)
+            Text(title, style = ElanType.subtitle, color = colors.text)
+            Text(subtitle, style = ElanType.bodySm, color = colors.textSecondary)
         }
         Icon(
             painter = painterResource(MdiIcons.ChevronRight),

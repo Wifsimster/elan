@@ -17,20 +17,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.sensors.ble.BlePermissions
 import ovh.battistella.elan.sensors.ble.HrState
 import ovh.battistella.elan.sensors.ble.SensorStatus
 import ovh.battistella.elan.ui.components.ButtonVariant
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 
 /**
  * Demande les permissions Bluetooth puis lance [onGranted] ; [onDenied] sinon.
@@ -64,13 +62,13 @@ fun HeartRateCard(
         onDenied = { permissionDenied = true },
     )
 
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.HeartPulse, color = colors.heart, title = stringResource(R.string.settings_hr_title))
 
         HrStatusLine(state)
 
         when (state.status) {
-            SensorStatus.Connected -> PulseButton(
+            SensorStatus.Connected -> ElanButton(
                 title = stringResource(R.string.settings_hr_disconnect),
                 icon = MdiIcons.BluetoothOff,
                 variant = ButtonVariant.Secondary,
@@ -79,14 +77,14 @@ fun HeartRateCard(
             )
             // « Stop » pendant le scan plutôt qu'un bouton désactivé : la radio
             // ne reste pas à balayer si l'utilisateur change d'avis.
-            SensorStatus.Scanning -> PulseButton(
+            SensorStatus.Scanning -> ElanButton(
                 title = stringResource(R.string.settings_scan_stop),
                 icon = MdiIcons.BluetoothOff,
                 variant = ButtonVariant.Secondary,
                 onClick = onStopScan,
                 modifier = Modifier.fillMaxWidth(),
             )
-            else -> PulseButton(
+            else -> ElanButton(
                 title = stringResource(if (state.status == SensorStatus.Reconnecting) R.string.settings_hr_reconnecting else R.string.settings_hr_scan),
                 icon = MdiIcons.Bluetooth,
                 loading = state.status == SensorStatus.Connecting || state.status == SensorStatus.Reconnecting,
@@ -137,13 +135,13 @@ private fun HrStatusLine(state: HrState) {
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             StatusDot(color)
-            Text(label, color = colors.text, style = TextStyle(fontWeight = FontWeight.SemiBold))
+            Text(label, color = colors.text, style = ElanType.subtitle)
         }
         if (state.status == SensorStatus.Connected) {
             Text(
                 text = state.bpm?.let { stringResource(R.string.settings_bpm, it) } ?: "··",
                 color = colors.heart,
-                style = TextStyle(fontWeight = FontWeight.ExtraBold, fontFeatureSettings = "tnum", fontSize = 15.sp),
+                style = ElanType.metricSm,
             )
         }
     }

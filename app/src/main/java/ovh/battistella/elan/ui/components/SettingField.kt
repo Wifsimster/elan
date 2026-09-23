@@ -22,15 +22,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
 /**
@@ -53,7 +51,7 @@ fun SettingField(
     val colors = ElanTheme.colors
     var revealed by rememberSaveable { mutableStateOf(false) }
     val shape = RoundedCornerShape(Radius.sm)
-    val labelStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    val labelStyle = ElanType.label
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = modifier.fillMaxWidth()) {
         Row(
@@ -67,7 +65,7 @@ fun SettingField(
                 Text(
                     text = toggleLabel,
                     style = labelStyle,
-                    color = colors.accent,
+                    color = colors.link,
                     modifier = Modifier
                         .semantics { contentDescription = "$toggleLabel $label" }
                         .pressableScale(haptic = null) { revealed = !revealed }
@@ -79,7 +77,7 @@ fun SettingField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(fontSize = 15.sp, color = colors.text),
+            textStyle = ElanType.body.copy(color = colors.text),
             cursorBrush = SolidColor(colors.accent),
             visualTransformation =
                 if (secret && !revealed) PasswordVisualTransformation() else VisualTransformation.None,
@@ -101,7 +99,7 @@ fun SettingField(
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                 ) {
                     if (value.isEmpty() && placeholder != null) {
-                        Text(placeholder, style = TextStyle(fontSize = 15.sp), color = colors.textMuted)
+                        Text(placeholder, style = ElanType.body, color = colors.textMuted)
                     }
                     inner()
                 }

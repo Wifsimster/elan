@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 
 /**
  * En-tête d'une carte de réglages : icône colorée 22 dp + titre de section.
@@ -39,6 +39,6 @@ fun SettingCardHeader(
             tint = color,
             modifier = Modifier.size(22.dp),
         )
-        Text(title, style = PulseType.sectionTitle, color = ElanTheme.colors.text)
+        Text(title, style = ElanType.sectionTitle, color = ElanTheme.colors.text)
     }
 }

@@ -31,9 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,8 +42,8 @@ import ovh.battistella.elan.domain.Profile
 import ovh.battistella.elan.domain.TrainingGoal
 import ovh.battistella.elan.ui.components.ButtonVariant
 import ovh.battistella.elan.ui.components.ErrorNotice
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseChip
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanChip
 import ovh.battistella.elan.ui.components.SettingStepper
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.settings.BackupEvent
@@ -54,7 +52,7 @@ import ovh.battistella.elan.ui.screens.settings.BackupViewModel
 import ovh.battistella.elan.ui.screens.settings.cards.BackupConfigFields
 import ovh.battistella.elan.ui.screens.settings.cards.BackupDialogs
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.roundToInt
 
@@ -120,8 +118,8 @@ fun OnboardingSheet(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(stringResource(R.string.onboarding_title), style = PulseType.title, color = colors.text)
-                    Text(stringResource(R.string.onboarding_subtitle), style = PulseType.body, color = colors.textSecondary)
+                    Text(stringResource(R.string.onboarding_title), style = ElanType.title, color = colors.text)
+                    Text(stringResource(R.string.onboarding_subtitle), style = ElanType.body, color = colors.textSecondary)
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
@@ -133,14 +131,14 @@ fun OnboardingSheet(
                     )
                     Text(
                         text = stringResource(R.string.onboarding_privacy),
-                        style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
+                        style = ElanType.bodySm,
                         color = colors.textSecondary,
                         modifier = Modifier.weight(1f),
                     )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
-                    Text(stringResource(R.string.onboarding_profile_hint), style = PulseType.label, color = colors.textSecondary)
+                    Text(stringResource(R.string.onboarding_profile_hint), style = ElanType.label, color = colors.textSecondary)
                     SettingStepper(
                         label = stringResource(R.string.onboarding_weight),
                         value = weightKg,
@@ -168,20 +166,20 @@ fun OnboardingSheet(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.onboarding_goal_hint), style = PulseType.label, color = colors.textSecondary)
+                    Text(stringResource(R.string.onboarding_goal_hint), style = ElanType.label, color = colors.textSecondary)
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         GOALS.forEach { g ->
-                            PulseChip(label = g.label, selected = goal == g.id, onClick = { goal = g.id })
+                            ElanChip(label = g.label, selected = goal == g.id, onClick = { goal = g.id })
                         }
                     }
                 }
 
-                Text(stringResource(R.string.onboarding_editable), style = PulseType.caption, color = colors.textMuted)
+                Text(stringResource(R.string.onboarding_editable), style = ElanType.caption, color = colors.textMuted)
 
-                PulseButton(
+                ElanButton(
                     title = stringResource(R.string.onboarding_go),
                     icon = MdiIcons.ArrowRight,
                     onClick = { onDone(weightKg, heightCm, maxHr, goal) },
@@ -189,7 +187,7 @@ fun OnboardingSheet(
                 )
                 // Réinstallation : la base est vide, on propose de tout recharger
                 // depuis le serveur plutôt que de repartir de zéro.
-                PulseButton(
+                ElanButton(
                     title = stringResource(R.string.onboarding_restore),
                     icon = MdiIcons.CloudDownloadOutline,
                     variant = ButtonVariant.Ghost,
@@ -262,8 +260,8 @@ fun RestoreSheet(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(stringResource(R.string.restore_title), style = PulseType.title, color = colors.text)
-                    Text(stringResource(R.string.restore_text), style = PulseType.body, color = colors.textSecondary)
+                    Text(stringResource(R.string.restore_title), style = ElanType.title, color = colors.text)
+                    Text(stringResource(R.string.restore_text), style = ElanType.body, color = colors.textSecondary)
                 }
 
                 BackupConfigFields(config = ui.config, onPatch = viewModel::update, onQrScanned = viewModel::onQrScanned)
@@ -279,13 +277,13 @@ fun RestoreSheet(
                     )
                     Text(
                         text = stringResource(R.string.restore_note),
-                        style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
+                        style = ElanType.bodySm,
                         color = colors.textSecondary,
                         modifier = Modifier.weight(1f),
                     )
                 }
 
-                PulseButton(
+                ElanButton(
                     title = stringResource(R.string.restore_button),
                     icon = MdiIcons.CloudDownload,
                     loading = ui.status == BackupStatus.Restoring,
@@ -293,7 +291,7 @@ fun RestoreSheet(
                     onClick = viewModel::restoreNow,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                PulseButton(
+                ElanButton(
                     title = stringResource(R.string.common_back),
                     variant = ButtonVariant.Ghost,
                     enabled = ui.status != BackupStatus.Restoring,

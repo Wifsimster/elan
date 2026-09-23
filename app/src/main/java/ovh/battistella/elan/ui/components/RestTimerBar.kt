@@ -29,10 +29,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import ovh.battistella.elan.R
@@ -43,7 +40,7 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.sound.Sounds
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.Elevation
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.ceil
 import kotlin.math.max
@@ -138,12 +135,12 @@ fun RestTimerBar(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 (if (done) "Repos terminé" else "Repos").uppercase(),
-                style = PulseType.overline,
+                style = ElanType.overline,
                 color = colors.textSecondary,
             )
             Text(
                 formatDuration(remainingSec),
-                style = PulseType.metric.copy(fontSize = 26.sp),
+                style = ElanType.metricSm,
                 color = if (done) colors.success else colors.text,
             )
         }
@@ -179,7 +176,7 @@ private fun RestPill(label: String, description: String, onClick: () -> Unit) {
     ) {
         Text(
             label,
-            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold),
+            style = ElanType.label,
             color = colors.text,
         )
     }

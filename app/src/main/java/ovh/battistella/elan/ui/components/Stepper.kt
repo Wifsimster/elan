@@ -32,18 +32,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.fmtKg
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -120,13 +118,8 @@ fun Stepper(
                 )
                 .semantics { contentDescription = valueDescription },
         ) {
-            val valueStyle = TextStyle(
-                fontSize = 15.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = colors.text,
-                fontFeatureSettings = "tnum",
-                textAlign = TextAlign.Center,
-            )
+            // Valeur chiffrée : condensé tabulaire, couleur et centrage portés par le style (champ de saisie).
+            val valueStyle = ElanType.metricSm.copy(color = colors.text, textAlign = TextAlign.Center)
             if (editing) {
                 // Le premier événement de focus est « non focalisé » (avant la
                 // demande) : on ne valide qu'à une vraie perte de focus.
@@ -153,7 +146,7 @@ fun Stepper(
             } else {
                 Text(display, style = valueStyle, maxLines = 1)
             }
-            Text(suffix, style = TextStyle(fontSize = 10.sp), color = colors.textSecondary, maxLines = 1)
+            Text(suffix, style = ElanType.micro, color = colors.textSecondary, maxLines = 1)
         }
         StepButton(
             icon = MdiIcons.Plus,

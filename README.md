@@ -38,7 +38,7 @@ no data ever leaves your phone, with no account and no server.
 | [Play Store publishing guide](docs/PUBLISHING.md) | Upload key, release flow, Play Console declarations |
 | [Data safety](docs/DATA_SAFETY.md) | Ready-to-use answers for the Play Console “Data safety” questionnaire |
 | [Privacy policy](PRIVACY.md) | The app's privacy commitment (public text) |
-| [PULSE design system](DESIGN.md) | Visual rules: colors, typography, components, Compose implementation |
+| [Sillage design system](DESIGN.md) | Visual rules: colors, typography, components, Compose implementation |
 
 ---
 
@@ -266,7 +266,7 @@ are in the [publishing guide](docs/PUBLISHING.md).
 | Concern | Choice |
 |---------|--------|
 | Language | Kotlin 2.0, JVM 17 |
-| UI | Jetpack Compose + Material 3 Expressive, PULSE design system |
+| UI | Jetpack Compose + Material 3 Expressive, Sillage design system |
 | Persistence | Room (schema exported to `app/schemas/`) |
 | DI | Hilt |
 | Async | Coroutines + Flow |
@@ -308,7 +308,7 @@ app/src/main/java/ovh/battistella/elan/
 - [Play Store publishing guide](docs/PUBLISHING.md) — Publishing to the Google Play Store.
 - [Data safety](docs/DATA_SAFETY.md) — Play Console questionnaire.
 - [Privacy policy](PRIVACY.md) — The app's public privacy text.
-- [PULSE design system](DESIGN.md) — Visual rules and Compose implementation.
+- [Sillage design system](DESIGN.md) — Visual rules and Compose implementation.
 - [Asset licenses](docs/LICENSES-ASSETS.md) — Bundled icons, photos, sounds.
 - [Changelog](CHANGELOG.md) — Version history.
 

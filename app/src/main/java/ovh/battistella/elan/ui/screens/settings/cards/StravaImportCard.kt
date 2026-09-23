@@ -15,8 +15,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.R
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.settings.STRAVA_IMPORT_MIME_TYPES
@@ -40,14 +40,14 @@ fun StravaImportCard(
         if (uris.isNotEmpty()) onImport(uris)
     }
 
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.CloudDownloadOutline, color = colors.velo, title = stringResource(R.string.settings_strava_title))
         CardText(stringResource(R.string.settings_strava_intro))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
             Icon(painter = painterResource(MdiIcons.InformationOutline), contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(18.dp))
             CardText(stringResource(R.string.settings_strava_note), muted = true, size = 12, modifier = Modifier.weight(1f))
         }
-        PulseButton(
+        ElanButton(
             title = stringResource(R.string.settings_strava_import),
             icon = MdiIcons.FileImportOutline,
             color = colors.velo,

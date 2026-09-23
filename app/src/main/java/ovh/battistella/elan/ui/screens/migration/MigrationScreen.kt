@@ -21,21 +21,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.data.legacy.MigrationState
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanColors
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Spacing
 
-/** Fond sombre fixe, identique quel que soit le thème : l'écran précède le thème utilisateur. */
-private val MigrationBackground = Color(0xFF0A0C10)
-private val MigrationText = Color(0xFFF2F4F8)
-private val MigrationTextSecondary = Color(0xFFA0A8B8)
-private val MigrationAccent = Color(0xFF5B7CFF)
-private val MigrationDanger = Color(0xFFFF5B6E)
+/**
+ * Palette sombre fixe (encre Sillage), identique quel que soit le thème :
+ * l'écran précède le thème utilisateur.
+ */
+private val MigrationColors = ElanColors.Dark
+private val MigrationBackground = MigrationColors.background
+private val MigrationText = MigrationColors.text
+private val MigrationTextSecondary = MigrationColors.textSecondary
+private val MigrationAccent = MigrationColors.accent
+private val MigrationDanger = MigrationColors.danger
 
 /**
  * Écran plein cadre affiché tant que la reprise des anciennes données n'est
@@ -70,7 +74,7 @@ fun MigrationScreen(
 private fun RunningContent(state: MigrationState.Running) {
     Text(
         text = stringResource(R.string.migration_title),
-        style = PulseType.title,
+        style = ElanType.title,
         color = MigrationText,
         textAlign = TextAlign.Center,
     )
@@ -86,7 +90,7 @@ private fun RunningContent(state: MigrationState.Running) {
         )
         Text(
             text = stringResource(R.string.migration_progress, state.copied, state.total),
-            style = PulseType.caption,
+            style = ElanType.caption,
             color = MigrationTextSecondary,
             modifier = Modifier.padding(top = Spacing.two),
         )
@@ -95,7 +99,7 @@ private fun RunningContent(state: MigrationState.Running) {
     }
     Text(
         text = stringResource(R.string.migration_keep_open),
-        style = PulseType.body,
+        style = ElanType.body,
         color = MigrationTextSecondary,
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = Spacing.four),
@@ -113,20 +117,20 @@ private fun FailedContent(
 
     Text(
         text = stringResource(R.string.migration_failed_title),
-        style = PulseType.title,
+        style = ElanType.title,
         color = MigrationText,
         textAlign = TextAlign.Center,
     )
     Text(
         text = state.reason,
-        style = PulseType.body,
+        style = ElanType.body,
         color = MigrationDanger,
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = Spacing.three),
     )
     Text(
         text = stringResource(R.string.migration_failed_hint),
-        style = PulseType.body,
+        style = ElanType.body,
         color = MigrationTextSecondary,
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = Spacing.three),

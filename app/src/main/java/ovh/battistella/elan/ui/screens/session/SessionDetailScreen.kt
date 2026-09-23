@@ -31,10 +31,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ovh.battistella.elan.R
@@ -69,10 +67,11 @@ import ovh.battistella.elan.domain.zoneDistribution
 import ovh.battistella.elan.ui.components.ButtonVariant
 import ovh.battistella.elan.ui.components.HrZonesCard
 import ovh.battistella.elan.ui.components.LineChart
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
-import ovh.battistella.elan.ui.components.PulseChip
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
+import ovh.battistella.elan.ui.components.ElanChip
 import ovh.battistella.elan.ui.components.RouteMap
+import ovh.battistella.elan.ui.components.SectionLabel
 import ovh.battistella.elan.ui.components.StatTile
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.components.screenContent
@@ -84,7 +83,7 @@ import ovh.battistella.elan.ui.screens.common.SubScreenHeader
 import ovh.battistella.elan.ui.screens.common.TintedIconBox
 import ovh.battistella.elan.ui.screens.common.ConfirmDialog
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.forKey
 import java.time.Instant
@@ -183,8 +182,8 @@ fun SessionDetailScreen(
                 radius = Radius.md,
             )
             Column {
-                Text(meta.label, style = PulseType.headline, color = colors.text)
-                Text(formatDateTime(session.startedAt, withYear = true), style = TextStyle(fontSize = 14.sp), color = colors.textSecondary)
+                Text(meta.label, style = ElanType.headline, color = colors.text)
+                Text(formatDateTime(session.startedAt, withYear = true), style = ElanType.bodySm, color = colors.textSecondary)
             }
         }
 
@@ -255,9 +254,9 @@ fun SessionDetailScreen(
         }
 
         session.notes?.takeIf { it.isNotBlank() }?.let { notes ->
-            PulseCard {
-                Text(stringResource(R.string.session_notes).uppercase(), style = PulseType.overline, color = colors.textSecondary)
-                Text(notes, style = TextStyle(fontSize = 15.sp), color = colors.text)
+            ElanCard {
+                SectionLabel(text = stringResource(R.string.session_notes))
+                Text(notes, style = ElanType.body, color = colors.text)
             }
         }
 
@@ -266,7 +265,7 @@ fun SessionDetailScreen(
         }
 
         if (isGps && points.size >= 2) {
-            PulseButton(
+            ElanButton(
                 title = stringResource(R.string.session_export_gpx),
                 icon = MdiIcons.CloudUploadOutline,
                 variant = ButtonVariant.Secondary,
@@ -276,7 +275,7 @@ fun SessionDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        PulseButton(
+        ElanButton(
             title = stringResource(R.string.session_share),
             icon = MdiIcons.ShareVariant,
             variant = ButtonVariant.Secondary,
@@ -284,7 +283,7 @@ fun SessionDetailScreen(
             onClick = viewModel::share,
             modifier = Modifier.fillMaxWidth(),
         )
-        PulseButton(
+        ElanButton(
             title = stringResource(R.string.session_delete),
             icon = MdiIcons.TrashCanOutline,
             variant = ButtonVariant.Danger,
@@ -355,7 +354,7 @@ private fun StatsCard(session: Session, sets: List<MuscuSet>, maxHr: Double, col
     val movingSec = if (isGps) session.movingTimeSec else null
     val showTotalTime = movingSec != null && session.durationSec - movingSec >= 60
 
-    PulseCard {
+    ElanCard {
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(18.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -432,14 +431,14 @@ private fun androidx.compose.foundation.layout.FlowRowScope.CompactTile(
 @Composable
 private fun ChartCard(title: String, unit: String, content: @Composable () -> Unit) {
     val colors = ElanTheme.colors
-    PulseCard {
+    ElanCard {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(title, style = PulseType.headline, color = colors.text)
-            Text(unit, style = PulseType.caption, color = colors.textMuted)
+            Text(title, style = ElanType.headline, color = colors.text)
+            Text(unit, style = ElanType.caption, color = colors.textMuted)
         }
         content()
     }
@@ -481,7 +480,7 @@ internal fun RecordsBanner(records: List<SessionRecord>, year: Int) {
             TintedIconBox(icon = MdiIcons.Trophy, color = colors.warning, size = 40.dp, iconSize = 22.dp)
             Text(
                 text = if (hasAllTime) stringResource(R.string.records_personal) else stringResource(R.string.records_year, year),
-                style = PulseType.headline,
+                style = ElanType.headline,
                 color = colors.text,
             )
         }
@@ -492,7 +491,7 @@ internal fun RecordsBanner(records: List<SessionRecord>, year: Int) {
                     val scope = if (r.scope == RecordScope.ALL) stringResource(R.string.records_all_time) else stringResource(R.string.records_of_year, year)
                     Text(
                         text = "${stringResource(R.string.records_best, recordNoun(r.kind))} $scope",
-                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                        style = ElanType.label,
                         color = colors.text,
                     )
                 }
@@ -514,7 +513,7 @@ internal fun MuscuBreakdown(sets: List<MuscuSet>, color: Color, onOpenExercise: 
                 Difficulty.MOYEN -> colors.warning
                 Difficulty.DUR, null -> colors.danger
             }
-            PulseCard {
+            ElanCard {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -524,14 +523,14 @@ internal fun MuscuBreakdown(sets: List<MuscuSet>, color: Color, onOpenExercise: 
                 ) {
                     Text(
                         text = g.name,
-                        style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 21.sp),
+                        style = ElanType.subtitle,
                         color = colors.text,
                         modifier = Modifier.weight(1f),
                     )
                     if (difficulty != null) {
                         Text(
                             text = difficultyLabel(difficulty),
-                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                            style = ElanType.caption,
                             color = diffColor,
                             modifier = Modifier
                                 .background(diffColor.copy(alpha = 0.13f), RoundedCornerShape(Radius.pill))
@@ -540,7 +539,7 @@ internal fun MuscuBreakdown(sets: List<MuscuSet>, color: Color, onOpenExercise: 
                     }
                     Text(
                         text = stringResource(R.string.session_volume, g.volume.roundToInt()),
-                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum"),
+                        style = ElanType.label,
                         color = colors.textSecondary,
                     )
                     Icon(painter = painterResource(MdiIcons.ChevronRight), contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(20.dp))
@@ -551,16 +550,16 @@ internal fun MuscuBreakdown(sets: List<MuscuSet>, color: Color, onOpenExercise: 
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(vertical = 2.dp),
                     ) {
-                        Text(r.setIndex.toString(), style = TextStyle(fontWeight = FontWeight.Bold), color = colors.textSecondary, modifier = Modifier.width(22.dp))
+                        Text(r.setIndex.toString(), style = ElanType.label, color = colors.textSecondary, modifier = Modifier.width(22.dp))
                         Text(
                             stringResource(R.string.session_reps, r.reps),
-                            style = TextStyle(fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum"),
+                            style = ElanType.label,
                             color = colors.text,
                         )
                         Text("×", color = colors.textSecondary)
                         Text(
                             "${fmtKg(r.weightKg)} kg",
-                            style = TextStyle(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
+                            style = ElanType.label.copy(fontWeight = FontWeight.Bold),
                             color = color,
                         )
                     }
@@ -579,14 +578,14 @@ internal fun MuscuBreakdown(sets: List<MuscuSet>, color: Color, onOpenExercise: 
 @Composable
 internal fun SessionTypeCard(current: ActivityType, busy: Boolean, onSelect: (ActivityType) -> Unit) {
     val colors = ElanTheme.colors
-    PulseCard {
+    ElanCard {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.session_type_title).uppercase(), style = PulseType.overline, color = colors.textSecondary)
+            SectionLabel(text = stringResource(R.string.session_type_title))
             if (busy) CircularProgressIndicator(color = colors.textSecondary, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ACTIVITY_TYPES.filter { isGpsActivity(it) }.forEach { t ->
-                PulseChip(
+                ElanChip(
                     label = t.meta.shortLabel,
                     selected = t == current,
                     color = colors.forKey(t.meta.colorKey),
@@ -594,6 +593,6 @@ internal fun SessionTypeCard(current: ActivityType, busy: Boolean, onSelect: (Ac
                 )
             }
         }
-        Text(stringResource(R.string.session_type_hint), style = PulseType.caption, color = colors.textSecondary)
+        Text(stringResource(R.string.session_type_hint), style = ElanType.caption, color = colors.textSecondary)
     }
 }

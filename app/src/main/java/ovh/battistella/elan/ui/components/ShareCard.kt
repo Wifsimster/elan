@@ -52,8 +52,8 @@ import ovh.battistella.elan.domain.meta
 import ovh.battistella.elan.domain.usesPace
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseGradients
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanGradients
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.forKey
 import kotlin.math.roundToInt
@@ -147,15 +147,15 @@ fun ShareCard(
                 RouteCanvas(points = points, color = color, height = SHARE_HERO_HEIGHT, fill = true)
             }
         } else {
-            IconHero(gradient = PulseGradients.forKey(meta.colorKey), icon = MdiIcons.byName(meta.icon) ?: MdiIcons.Run)
+            IconHero(gradient = ElanGradients.forKey(meta.colorKey), icon = MdiIcons.byName(meta.icon) ?: MdiIcons.Run)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(18.dp)) {
             Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.share_brand), style = PulseType.overline, color = colors.textMuted)
-                    Text(meta.label, style = PulseType.headline, color = colors.text)
-                    Text(formatDateTime(session.startedAt, withYear = true), style = PulseType.caption, color = colors.textSecondary)
+                    ElanWordmark(height = 18.dp)
+                    Text(meta.label, style = ElanType.headline, color = colors.text)
+                    Text(formatDateTime(session.startedAt, withYear = true), style = ElanType.caption, color = colors.textSecondary)
                 }
                 Box(
                     contentAlignment = Alignment.Center,
@@ -168,8 +168,8 @@ fun ShareCard(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(14.dp), maxItemsInEachRow = 3) {
                 stats.forEach { s ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.width((SHARE_CARD_WIDTH - 36.dp - 24.dp) / 3)) {
-                        Text(s.value, style = PulseType.metric.copy(fontSize = 20.sp), color = s.color ?: colors.text, maxLines = 1)
-                        Text(s.label, style = PulseType.caption, color = colors.textSecondary)
+                        Text(s.value, style = ElanType.metricSm, color = s.color ?: colors.text, maxLines = 1)
+                        Text(s.label, style = ElanType.caption, color = colors.textSecondary)
                     }
                 }
             }
@@ -182,7 +182,7 @@ fun ShareCard(
                     .padding(horizontal = 12.dp, vertical = 6.dp),
             ) {
                 Icon(painter = painterResource(badgeIcon), contentDescription = null, tint = badgeColor, modifier = Modifier.size(15.dp))
-                Text(badgeLabel, color = badgeColor, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold))
+                Text(badgeLabel, color = badgeColor, style = ElanType.label.copy(fontWeight = FontWeight.Bold))
             }
         }
     }
@@ -198,12 +198,12 @@ private fun IconHero(gradient: List<Color>, @DrawableRes icon: Int) {
             .height(140.dp)
             .background(Brush.linearGradient(gradient, start = Offset.Zero, end = Offset.Infinite)),
     ) {
-        Icon(painter = painterResource(icon), contentDescription = null, tint = PulseGradients.inkOn(gradient), modifier = Modifier.size(56.dp))
+        Icon(painter = painterResource(icon), contentDescription = null, tint = ElanGradients.inkOn(gradient), modifier = Modifier.size(56.dp))
     }
 }
 
-/** Dégradé du thème par clé d'activité (`velo`, `muscu`, `course`, `marche`), accent sinon. */
-fun PulseGradients.forKey(key: String): List<Color> = when (key) {
+/** Dégradé sillage par clé d'activité (`velo`, `muscu`, `course`, `marche`), marque sinon. */
+fun ElanGradients.forKey(key: String): List<Color> = when (key) {
     "velo" -> velo
     "muscu" -> muscu
     "course" -> course
@@ -212,5 +212,5 @@ fun PulseGradients.forKey(key: String): List<Color> = when (key) {
     "warning" -> fire
     "success" -> success
     "danger" -> danger
-    else -> accent
+    else -> brand
 }

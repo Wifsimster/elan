@@ -18,7 +18,7 @@ import ovh.battistella.elan.ui.theme.Motion
 
 /**
  * Surface tactile « ressort », brique de base de toutes les interactions
- * PULSE : se comprime sous le doigt (`Motion.snappy` vers [scaleTo]) et
+ * Sillage : se comprime sous le doigt (`Motion.snappy` vers [scaleTo]) et
  * rebondit au relâchement (`Motion.bouncy` vers 1), avec un retour haptique
  * [haptic] au clic (`null` pour aucun). Rôle bouton pour l'accessibilité.
  *

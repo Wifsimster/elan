@@ -30,11 +30,11 @@ import ovh.battistella.elan.domain.MuscuSet
 import ovh.battistella.elan.domain.Session
 import ovh.battistella.elan.domain.TrackPoint
 import ovh.battistella.elan.ui.components.ButtonVariant
-import ovh.battistella.elan.ui.components.PulseButton
+import ovh.battistella.elan.ui.components.ElanButton
 import ovh.battistella.elan.ui.components.ShareCard
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
 /**
@@ -69,7 +69,7 @@ fun SharePreviewDialog(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Text(stringResource(R.string.share_preview_title), style = PulseType.headline, color = colors.text)
+            Text(stringResource(R.string.share_preview_title), style = ElanType.headline, color = colors.text)
             ShareCard(
                 session = session,
                 points = points,
@@ -81,14 +81,14 @@ fun SharePreviewDialog(
                     drawLayer(layer)
                 },
             )
-            PulseButton(
+            ElanButton(
                 title = stringResource(R.string.share_action),
                 icon = MdiIcons.ShareVariant,
                 loading = sharing,
                 onClick = { scope.launch { onShare(layer.toImageBitmap()) } },
                 modifier = Modifier.fillMaxWidth(),
             )
-            PulseButton(
+            ElanButton(
                 title = stringResource(R.string.common_cancel),
                 variant = ButtonVariant.Ghost,
                 onClick = onDismiss,

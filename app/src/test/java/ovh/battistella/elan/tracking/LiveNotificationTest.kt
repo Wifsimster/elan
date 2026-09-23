@@ -96,7 +96,7 @@ class LiveNotificationTest {
 
         assertEquals("Sortie en cours", n.extras.getString(Notification.EXTRA_TITLE))
         assertEquals("Élan enregistre ton tracé GPS.", n.extras.getString(Notification.EXTRA_TEXT))
-        assertEquals(0xFF0A0C10.toInt(), n.color)
+        assertEquals(0xFF0D0E0B.toInt(), n.color)
         assertTrue(n.flags and Notification.FLAG_ONGOING_EVENT != 0)
         assertEquals("outing", shadowOf(n.contentIntent).savedIntent.getStringExtra(LiveNotification.EXTRA_OPEN_ROUTE))
         assertNotNull(realManager.getNotificationChannel(LiveNotification.SESSION_CHANNEL))

@@ -31,7 +31,7 @@ object ProgressionNotifier {
     /** Route ouverte par `MainActivity` au tap (extra [LiveNotification.EXTRA_OPEN_ROUTE]). */
     const val ROUTE = "progression"
 
-    private const val ACCENT = "#0A0C10"
+    private const val ACCENT = "#0D0E0B"
 
     /** Canal « Progression du programme », importance par défaut. Idempotent. */
     fun ensureChannel(context: Context) {

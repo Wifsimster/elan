@@ -21,7 +21,7 @@ import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 
 
 /**
@@ -45,7 +45,7 @@ fun SubScreenHeader(
         HeaderAction(icon = MdiIcons.ArrowLeft, label = stringResource(R.string.common_back), onClick = onBack, size = 26.dp)
         Text(
             text = title,
-            style = PulseType.headline,
+            style = ElanType.headline,
             color = colors.text,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

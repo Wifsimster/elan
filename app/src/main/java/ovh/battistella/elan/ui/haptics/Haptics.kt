@@ -8,7 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
 
 /**
- * Retours haptiques du design system PULSE (docs/port-spec/02-interface.md
+ * Retours haptiques du design system Sillage (docs/port-spec/02-interface.md
  * §5). Toute interaction marquante en déclenche un ; l'échec (appareil sans
  * moteur, réglage système coupé) est silencieux.
  */

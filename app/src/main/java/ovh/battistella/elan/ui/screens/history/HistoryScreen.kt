@@ -34,11 +34,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -51,14 +49,14 @@ import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.domain.meta
 import ovh.battistella.elan.ui.components.EmptyAction
 import ovh.battistella.elan.ui.components.EmptyState
-import ovh.battistella.elan.ui.components.PulseChip
+import ovh.battistella.elan.ui.components.ElanChip
 import ovh.battistella.elan.ui.components.SessionRow
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.components.screenContent
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.common.LinkCard
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.forKey
 
@@ -110,7 +108,7 @@ fun HistoryScreen(
                     .screenContent()
                     .padding(bottom = 10.dp),
             ) {
-                Text(stringResource(R.string.nav_history), style = PulseType.title, color = colors.text)
+                Text(stringResource(R.string.nav_history), style = ElanType.title, color = colors.text)
 
                 LinkCard(
                     icon = MdiIcons.ChartLine,
@@ -190,7 +188,7 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit) {
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(fontSize = 15.sp, color = colors.text),
+            textStyle = ElanType.body.copy(color = colors.text),
             cursorBrush = SolidColor(colors.accent),
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.None,
@@ -203,7 +201,7 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit) {
             decorationBox = { inner ->
                 Box(contentAlignment = Alignment.CenterStart) {
                     if (value.isEmpty()) {
-                        Text(placeholder, style = TextStyle(fontSize = 15.sp), color = colors.textMuted, maxLines = 1)
+                        Text(placeholder, style = ElanType.body, color = colors.textMuted, maxLines = 1)
                     }
                     inner()
                 }
@@ -230,13 +228,13 @@ private fun TypeChips(
 ) {
     val colors = ElanTheme.colors
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        PulseChip(
+        ElanChip(
             label = stringResource(R.string.history_filter_all),
             selected = selected == null,
             onClick = { onSelect(null) },
         )
         ACTIVITY_TYPES.forEach { t ->
-            PulseChip(
+            ElanChip(
                 label = t.meta.shortLabel,
                 selected = selected == t,
                 color = colors.forKey(t.meta.colorKey),
@@ -251,7 +249,7 @@ private fun TypeChips(
 private fun RangeChips(selected: HistoryRange, onSelect: (HistoryRange) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         HistoryRange.entries.forEach { r ->
-            PulseChip(label = rangeLabel(r), selected = selected == r, onClick = { onSelect(r) })
+            ElanChip(label = rangeLabel(r), selected = selected == r, onClick = { onSelect(r) })
         }
     }
 }

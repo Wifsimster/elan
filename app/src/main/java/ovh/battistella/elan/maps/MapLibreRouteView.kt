@@ -30,7 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +56,7 @@ import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
 import ovh.battistella.elan.domain.GeoPoint
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
 private const val SOURCE_ROUTE = "route"
@@ -166,6 +167,8 @@ internal class RouteMapController(private val view: MapView, private val styleUr
                     PropertyFactory.circleRadius(6f),
                     PropertyFactory.circleColor(content.startColor),
                     PropertyFactory.circleStrokeWidth(2f),
+                    // Liseré blanc fixe : le marqueur de départ se détache sur les
+                    // tuiles claires comme sombres, indépendamment du thème de l'app.
                     PropertyFactory.circleStrokeColor(android.graphics.Color.WHITE),
                 ),
             )
@@ -297,9 +300,12 @@ fun MapLibreRouteView(
         )
         }
         // Attribution OSM — obligatoire dès qu'un fond de carte est affiché.
+        // Noir sur voile blanc, hors thème : la mention reste lisible sur les
+        // tuiles (claires) quel que soit le mode de l'app, comme le font les
+        // attributions MapLibre/OSM. Taille réduite volontaire (discrète).
         Text(
             text = mapAttribution(styleUrl),
-            style = TextStyle(fontSize = 9.sp, lineHeight = 12.sp),
+            style = ElanType.micro.copy(fontSize = 9.sp, lineHeight = 12.sp, fontWeight = FontWeight.Normal),
             color = Color.Black,
             modifier = Modifier
                 .align(Alignment.BottomEnd)

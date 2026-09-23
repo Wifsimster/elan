@@ -28,11 +28,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ovh.battistella.elan.R
@@ -42,8 +39,8 @@ import ovh.battistella.elan.domain.formatDateTime
 import ovh.battistella.elan.ui.components.ChartPoint
 import ovh.battistella.elan.ui.components.EmptyState
 import ovh.battistella.elan.ui.components.LineChart
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.components.pressableScale
 import ovh.battistella.elan.ui.components.screenContent
@@ -51,7 +48,7 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.common.SubScreenHeader
 import ovh.battistella.elan.ui.screens.common.ConfirmDialog
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.roundToLong
 
@@ -83,22 +80,22 @@ fun WeightScreen(
                 modifier = Modifier.screenContent().padding(bottom = 14.dp),
             ) {
                 SubScreenHeader(title = stringResource(R.string.weight_title), onBack = onBack)
-                Text(stringResource(R.string.weight_intro), style = PulseType.label, color = colors.textSecondary)
+                Text(stringResource(R.string.weight_intro), style = ElanType.label, color = colors.textSecondary)
 
-                PulseCard {
+                ElanCard {
                     SettingCardHeader(icon = MdiIcons.ScaleBathroom, color = colors.accent, title = stringResource(R.string.weight_new))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         WeightInput(value = ui.input, onValueChange = viewModel::setInput, modifier = Modifier.weight(1f))
-                        Text("kg", style = PulseType.subtitle, color = colors.textSecondary)
+                        Text("kg", style = ElanType.subtitle, color = colors.textSecondary)
                     }
-                    PulseButton(
+                    ElanButton(
                         title = stringResource(R.string.weight_save),
                         icon = MdiIcons.Check,
                         onClick = viewModel::save,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     if (ui.error) {
-                        Text(stringResource(R.string.weight_invalid), style = TextStyle(fontSize = 13.sp), color = colors.danger)
+                        Text(stringResource(R.string.weight_invalid), style = ElanType.bodySm, color = colors.danger)
                     }
                 }
 
@@ -111,7 +108,7 @@ fun WeightScreen(
                 }
 
                 ui.latest?.let { latest ->
-                    PulseCard {
+                    ElanCard {
                         Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
                             Metric(label = stringResource(R.string.weight_current), value = "${fmtWeight(latest.weightKg)} kg", color = colors.accent)
                             Metric(
@@ -127,8 +124,8 @@ fun WeightScreen(
                 }
 
                 if (list.size >= 2) {
-                    PulseCard {
-                        Text(stringResource(R.string.weight_evolution), style = PulseType.headline, color = colors.text)
+                    ElanCard {
+                        Text(stringResource(R.string.weight_evolution), style = ElanType.headline, color = colors.text)
                         LineChart(
                             data = list.asReversed().map { ChartPoint(it.measuredAt.toDouble(), it.weightKg) },
                             color = colors.accent,
@@ -140,7 +137,7 @@ fun WeightScreen(
                 }
 
                 if (list.isNotEmpty()) {
-                    Text(stringResource(R.string.weight_entries), style = PulseType.headline, color = colors.text)
+                    Text(stringResource(R.string.weight_entries), style = ElanType.headline, color = colors.text)
                 }
             }
         }
@@ -183,7 +180,7 @@ private fun WeightInput(value: String, onValueChange: (String) -> Unit, modifier
         value = value,
         onValueChange = { if (it.length <= 6) onValueChange(it) },
         singleLine = true,
-        textStyle = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = colors.text, fontFeatureSettings = "tnum"),
+        textStyle = ElanType.metricSm.copy(color = colors.text),
         cursorBrush = SolidColor(colors.accent),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = modifier.semantics { contentDescription = a11y },
@@ -204,8 +201,8 @@ private fun WeightInput(value: String, onValueChange: (String) -> Unit, modifier
 private fun Metric(label: String, value: String, color: Color? = null) {
     val colors = ElanTheme.colors
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(value, style = PulseType.metric.copy(fontSize = 20.sp), color = color ?: colors.text)
-        Text(label, style = PulseType.caption, color = colors.textSecondary)
+        Text(value, style = ElanType.metricSm, color = color ?: colors.text)
+        Text(label, style = ElanType.caption, color = colors.textSecondary)
     }
 }
 
@@ -229,13 +226,13 @@ private fun WeightRow(measurement: BodyMeasurement, delta: Double?, first: Boole
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                Text("${fmtWeight(measurement.weightKg)} kg", style = PulseType.subtitle.copy(fontFeatureSettings = "tnum"), color = colors.text)
-                Text(date, style = TextStyle(fontSize = 13.sp), color = colors.textSecondary)
+                Text("${fmtWeight(measurement.weightKg)} kg", style = ElanType.subtitle.copy(fontFeatureSettings = "tnum"), color = colors.text)
+                Text(date, style = ElanType.bodySm, color = colors.textSecondary)
             }
             if (delta != null) {
                 Text(
                     "${fmtWeightDelta(delta)} kg",
-                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
+                    style = ElanType.label,
                     color = colors.textSecondary,
                 )
             }

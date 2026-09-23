@@ -18,31 +18,32 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import ovh.battistella.elan.domain.bestInk
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseColors
-import ovh.battistella.elan.ui.theme.PulseGradients
+import ovh.battistella.elan.ui.theme.ElanColors
+import ovh.battistella.elan.ui.theme.ElanGradients
 import ovh.battistella.elan.ui.theme.toHex6
 
 @RunWith(RobolectricTestRunner::class)
-class PulseChipTest {
+class ElanChipTest {
 
     @get:Rule val compose = createComposeRule()
 
     @Test
     fun selectedInkIsTheMostReadableOnTheTint() {
-        // Teintes claires (lime de la marche, teal du vélo) → encre sombre ;
-        // teintes profondes (accent, muscu) → blanc.
-        val light = PulseColors.Light
-        val dark = PulseColors.Dark
-        assertEquals(PulseGradients.OnBright, chipInk(dark.marche))
-        assertEquals(PulseGradients.OnBright, chipInk(dark.velo))
+        // Teintes vives du thème sombre et Volt de marque → encre sombre ;
+        // teintes profondes du thème clair (accent olive, muscu) → blanc.
+        val light = ElanColors.Light
+        val dark = ElanColors.Dark
+        assertEquals(ElanGradients.OnBright, chipInk(dark.marche))
+        assertEquals(ElanGradients.OnBright, chipInk(dark.velo))
+        assertEquals(ElanGradients.OnBright, chipInk(light.brand))
         assertEquals(Color.White, chipInk(light.accent))
         assertEquals(Color.White, chipInk(light.muscu))
     }
 
     @Test
     fun chipInkMatchesTheDomainContrastHelper() {
-        for (tint in listOf(PulseColors.Light.marche, PulseColors.Dark.accent, PulseColors.Light.course)) {
-            val expected = bestInk(tint.toHex6(), listOf(PulseGradients.OnBright.toHex6(), "#FFFFFF"))
+        for (tint in listOf(ElanColors.Light.marche, ElanColors.Dark.accent, ElanColors.Light.course)) {
+            val expected = bestInk(tint.toHex6(), listOf(ElanGradients.OnBright.toHex6(), "#FFFFFF"))
             assertTrue(chipInk(tint).toHex6().equals(expected, ignoreCase = true))
         }
     }
@@ -53,7 +54,7 @@ class PulseChipTest {
         compose.setContent {
             ElanTheme {
                 var state by remember { mutableStateOf(false) }
-                PulseChip(label = "Vélo", selected = state, onClick = { state = !state; selected = state })
+                ElanChip(label = "Vélo", selected = state, onClick = { state = !state; selected = state })
             }
         }
 

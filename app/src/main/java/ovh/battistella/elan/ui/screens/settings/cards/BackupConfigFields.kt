@@ -20,11 +20,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.data.settings.DEFAULT_BACKUP_OBJECT_KEY
 import ovh.battistella.elan.data.settings.DEFAULT_S3_REGION
@@ -35,6 +32,7 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.settings.BackupFormConfig
 import ovh.battistella.elan.ui.screens.settings.BackupPatch
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 
 /**
  * Champs de connexion S3, partagés par la carte Réglages et la feuille de
@@ -121,8 +119,8 @@ fun BackupConfigFields(
                 Icon(painter = painterResource(MdiIcons.ChevronRight), contentDescription = null, tint = colors.accent, modifier = Modifier.size(18.dp))
                 Text(
                     text = stringResource(R.string.settings_backup_advanced),
-                    color = colors.accent,
-                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                    color = colors.link,
+                    style = ElanType.label,
                 )
             }
         }

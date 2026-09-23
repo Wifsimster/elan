@@ -49,15 +49,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.GeoPoint
@@ -66,6 +65,7 @@ import ovh.battistella.elan.domain.ProjectedPoint
 import ovh.battistella.elan.domain.createProjection
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.LocalReducedMotion
 import ovh.battistella.elan.ui.theme.Radius
 import java.util.Locale
@@ -287,8 +287,11 @@ private fun DrawScope.drawRoute(
 
     if (live) return
 
-    val labelStyle = TextStyle(
+    // Police de marque, taille proportionnelle au cadre (k) : l'interligne
+    // fixe du jeton est neutralisé pour suivre la taille mise à l'échelle.
+    val labelStyle = ElanType.micro.copy(
         fontSize = (30 * k).toSp(),
+        lineHeight = TextUnit.Unspecified,
         fontWeight = FontWeight.Bold,
         color = decorColor,
     )
@@ -351,7 +354,7 @@ fun MapPlaceholder(status: GpsStatus, modifier: Modifier = Modifier) {
         Text(
             text = label,
             color = colors.textSecondary,
-            style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
+            style = ElanType.bodySm,
             textAlign = TextAlign.Center,
         )
     }

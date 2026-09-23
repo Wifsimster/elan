@@ -19,12 +19,10 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
 /** Données d'illustration d'un exercice affichées dans la fiche. */
@@ -48,7 +46,7 @@ fun TagPill(label: String, color: Color, modifier: Modifier = Modifier) {
             .background(color.copy(alpha = 0.12f), RoundedCornerShape(Radius.pill))
             .padding(horizontal = 12.dp, vertical = 7.dp),
     ) {
-        Text(label, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold), color = color)
+        Text(label, style = ElanType.label.copy(fontWeight = FontWeight.Bold), color = color)
     }
 }
 
@@ -83,10 +81,10 @@ fun ExerciseInfoSheet(exercise: ExerciseInfo?, onClose: () -> Unit) {
                 .navigationBarsPadding(),
         ) {
             ExerciseIllustration(imageKey = exercise.imageKey, icon = exercise.icon)
-            Text(exercise.name, style = PulseType.headline, color = colors.text)
+            Text(exercise.name, style = ElanType.headline, color = colors.text)
             if (exercise.muscles.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Muscles ciblés".uppercase(), style = PulseType.overline, color = colors.textMuted)
+                    Text("Muscles ciblés".uppercase(), style = ElanType.overline, color = colors.textMuted)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         exercise.muscles.forEach { TagPill(label = it, color = colors.muscu) }
                     }
@@ -94,8 +92,8 @@ fun ExerciseInfoSheet(exercise: ExerciseInfo?, onClose: () -> Unit) {
             }
             if (!exercise.howTo.isNullOrEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Exécution".uppercase(), style = PulseType.overline, color = colors.textMuted)
-                    Text(exercise.howTo, style = TextStyle(fontSize = 15.sp, lineHeight = 23.sp), color = colors.text)
+                    Text("Exécution".uppercase(), style = ElanType.overline, color = colors.textMuted)
+                    Text(exercise.howTo, style = ElanType.body, color = colors.text)
                 }
             }
         }

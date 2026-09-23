@@ -16,15 +16,15 @@ import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.domain.PlannedSession
 import ovh.battistella.elan.domain.meta
 import ovh.battistella.elan.ui.components.ButtonVariant
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
-import ovh.battistella.elan.ui.components.PulseChip
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
+import ovh.battistella.elan.ui.components.ElanChip
 import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.settings.WEEK_PLAN_OPTIONS
 import ovh.battistella.elan.ui.screens.settings.isOptionActive
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.forKey
 
 /** Libellés des jours, lundi en tête (index 0 = lundi, comme le planning). */
@@ -40,14 +40,14 @@ fun WeekPlanCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = ElanTheme.colors
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         SettingCardHeader(icon = MdiIcons.CalendarWeek, color = colors.accent, title = stringResource(R.string.settings_plan_title))
         CardText(stringResource(R.string.settings_plan_intro))
 
         WEEK_DAY_LABELS.forEachIndexed { i, day ->
             if (i > 0) Hairline()
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = if (i == 0) 0.dp else 2.dp)) {
-                Text(day, style = PulseType.label, color = colors.textSecondary)
+                Text(day, style = ElanType.label, color = colors.textSecondary)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     WEEK_PLAN_OPTIONS.forEach { opt ->
                         val entry = plan.getOrNull(i) ?: PlannedSession.Repos
@@ -56,7 +56,7 @@ fun WeekPlanCard(
                             is PlannedSession.Outing -> colors.forKey(ActivityType.fromKey(p.kind)!!.meta.colorKey)
                             is PlannedSession.Muscu -> colors.muscu
                         }
-                        PulseChip(
+                        ElanChip(
                             label = opt.label,
                             selected = isOptionActive(opt, entry),
                             color = color,
@@ -67,7 +67,7 @@ fun WeekPlanCard(
             }
         }
 
-        PulseButton(
+        ElanButton(
             title = stringResource(R.string.settings_plan_reset),
             icon = MdiIcons.Restore,
             variant = ButtonVariant.Secondary,

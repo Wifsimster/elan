@@ -45,8 +45,8 @@ object LiveNotification {
     /** Extra posé sur l'intent de `MainActivity` : route à ouvrir (`LiveKind.route`). */
     const val EXTRA_OPEN_ROUTE = "ovh.battistella.elan.OPEN_ROUTE"
 
-    /** Couleur d'accent des notifications (fond PULSE). */
-    private const val ACCENT = "#0A0C10"
+    /** Couleur d'accent des notifications (fond Sillage). */
+    private const val ACCENT = "#0D0E0B"
 
     /**
      * Android 13+ : `POST_NOTIFICATIONS` est requise pour que les notifications

@@ -58,8 +58,8 @@ n'est finie que si `./gradlew testDebugUnitTest assembleDebug` passe.
 | `health/` | `HealthConnectManager`, `HealthConnectGateway`, `HealthRecords` | Opt-in, écriture seule, `clientRecordId` idempotents. |
 | `maps/` | `MapStyle` (`OPENFREEMAP_STYLE_URL`, HTTPS seul), `MapLibreRouteView`, `MapSnapshots` | Fond de carte **off par défaut** ; attribution OSM obligatoire quand un fond est affiché ; le rendu hors-ligne (`RouteCanvas`) doit rester fonctionnel. |
 | `sync/` | `BackupWorker`/`BackupScheduler` (WorkManager), `ReminderScheduler`/`ReminderReceiver`/`BootReceiver` (AlarmManager inexact), `AutoProgressionRunner`, `ProgressionNotifier` | Workers `@HiltWorker` ; canaux de notification créés tôt. |
-| `ui/theme/` | `Tokens.kt` (PULSE : `PulseColors`, `PulseGradients`, `Radius`, `Spacing`, `Elevation`, `Motion`), `Theme.kt` (`ElanTheme`, `MaterialExpressiveTheme`), `Type.kt` (`PulseType`) | **Aucune couleur, taille ou rayon en dur dans un écran** : lire `DESIGN.md` avant toute UI. |
-| `ui/components/` | Composants PULSE (`PulseButton`, `PulseCard`, `PulseChip`, `StatTile`, `RouteMap`, `Modifier.pressableScale()`…) | Tout élément interactif passe par `pressableScale` + haptique. |
+| `ui/theme/` | `Tokens.kt` (Sillage : `ElanColors`, `ElanGradients`, `Radius`, `Spacing`, `ControlSize`, `Elevation`, `Motion`), `Theme.kt` (`ElanTheme`, `MaterialExpressiveTheme`), `Type.kt` (`ElanFonts`, `ElanType` — Archivo embarquée dans `res/font/`) | **Aucune couleur, taille ou rayon en dur dans un écran** : lire `DESIGN.md` avant toute UI. |
+| `ui/components/` | Composants Sillage (`ElanButton`, `ElanCard`, `ElanChip`, `ElanWordmark`, `SectionLabel`, `StatTile`, `RouteMap`, `Modifier.pressableScale()`…) | Tout élément interactif passe par `pressableScale` + haptique. |
 | `ui/navigation/` | `Routes`, `ElanNavigation` (`ElanRoot`, un seul `Scaffold`), `OpenRoute` (liens `elan://`) | Les écrans reçoivent `contentPadding` et des callbacks, **jamais** le `NavController`. |
 | `ui/screens/<feature>/` | `<Feature>Screen.kt` + `<Feature>ViewModel.kt` (`@HiltViewModel`), ports dans `common/` et `settings/SettingsPorts.kt` | `viewModel = hiltViewModel()` en paramètre par défaut (injectable en test) ; les écrans dépendent d'interfaces (ports) liées dans `ScreensModule`/`SettingsModule`. |
 | `ui/icons/` | `MdiIcons` généré par `scripts/gen-mdi-icons.mjs` | Ne pas éditer à la main : ajouter le nom MDI au script et le relancer. |
@@ -86,15 +86,19 @@ et `testing/TestSupport.kt` (vraie base Room en mémoire, vrais dépôts) ;
   `track_points`, `muscu_sets`, `body_measurements`, `settings`) : la
   sauvegarde S3 (format 1) et l'import legacy en dépendent.
 
-## Design system PULSE
+## Design system Sillage
 
 Source de vérité : `ui/theme/Tokens.kt`, `Theme.kt`, `Type.kt`, documentés dans
-`DESIGN.md` (§ 7 pour la correspondance token → Kotlin). Couleurs via
-`ElanTheme.colors`, dégradés via `PulseGradients`, texte via `PulseType`,
-rayons/espacements/élévations via `Radius`/`Spacing`/`Elevation`, ressorts via
-`Motion`. Une teinte d'activité = un sens (`velo`, `muscu`, `course`, `marche`,
-`heart` réservé aux données cardio). Si un token manque, l'ajouter à
-`Tokens.kt` plutôt que d'écrire un littéral.
+`DESIGN.md` (§ 8 pour la correspondance token → Kotlin). Couleurs via
+`ElanTheme.colors`, dégradés via `ElanGradients`, texte via `ElanType` (jamais
+de `TextStyle` nu : il perdrait la police Archivo), rayons/espacements/
+élévations via `Radius`/`Spacing`/`Elevation`, ressorts via `Motion`. Le Volt
+de marque a trois jetons : `brand` (aplat sous `onBrand`), `accent` (trait),
+`link` (texte). Une teinte d'activité = un sens (`velo`, `muscu`, `course`,
+`marche`, `heart` réservé aux données cardio). Si un token manque, l'ajouter à
+`Tokens.kt` plutôt que d'écrire un littéral. Logo et icône sont générés
+(`scripts/gen-brand-assets.py`) ; `ScreenshotTourTest` (`ELAN_SCREENSHOTS=1`)
+rend chaque écran en sombre et en clair pour vérifier une modification visuelle.
 
 ## Dépendances
 
@@ -143,7 +147,8 @@ le vérifie sur le dex final.
 | `check-deprecated-edge-to-edge.sh <apk\|aab>` | Vérifie l'absence d'API bord à bord obsolètes dans le dex |
 | `check-bundle-size.sh <aab> [Mo]` | Mesure la taille de téléchargement par ABI via bundletool |
 | `gen-mdi-icons.mjs` | Génère les vector drawables `mdi_*.xml` et `ui/icons/MdiIcons.kt` (Node + réseau) |
-| `feature-graphic.sh` | Génère le feature graphic Play Store (ImageMagick) |
+| `feature-graphic.mjs` | Génère le feature graphic Play Store (Playwright/Chromium, polices embarquées) |
+| `gen-brand-assets.py` | Génère logotype, icône adaptative et `docs/brand/*.svg` depuis la police (fontTools) |
 
 `app-json-updater.cjs`, `sync-android-version.cjs` et `reset-project.js`
 appartiennent à l'outillage Expo 1.x et disparaissent avec lui.

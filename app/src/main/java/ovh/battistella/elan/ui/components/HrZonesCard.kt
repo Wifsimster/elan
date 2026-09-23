@@ -28,7 +28,7 @@ import ovh.battistella.elan.domain.dominantZone
 import ovh.battistella.elan.domain.formatDuration
 import ovh.battistella.elan.domain.formatDurationShort
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.roundToInt
 
@@ -60,14 +60,14 @@ fun HrZonesCard(distribution: ZoneDistribution, modifier: Modifier = Modifier) {
     val filled = distribution.slices.filter { it.ratio > 0 }
     val barDescription = filled.joinToString(", ") { "${it.label} ${(it.ratio * 100).roundToInt()} %" }
 
-    PulseCard(modifier = modifier) {
+    ElanCard(modifier = modifier) {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Zones cardiaques", style = PulseType.headline, color = colors.text)
-            Text(formatDurationShort(distribution.totalSec), style = PulseType.caption, color = colors.textMuted)
+            Text("Zones cardiaques", style = ElanType.headline, color = colors.text)
+            Text(formatDurationShort(distribution.totalSec), style = ElanType.caption, color = colors.textMuted)
         }
 
         Row(
@@ -99,21 +99,21 @@ fun HrZonesCard(distribution: ZoneDistribution, modifier: Modifier = Modifier) {
                     Box(Modifier.size(10.dp).background(ramp[slice.zone - 1], CircleShape))
                     Text(
                         text = slice.label,
-                        style = PulseType.body,
+                        style = ElanType.body,
                         color = colors.text,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(rangeLabel(slice), style = PulseType.caption, color = colors.textMuted, maxLines = 1)
+                    Text(rangeLabel(slice), style = ElanType.caption, color = colors.textMuted, maxLines = 1)
                     Spacer(Modifier.weight(1f))
                     Text(
                         text = formatDuration(slice.seconds),
-                        style = PulseType.label.copy(fontFeatureSettings = "tnum"),
+                        style = ElanType.label.copy(fontFeatureSettings = "tnum"),
                         color = colors.text,
                     )
                     Text(
                         text = "${(slice.ratio * 100).roundToInt()} %",
-                        style = PulseType.caption.copy(fontFeatureSettings = "tnum"),
+                        style = ElanType.caption.copy(fontFeatureSettings = "tnum"),
                         color = colors.textSecondary,
                         textAlign = TextAlign.End,
                         modifier = Modifier.width(36.dp),
@@ -122,6 +122,6 @@ fun HrZonesCard(distribution: ZoneDistribution, modifier: Modifier = Modifier) {
             }
         }
 
-        Text(dominantCaption(distribution), style = PulseType.caption, color = colors.textSecondary)
+        Text(dominantCaption(distribution), style = ElanType.caption, color = colors.textSecondary)
     }
 }

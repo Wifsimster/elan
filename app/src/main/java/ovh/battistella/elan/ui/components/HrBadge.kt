@@ -1,9 +1,9 @@
 package ovh.battistella.elan.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,23 +12,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
 /**
- * Pastille de fréquence cardiaque. Connectée : bpm sur fond teinté heart avec
- * halo ; sinon « Connecter » et [onClick] mène aux réglages (la pastille
+ * Pastille de fréquence cardiaque. Connectée : bpm (chiffres condensés) sur
+ * aplat tonal heart ; sinon « Connecter » et [onClick] mène aux réglages (la pastille
  * connectée n'est pas cliquable, comme dans l'app d'origine).
  */
 @Composable
@@ -56,15 +55,10 @@ fun HrBadge(
     val tint = if (connected) colors.heart else colors.textSecondary
 
     val surface = if (connected) {
-        // Halo cardiaque quand la ceinture émet.
-        Modifier
-            .shadow(6.dp, shape, ambientColor = colors.heart, spotColor = colors.heart)
-            .background(colors.heart.copy(alpha = 0.12f), shape)
-            .border(1.dp, colors.heart.copy(alpha = 0.40f), shape)
+        // Aplat cardiaque tonal quand la ceinture émet.
+        Modifier.background(colors.heart.copy(alpha = 0.16f), shape)
     } else {
-        Modifier
-            .background(colors.backgroundElement, shape)
-            .border(1.dp, colors.border, shape)
+        Modifier.background(colors.backgroundSelected, shape)
     }
 
     Row(
@@ -74,6 +68,7 @@ fun HrBadge(
             .semantics(mergeDescendants = true) { contentDescription = a11y }
             .then(if (connected) Modifier else Modifier.pressableScale(onClick = onClick))
             .then(surface)
+            .defaultMinSize(minHeight = 40.dp)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
         Icon(
@@ -85,13 +80,13 @@ fun HrBadge(
         Text(
             text = label,
             color = tint,
-            style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, fontFeatureSettings = "tnum"),
+            style = if (connected) ElanType.metricSm.copy(fontSize = 18.sp, lineHeight = 20.sp) else ElanType.label.copy(fontWeight = FontWeight.Bold),
         )
         if (connected && bpm != null) {
             Text(
                 text = stringResource(R.string.hr_badge_unit),
                 color = colors.textSecondary,
-                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                style = ElanType.caption,
             )
         }
     }

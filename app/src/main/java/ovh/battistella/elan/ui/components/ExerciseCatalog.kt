@@ -41,12 +41,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ovh.battistella.elan.R
 import ovh.battistella.elan.domain.CATALOG
 import ovh.battistella.elan.domain.CATEGORIES
@@ -63,7 +61,7 @@ import ovh.battistella.elan.domain.recoWeightLabel
 import ovh.battistella.elan.domain.recommend
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.roundToInt
 
@@ -131,9 +129,9 @@ fun ExerciseCatalog(
         // Filtres : rayon. Enveloppe sur plusieurs lignes plutôt que de défiler
         // horizontalement, sinon les derniers libellés sortent de l'écran.
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            PulseChip(label = "Tous", selected = category == null, color = colors.muscu, onClick = { category = null })
+            ElanChip(label = "Tous", selected = category == null, color = colors.muscu, onClick = { category = null })
             CATEGORIES.forEach { c ->
-                PulseChip(
+                ElanChip(
                     label = c.label,
                     selected = category == c,
                     color = colors.muscu,
@@ -143,9 +141,9 @@ fun ExerciseCatalog(
         }
         // Filtres : matériel.
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            PulseChip(label = "Tout matériel", selected = equipment == null, color = colors.accent, onClick = { equipment = null })
+            ElanChip(label = "Tout matériel", selected = equipment == null, color = colors.accent, onClick = { equipment = null })
             EQUIPMENTS.forEach { e ->
-                PulseChip(
+                ElanChip(
                     label = e.label,
                     selected = equipment == e,
                     color = colors.accent,
@@ -161,14 +159,14 @@ fun ExerciseCatalog(
         ) {
             Text(
                 "${filtered.size} exercice${if (filtered.size > 1) "s" else ""}",
-                style = PulseType.caption,
+                style = ElanType.caption,
                 color = colors.textMuted,
             )
             if (hasFilters) {
                 Text(
                     "Tout effacer",
-                    style = PulseType.label,
-                    color = colors.accent,
+                    style = ElanType.label,
+                    color = colors.link,
                     modifier = Modifier.pressableScale(onClick = clearAll).padding(4.dp),
                 )
             }
@@ -197,8 +195,8 @@ fun ExerciseCatalog(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().padding(top = if (index == 0) 0.dp else 8.dp),
                     ) {
-                        Text(section.category.label.uppercase(), style = PulseType.overline, color = colors.textSecondary)
-                        Text("${section.items.size}", style = PulseType.caption, color = colors.textMuted)
+                        Text(section.category.label.uppercase(), style = ElanType.overline, color = colors.textSecondary)
+                        Text("${section.items.size}", style = ElanType.caption, color = colors.textMuted)
                     }
                 }
                 items(count = section.items.size, key = { section.items[it].id }) { i ->
@@ -246,7 +244,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             value = query,
             onValueChange = onQueryChange,
             singleLine = true,
-            textStyle = PulseType.body.copy(color = colors.text),
+            textStyle = ElanType.body.copy(color = colors.text),
             cursorBrush = SolidColor(colors.accent),
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
             modifier = Modifier
@@ -256,7 +254,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             decorationBox = { inner ->
                 Box {
                     if (query.isEmpty()) {
-                        Text(stringResource(R.string.catalog_search_hint), style = PulseType.body, color = colors.textMuted, maxLines = 1)
+                        Text(stringResource(R.string.catalog_search_hint), style = ElanType.body, color = colors.textMuted, maxLines = 1)
                     }
                     inner()
                 }
@@ -305,19 +303,19 @@ private fun ExerciseRow(ex: CatalogExercise, profile: RecoProfile, added: Boolea
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-            Text(ex.name, style = PulseType.subtitle, color = colors.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(ex.name, style = ElanType.subtitle, color = colors.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("${recoHint(ex, rec)} ·", style = PulseType.caption, color = colors.textSecondary, maxLines = 1)
+                Text("${recoHint(ex, rec)} ·", style = ElanType.caption, color = colors.textSecondary, maxLines = 1)
                 Text(
                     recoWeightLabel(rec),
-                    style = PulseType.caption.copy(fontWeight = FontWeight.Bold),
+                    style = ElanType.caption.copy(fontWeight = FontWeight.Bold),
                     color = if (weighted) colors.muscu else colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
             if (ex.muscles.isNotEmpty()) {
-                Text(ex.muscles.take(3).joinToString(" · "), style = PulseType.caption, color = colors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(ex.muscles.take(3).joinToString(" · "), style = ElanType.caption, color = colors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         Icon(
@@ -367,12 +365,12 @@ fun ExerciseDetailSheet(
                     .padding(bottom = 12.dp),
             ) {
                 ExerciseIllustration(imageKey = ex.imageKey, icon = ex.icon, height = 150.dp)
-                Text(ex.name, style = PulseType.headline, color = colors.text)
+                Text(ex.name, style = ElanType.headline, color = colors.text)
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Matériel".uppercase(), style = PulseType.overline, color = colors.textMuted)
+                    Text("Matériel".uppercase(), style = ElanType.overline, color = colors.textMuted)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ex.equipment.forEach { TagPill(label = it.label, color = colors.accent) }
+                        ex.equipment.forEach { TagPill(label = it.label, color = colors.link) }
                     }
                 }
 
@@ -390,25 +388,25 @@ fun ExerciseDetailSheet(
                         Icon(painter = painterResource(MdiIcons.Target), contentDescription = null, tint = colors.muscu, modifier = Modifier.size(18.dp))
                         Text(
                             "Conseillé · objectif ${goalLabel(profile.goal).lowercase()}".uppercase(),
-                            style = PulseType.overline,
+                            style = ElanType.overline,
                             color = colors.muscu,
                         )
                     }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(recoHint(ex, rec), style = PulseType.metric, color = colors.text)
-                        Text(recoWeightLabel(rec), style = PulseType.headline, color = colors.muscu, modifier = Modifier.padding(top = 6.dp))
+                        Text(recoHint(ex, rec), style = ElanType.metric, color = colors.text)
+                        Text(recoWeightLabel(rec), style = ElanType.headline, color = colors.muscu, modifier = Modifier.padding(top = 6.dp))
                     }
-                    Text("Repos conseillé ~${rec.restSec} s entre les séries.", style = PulseType.caption, color = colors.textSecondary)
+                    Text("Repos conseillé ~${rec.restSec} s entre les séries.", style = ElanType.caption, color = colors.textSecondary)
                     Text(
                         "D'après ton poids (${fmtKg(profile.weightKg)} kg), ta taille (${profile.heightCm.roundToInt()} cm) et ton objectif. " +
                             "Un point de départ — tu ajustes reps et charge à ta guise.",
-                        style = PulseType.caption.copy(lineHeight = 17.sp),
+                        style = ElanType.caption,
                         color = colors.textMuted,
                     )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Muscles ciblés".uppercase(), style = PulseType.overline, color = colors.textMuted)
+                    Text("Muscles ciblés".uppercase(), style = ElanType.overline, color = colors.textMuted)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ex.muscles.forEach { TagPill(label = it, color = colors.muscu) }
                     }
@@ -416,14 +414,14 @@ fun ExerciseDetailSheet(
 
                 if (howTo != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Exécution".uppercase(), style = PulseType.overline, color = colors.textMuted)
-                        Text(howTo, style = PulseType.body, color = colors.text)
+                        Text("Exécution".uppercase(), style = ElanType.overline, color = colors.textMuted)
+                        Text(howTo, style = ElanType.body, color = colors.text)
                     }
                 }
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(colors.hairline))
             Box(Modifier.padding(16.dp).navigationBarsPadding()) {
-                PulseButton(
+                ElanButton(
                     title = if (added) "Ajouter à nouveau" else addLabel,
                     icon = if (added) MdiIcons.Plus else MdiIcons.PlusCircleOutline,
                     color = colors.muscu,

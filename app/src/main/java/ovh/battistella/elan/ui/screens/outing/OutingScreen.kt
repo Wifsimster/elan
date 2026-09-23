@@ -58,8 +58,8 @@ import ovh.battistella.elan.domain.speedParts
 import ovh.battistella.elan.ui.components.ButtonVariant
 import ovh.battistella.elan.ui.components.GpsStatusPill
 import ovh.battistella.elan.ui.components.MapPlaceholder
-import ovh.battistella.elan.ui.components.PulseButton
-import ovh.battistella.elan.ui.components.PulseCard
+import ovh.battistella.elan.ui.components.ElanButton
+import ovh.battistella.elan.ui.components.ElanCard
 import ovh.battistella.elan.ui.components.RouteMap
 import ovh.battistella.elan.ui.components.StatTile
 import ovh.battistella.elan.ui.components.screenContent
@@ -68,7 +68,7 @@ import ovh.battistella.elan.ui.screens.common.ConfirmDialog
 import ovh.battistella.elan.ui.screens.common.HeaderAction
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.Elevation
-import ovh.battistella.elan.ui.theme.PulseType
+import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.forKey
 import kotlin.math.roundToInt
 
@@ -167,17 +167,17 @@ fun OutingScreen(
                         tint = color,
                         modifier = Modifier.size(22.dp),
                     )
-                    Text(ui.meta.label, style = PulseType.headline, color = colors.text)
+                    Text(ui.meta.label, style = ElanType.headline, color = colors.text)
                 }
                 Spacer(Modifier.width(38.dp))
             }
 
             // Chrono : police plafonnée à ×1,2 pour rester sur une ligne.
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Text(stringResource(R.string.outing_duration).uppercase(), style = PulseType.overline, color = color)
+                Text(stringResource(R.string.outing_duration).uppercase(), style = ElanType.overline, color = color)
                 val density = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.2f))) {
-                    Text(formatDuration(ui.outing.elapsedSec), style = PulseType.metricLg, color = colors.text)
+                    Text(formatDuration(ui.outing.elapsedSec), style = ElanType.metricLg, color = colors.text)
                 }
                 if (ui.phase != OutingPhase.Idle) {
                     GpsStatusPill(
@@ -219,7 +219,7 @@ fun OutingScreen(
             title = stringResource(R.string.outing_finish_title),
             text = stringResource(R.string.outing_finish_text),
             confirmLabel = stringResource(R.string.outing_finish),
-            confirmColor = colors.accent,
+            confirmColor = colors.link,
             onConfirm = viewModel::confirmFinish,
             onDismiss = viewModel::dismissDialog,
         )
@@ -266,7 +266,7 @@ private fun LiveStatsCard(ui: OutingScreenUi, color: androidx.compose.ui.graphic
     val distance = distanceParts(o.distanceM)
     val cardio = hrParts(o.bpm?.toDouble())
 
-    PulseCard {
+    ElanCard {
         StatTile(
             label = stringResource(if (pace) R.string.outing_pace else R.string.outing_speed),
             value = hero.value,
@@ -369,6 +369,7 @@ private fun ControlBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            // Seule ombre de l'écran : la barre flotte au-dessus de la carte.
             .shadow(Elevation.lg)
             .background(colors.backgroundElement)
             .padding(bottom = bottomInset),
@@ -381,7 +382,7 @@ private fun ControlBar(
                 .padding(top = 12.dp, bottom = 12.dp),
         ) {
             when (controls) {
-                is OutingControls.Start -> PulseButton(
+                is OutingControls.Start -> ElanButton(
                     title = stringResource(R.string.outing_start),
                     icon = MdiIcons.Play,
                     color = color,
@@ -392,7 +393,7 @@ private fun ControlBar(
                 // Écriture échouée : ni Pause ni Reprendre — le GPS est arrêté,
                 // seule l'écriture a raté.
                 OutingControls.SaveFailed -> {
-                    PulseButton(
+                    ElanButton(
                         title = stringResource(R.string.outing_abandon),
                         icon = MdiIcons.TrashCanOutline,
                         variant = ButtonVariant.Secondary,
@@ -400,7 +401,7 @@ private fun ControlBar(
                         onClick = onDiscardAfterFailure,
                         modifier = Modifier.weight(1f),
                     )
-                    PulseButton(
+                    ElanButton(
                         title = stringResource(R.string.outing_retry),
                         icon = MdiIcons.Refresh,
                         color = color,
@@ -409,7 +410,7 @@ private fun ControlBar(
                     )
                 }
                 is OutingControls.Running -> {
-                    PulseButton(
+                    ElanButton(
                         title = stringResource(if (controls.paused) R.string.outing_resume else R.string.outing_pause),
                         icon = if (controls.paused) MdiIcons.Play else MdiIcons.Pause,
                         variant = ButtonVariant.Secondary,
@@ -420,7 +421,7 @@ private fun ControlBar(
                     )
                     // Terminer (action engageante) pèse plus que Pause pour
                     // réduire le risque d'appui par erreur en plein effort.
-                    PulseButton(
+                    ElanButton(
                         title = stringResource(R.string.outing_finish),
                         icon = MdiIcons.FlagCheckered,
                         color = color,
