@@ -11,20 +11,11 @@ import { useTheme } from '@/hooks/use-theme';
 type Props = {
   visible: boolean;
   title: string;
-  /** Consigne affichée sous le viseur. */
   hint: string;
   onCancel: () => void;
-  /** Contenu brut du premier QR lu ; la feuille se ferme via `onCancel` par l'appelant. */
   onScanned: (data: string) => void;
 };
 
-/**
- * Feuille plein écran de lecture d'un QR code (caméra locale, décodage sur
- * l'appareil — rien n'est envoyé). Demande la permission caméra à l'ouverture
- * et ne remonte que le premier code lu, pour éviter les doubles déclenchements.
- */
-/** Viseur : ne remonte que le premier code lu. Monté à chaque ouverture de la
- *  feuille (le Modal démonte son contenu fermé), donc réarmé sans effet. */
 function Scanner({ onScanned }: { onScanned: (data: string) => void }) {
   const [consumed, setConsumed] = useState(false);
   return (
@@ -49,7 +40,6 @@ export function QrScanSheet({ visible, title, hint, onCancel, onScanned }: Props
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
 
-  // Demande la permission à l'ouverture si elle n'a jamais été tranchée.
   useEffect(() => {
     if (visible && permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
@@ -89,8 +79,6 @@ export function QrScanSheet({ visible, title, hint, onCancel, onScanned }: Props
             backgroundColor: theme.scrim,
             gap: 4,
           }}>
-          {/* Texte sur le voile au-dessus de la caméra : palette sombre quel que
-              soit le thème système. */}
           <Text style={{ ...Type.title, color: Colors.dark.text }}>{title}</Text>
           <Text style={{ fontSize: 13, lineHeight: 19, color: Colors.dark.textSecondary }}>{hint}</Text>
         </View>

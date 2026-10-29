@@ -83,7 +83,6 @@ class MapStyleTest {
 
     @Test
     fun `une URL stockée invalide est ignorée à la lecture`() = runTest {
-        // Valeur héritée / restaurée en dehors du setter : re-validation à la lecture.
         repos.settings.setMapStyleUrl("http://tiles.example.org/style.json")
         val repo = MapStyleRepository(repos.settings, CoroutineScope(Dispatchers.Unconfined))
         advanceUntilIdle()

@@ -1,4 +1,3 @@
-// Tests pour les helpers de formatage (durée, distance, vitesse, FC, date — FR).
 import {
   cadenceParts,
   caloriesParts,
@@ -55,10 +54,8 @@ describe('formatDurationShort', () => {
   });
 
   it('reporte la retenue des minutes au lieu de produire "H h 60"', () => {
-    // 1 h 59 min 30 s arrondit à 2 h pile (et non « 1 h 60 »).
     expect(formatDurationShort(7170)).toBe('2 h 00');
     expect(formatDurationShort(7189)).toBe('2 h 00');
-    // Juste sous le seuil de report : reste « 1 h 59 ».
     expect(formatDurationShort(7169)).toBe('1 h 59');
   });
 });
@@ -158,7 +155,6 @@ describe('scission valeur / unité (Measure)', () => {
 });
 
 describe('formatDateTime / formatDateShort', () => {
-  // 2 juin 2025 (lundi) à 18:30 — fixe par construction d’une Date locale.
   const ms = new Date(2025, 5, 2, 18, 30, 0).getTime();
 
   it('formatDateTime concatène jour, date, mois, heure', () => {
@@ -170,7 +166,7 @@ describe('formatDateTime / formatDateShort', () => {
   });
 
   it('padde l’heure à 2 chiffres', () => {
-    const tot = new Date(2025, 0, 1, 9, 5, 0).getTime(); // mer. 1 janv., 09:05
+    const tot = new Date(2025, 0, 1, 9, 5, 0).getTime();
     expect(formatDateTime(tot)).toBe('mer. 1 janv., 09:05');
   });
 });
@@ -183,7 +179,6 @@ describe('paceParts / formatPace', () => {
   });
 
   it('padde les secondes à deux chiffres', () => {
-    // 11,5 km/h → 313 s/km → 5 min 13 s
     expect(paceParts(11.5).value).toBe('5:13');
   });
 
@@ -191,7 +186,6 @@ describe('paceParts / formatPace', () => {
     expect(paceParts(null)).toEqual({ value: '—' });
     expect(paceParts(undefined)).toEqual({ value: '—' });
     expect(paceParts(0)).toEqual({ value: '—' });
-    // Sous 1 km/h l'allure part à l'infini : un tiret plutôt qu'un nombre absurde.
     expect(paceParts(0.4)).toEqual({ value: '—' });
   });
 
@@ -203,6 +197,6 @@ describe('paceParts / formatPace', () => {
   it('plus on va vite, plus l’allure est basse', () => {
     const lent = paceParts(8).value;
     const rapide = paceParts(16).value;
-    expect(lent > rapide).toBe(true); // '7:30' > '3:45' en ordre lexical à minutes égales
+    expect(lent > rapide).toBe(true);
   });
 });

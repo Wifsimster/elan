@@ -18,7 +18,6 @@ class HrZonesCardTest {
 
     @get:Rule val compose = createComposeRule()
 
-    // FC max 190 : zones 0–113, 114–132, 133–151, 152–170, 171+.
     private val distribution = ZoneDistribution(
         totalSec = 1000.0,
         slices = listOf(
@@ -53,7 +52,6 @@ class HrZonesCardTest {
         compose.onNodeWithText("Aérobie").assertIsDisplayed()
         compose.onNodeWithText("8:20").assertIsDisplayed()
         compose.onNodeWithText("Surtout en zone 3 (aérobie) — 50 % du temps avec la ceinture.").assertIsDisplayed()
-        // La barre ne décrit que les zones parcourues (la zone 5 vide est omise).
         compose.onNodeWithContentDescription("Récupération 10 %, Endurance 25 %, Aérobie 50 %, Seuil 15 %")
             .assertIsDisplayed()
     }

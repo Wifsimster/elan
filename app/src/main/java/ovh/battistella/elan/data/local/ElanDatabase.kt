@@ -3,15 +3,6 @@ package ovh.battistella.elan.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-/**
- * Base locale `elan.db`. Version 8 : le schéma v7 de l'app d'origine, repris
- * tel quel, +1 pour distinguer la base Room de l'ancienne `suivi-sport.db`.
- *
- * Les schémas sont exportés dans `app/schemas` et versionnés : c'est contre
- * eux que `MigrationTest` valide chaque migration, donc un changement de schéma
- * livré sans migration échoue dans les tests plutôt qu'en effaçant la base
- * d'un utilisateur au lancement (aucun repli destructif, comme Ondes).
- */
 @Database(
     entities = [
         SessionEntity::class,
@@ -33,7 +24,6 @@ abstract class ElanDatabase : RoomDatabase() {
     companion object {
         const val NAME = "elan.db"
 
-        /** Estampille aussi les sauvegardes (refus d'une restauration plus récente). */
         const val VERSION = 8
     }
 }

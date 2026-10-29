@@ -11,11 +11,6 @@ import {
 } from '@/lib/auto-progression';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Carte Réglages : progression automatique du programme muscu. Activée par
- * défaut — elle relève la charge des exercices notés « facile » et allège ceux
- * notés « dur », d'une semaine sur l'autre. L'utilisateur peut la couper ici.
- */
 export function ProgressionAutoCard() {
   const theme = useTheme();
   const [cfg, setCfg] = useState<AutoProgressionConfig>(DEFAULT_AUTO_PROGRESSION_CONFIG);

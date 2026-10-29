@@ -48,7 +48,6 @@ import { dailyDurationBars, startOfWeekMs } from '@/lib/week';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Construit l'évolution d'une métrique par rapport à la semaine précédente. */
 function buildTrend(current: number, previous: number, fmt: (n: number) => string): Trend {
   const delta = current - previous;
   if (delta === 0) return { label: 'stable', tone: 'neutral' };
@@ -67,17 +66,12 @@ export default function HomeScreen() {
   const [bars, setBars] = useState<Bar[]>([]);
   const [recent, setRecent] = useState<Session[]>([]);
   const [resumable, setResumable] = useState(false);
-  // Accueil premier lancement : capture le profil (sinon calories/zones cardio
-  // et charges conseillées tournent sur les valeurs par défaut, fausses en silence).
   const [onboarding, setOnboarding] = useState<Profile | null>(null);
-  // Restauration S3 proposée depuis l'onboarding (réinstallation).
   const [restoring, setRestoring] = useState(false);
 
   const load = useCallback(async () => {
     const now = nowMs();
     const weekStart = startOfWeekMs(now);
-    // Début de la semaine PRÉCÉDENTE par re-floor local (robuste aux changements
-    // d'heure), plutôt qu'un `weekStart − 168 h` fixe qui décalerait d'une heure.
     const prevWeekStart = startOfWeekMs(weekStart - 43_200_000);
     const [s, prev, daily, sessions, draft] = await Promise.all([
       statsSince(weekStart),
@@ -89,19 +83,16 @@ export default function HomeScreen() {
     setStats(s);
     setLastStats(prev);
     setResumable(draft);
-    // 7 barres (aujourd'hui à droite), jours sans donnée à 0.
     setBars(dailyDurationBars(daily, 7, now));
     setRecent(sessions);
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      load().catch(() => {}); // lecture locale : pas de crash sur échec transitoire
+      load().catch(() => {});
     }, [load]),
   );
 
-  // Une seule fois : si l'onboarding n'a jamais été fait, on l'affiche en
-  // pré-remplissant les steppers avec le profil courant (défauts compris).
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -117,8 +108,6 @@ export default function HomeScreen() {
 
   const finishOnboarding = useCallback(
     async (entered: { weightKg: number; heightCm: number; maxHr: number; goal: Profile['goal'] }) => {
-      // Fusionne avec le profil courant pour conserver les champs non saisis ici
-      // (le sexe, par ex., reste réglable dans Réglages).
       const base = onboarding ?? (await getProfile());
       await saveProfile({ ...base, ...entered });
       await setSetting('onboarding_done', '1');
@@ -128,9 +117,6 @@ export default function HomeScreen() {
     [load, onboarding],
   );
 
-  // Le snapshot restauré contient le profil et, en général, `onboarding_done` ;
-  // on le force quand même (sauvegarde antérieure à l'onboarding) pour ne pas
-  // redemander un profil qui vient d'être rechargé.
   const finishRestore = useCallback(
     async (count: number) => {
       await setSetting('onboarding_done', '1');
@@ -176,13 +162,10 @@ export default function HomeScreen() {
           <HrBadge />
         </View>
 
-      {/* Progression auto : programme relevé cette semaine (masquable). */}
       <PlanUpdateBanner />
 
-      {/* Séance du jour (programme perso) */}
       <TodayCard lastSessionAt={recent[0]?.startedAt ?? null} resumable={resumable} />
 
-      {/* Démarrer une séance — ou reprendre la muscu en pause */}
       <View style={{ gap: 10 }}>
         <Text style={{ ...Type.overline, color: theme.textSecondary }}>Démarrer une séance</Text>
         <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -227,7 +210,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Catalogue d'exercices : découverte + charges conseillées */}
       <Link href="/exercises" asChild>
         <PressableScale>
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 }}>
@@ -254,7 +236,6 @@ export default function HomeScreen() {
         </PressableScale>
       </Link>
 
-      {/* Résumé de la semaine */}
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <Text style={{ ...Type.headline, color: theme.text }}>Cette semaine</Text>
@@ -314,16 +295,13 @@ export default function HomeScreen() {
         </View>
       </Card>
 
-      {/* Objectifs (n'apparaît que si au moins un objectif est défini) */}
       <GoalsProgressCard />
 
-      {/* Graphe 7 jours */}
       <Card>
         <Text style={{ ...Type.headline, color: theme.text }}>Activité (7 derniers jours)</Text>
         <BarChart data={bars} gradient="accent" formatValue={(v) => formatDurationShort(v)} />
       </Card>
 
-      {/* Séances récentes */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ ...Type.headline, color: theme.text }}>Récent</Text>
         <Link href="/history" style={{ color: theme.accent, fontWeight: '700' }}>
@@ -358,7 +336,6 @@ function TodayCard({
   resumable,
 }: {
   lastSessionAt: number | null;
-  /** Une séance muscu est en pause : le bouton invite à reprendre plutôt qu'à démarrer. */
   resumable: boolean;
 }) {
   const theme = useTheme();
@@ -413,7 +390,6 @@ function TodayCard({
     );
   }
 
-  // Séance muscu du jour mise en pause : on propose de la reprendre.
   const isResumeMuscu = plan.kind === 'muscu' && resumable;
   const meta = ACTIVITY_META[plan.kind];
   const color = theme[meta.colorKey];

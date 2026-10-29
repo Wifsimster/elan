@@ -22,11 +22,6 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-// Gestionnaire global de présentation au premier plan (aucun n'existait). Garde
-// la notification persistante « séance en cours » visible dans le volet pendant
-// que l'app est ouverte (shouldShowList), sans pop heads-up par-dessus l'écran
-// de séance (shouldShowBanner: false). N'affecte pas les rappels planifiés, qui
-// se déclenchent app fermée.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: false,
@@ -36,13 +31,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-/**
- * Filet de sécurité racine : expo-router rend ce composant à la place de l'arbre
- * de routes si un rendu lève, au lieu d'un écran blanc. Volontairement minimal —
- * `<Pressable>` brut plutôt que `<Button>`/`<PressableScale>` pour ne dépendre
- * d'aucun provider (le boundary peut se monter hors de GestureHandlerRootView).
- * `useTheme()` ne lit que `useColorScheme()`, donc reste sûr ici.
- */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   const theme = useTheme();
   return (
@@ -93,39 +81,16 @@ export default function RootLayout() {
   const scheme = useColorScheme();
   const router = useRouter();
 
-  // Re-arme les rappels de séance au lancement : les notifications planifiées
-  // sont effacées au redémarrage de l'appareil, donc on les reprogramme à
-  // chaque ouverture pour que le programme reste rappelé de façon fiable.
-  // Sans effet (et sans permission demandée) si les rappels sont désactivés.
-  //
-  // Filet de sécurité : si l'app a été tuée en pleine séance, la notification
-  // persistante « séance en cours » peut subsister alors que l'écran de séance
-  // n'est plus monté. On l'efface au démarrage à froid. Une sortie vélo
-  // interrompue est en outre récupérée depuis ses points flushés (session-recovery),
-  // et une tâche GPS orpheline (service de premier plan sans consommateur) est
-  // coupée. Ces opérations tournent avant toute nouvelle séance, donc aucune
-  // séance en cours ne peut être balayée par erreur.
   useEffect(() => {
     applyNotifications();
     clearLiveSessionNotification();
     recoverOrphanSessions();
     reconcileOrphanGpsTask();
-    // Progression auto : si une nouvelle semaine ISO a commencé, on relève la
-    // difficulté du programme muscu selon le ressenti et on notifie (best-effort,
-    // idempotent — ne s'exécute qu'une fois par semaine). Activé par défaut.
     runWeeklyProgressionIfDue(nowMs());
   }, []);
 
-  // Appui sur la notification persistante : ramène à l'écran de séance. On gère
-  // l'app au premier plan (listener) et le démarrage à froid (dernière réponse
-  // synchrone, non dépréciée en v56).
   useEffect(() => {
     const handle = (route: unknown) => {
-      // Notification de séance muscu (retour à l'écran en cours) ou annonce de
-      // progression auto (ouvre la revue sur la page Progression). Pas de branche
-      // « /sortie » : les activités GPS n'émettent pas de notification
-      // persistante applicative (seul le service GPS natif en affiche une, sans
-      // route) — y naviguer ouvrirait une NOUVELLE sortie.
       if (route === '/muscu' || route === '/progression') {
         router.navigate(route);
       }

@@ -7,7 +7,6 @@ import { Radius } from '@/constants/theme';
 import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Pastille de fréquence cardiaque ; mène aux réglages si non connectée. */
 export function HrBadge() {
   const theme = useTheme();
   const { status, bpm } = useHeartRate();
@@ -44,7 +43,6 @@ export function HrBadge() {
         backgroundColor: connected ? theme.heart + '1F' : theme.backgroundElement,
         borderWidth: 1,
         borderColor: connected ? theme.heart + '66' : theme.border,
-        // Halo cardiaque quand la ceinture émet.
         ...(connected
           ? {
               shadowColor: theme.heart,

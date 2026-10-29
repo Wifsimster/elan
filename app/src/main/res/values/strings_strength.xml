@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Musculation : Muscu, Progression, Fiche exercice, Catalogue. -->
 <resources>
-    <!-- Muscu -->
     <string name="muscu_quit">Quitter la séance</string>
     <string name="muscu_duration">Durée</string>
     <string name="muscu_sets">Séries</string>
@@ -43,7 +41,6 @@
     <string name="muscu_catalog">Catalogue</string>
     <string name="muscu_catalog_close">Fermer le catalogue</string>
 
-    <!-- Progression -->
     <string name="progression_changes_title">Changements de la semaine</string>
     <string name="progression_changes_text">Programme relevé selon ton ressenti · %1$s. Ces charges sont pré-remplies à ta prochaine séance — modifiables à tout moment.</string>
     <string name="progression_intro">Suivi des charges, exercice par exercice. Touche un exercice pour voir sa courbe.</string>
@@ -55,7 +52,6 @@
     <string name="progression_empty_subtitle">Enregistre quelques séances de muscu pour suivre ta progression.</string>
     <string name="progression_empty_action">Démarrer une séance muscu</string>
 
-    <!-- Fiche exercice -->
     <string name="exercise_execution">Exécution</string>
     <string name="exercise_record">Record</string>
     <string name="exercise_current">Actuel</string>
@@ -75,6 +71,5 @@
     <string name="exercise_empty_title">Aucune donnée</string>
     <string name="exercise_empty_subtitle">Cet exercice n\'a pas encore de séance enregistrée.</string>
 
-    <!-- Catalogue autonome -->
     <string name="catalog_add_to_session">Ajouter à une séance</string>
 </resources>

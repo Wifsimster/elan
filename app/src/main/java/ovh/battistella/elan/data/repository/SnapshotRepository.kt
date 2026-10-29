@@ -15,29 +15,21 @@ import ovh.battistella.elan.domain.TrackPoint
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Un réglage tel qu'exporté (clé, valeur texte). */
 data class SettingEntry(val key: String, val value: String)
 
-/**
- * Contenu complet de la base pour une sauvegarde (S3, export coach). Les ids
- * sont conservés : une restauration réinsère les lignes telles quelles.
- */
 data class DbSnapshot(
     val sessions: List<Session>,
     val trackPoints: List<TrackPoint>,
     val muscuSets: List<MuscuSet>,
-    /** `null` dans les sauvegardes antérieures au schéma 4 (pas de journal de poids). */
     val bodyMeasurements: List<BodyMeasurement>?,
     val settings: List<SettingEntry>,
 )
 
-/** Export / import intégral de la base (sauvegarde et restauration). */
 @Singleton
 class SnapshotRepository @Inject constructor(
     private val db: ElanDatabase,
     private val io: CoroutineDispatcher,
 ) {
-    /** Lit l'intégralité de la base, hors réglages secrets ou propres à l'appareil. */
     suspend fun exportAll(): DbSnapshot = withContext(io) {
         db.withTransaction {
             DbSnapshot(
@@ -52,12 +44,6 @@ class SnapshotRepository @Inject constructor(
         }
     }
 
-    /**
-     * Remplace toutes les données locales par celles d'une sauvegarde, dans une
-     * transaction : les quatre tables sont vidées puis réinsérées AVEC les ids
-     * d'origine ; les réglages sont upsertés, sauf les clés exclues qui ne sont
-     * jamais réécrites depuis une sauvegarde.
-     */
     suspend fun importAll(snapshot: DbSnapshot) = withContext(io) {
         db.withTransaction {
             db.trackPointDao().deleteAll()

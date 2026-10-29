@@ -48,7 +48,6 @@ class BackupSnapshotCodecTest {
         settings = listOf(SettingEntry("profile", "{\"weightKg\":72.4}"), SettingEntry("privacy_zone_m", "200")),
     )
 
-    /** JSON de référence : exactement ce que produisait `JSON.stringify` de l'app d'origine. */
     private val golden = """{"format":1,"app":"suivi-sport","exportedAt":1700200000000,"schema":7,"data":{""" +
         """"sessions":[""" +
         """{"id":3,"type":"velo","startedAt":1700000000000,"endedAt":1700003600000,"durationSec":3600,"notes":"Boucle « matin »","avgHr":132.5,"maxHr":171,"distanceM":25431.7,"avgSpeedKmh":26.9,"maxSpeedKmh":48.25,"elevationGainM":210,"calories":612,"avgCadence":null,"maxCadence":null,"source":null,"externalId":null,"movingTimeSec":3400},""" +

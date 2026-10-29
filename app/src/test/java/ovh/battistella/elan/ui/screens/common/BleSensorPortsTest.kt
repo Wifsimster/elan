@@ -21,7 +21,6 @@ import ovh.battistella.elan.sensors.ble.crankFrame
 import ovh.battistella.elan.sensors.ble.hrFrame
 import ovh.battistella.elan.sensors.ble.inMemorySettings
 
-/** Les vues minimales des écrans suivent l'état des gestionnaires BLE. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class BleSensorPortsTest {
@@ -70,7 +69,6 @@ class BleSensorPortsTest {
         runCurrent()
         assertTrue(port.hasSensor.value)
 
-        // 3 tours de pédalier en 2 s (2 048 ticks) : 90 tr/min.
         val link = links.last("CAD")
         link.notify(crankFrame(10, 0))
         runCurrent()

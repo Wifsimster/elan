@@ -35,7 +35,6 @@ class AutoProgressionRunnerTest {
     private val thursday = monday + 3 * 86_400_000L
     private val nextMonday = monday + 7 * 86_400_000L
 
-    /** Notification factice : journalise et, sur demande, échoue. */
     private class RecordingNotifier(private val fail: Boolean = false) : ProgressionNotify {
         val posted = mutableListOf<Pair<String, String>>()
         override fun notify(title: String, body: String) {
@@ -123,17 +122,14 @@ class AutoProgressionRunnerTest {
         assertEquals("Ton programme évolue cette semaine", notifier.posted.single().first)
         assertEquals("Goblet squat 20 → 22,5 kg, Gainage planche 30 → 25 s.", notifier.posted.single().second)
 
-        // Même semaine : on renvoie l'état sans recalculer ni renotifier.
         seed("Goblet squat", thursday - 3_600_000L, 22.5, 8, Difficulty.FACILE)
         assertEquals(changes, runner.runWeeklyProgressionIfDue(thursday))
         assertEquals(1, notifier.posted.size)
 
-        // Semaine suivante : nouvelle évaluation depuis la dernière valeur ENREGISTRÉE.
         val next = runner.runWeeklyProgressionIfDue(nextMonday)
         assertEquals(
             listOf(
                 ProgressionChange("Goblet squat", ProgressKind.LOAD, 22.5, 25.0, Direction.UP),
-                // Le gainage n'a pas été refait : même allègement reproposé (pas de dérive).
                 ProgressionChange("Gainage planche", ProgressKind.TIME, 30.0, 25.0, Direction.DOWN),
             ),
             next,
@@ -152,7 +148,6 @@ class AutoProgressionRunnerTest {
         val state = repos.settings.snapshot().autoProgressionState
         assertEquals(isoWeekKey(monday, zone), state.week)
         assertEquals(changes, state.changes)
-        // Rejouer la même semaine ne recalcule pas.
         val ok = RecordingNotifier()
         assertEquals(changes, runner(ok).runWeeklyProgressionIfDue(thursday))
         assertTrue(ok.posted.isEmpty())
@@ -161,7 +156,7 @@ class AutoProgressionRunnerTest {
     @Test
     fun `aucun changement - dismissed vrai et pas de notification`() = runTest {
         repos.settings.setAutoProgressionState(AutoProgressionState(week = "2026-W01"))
-        seed("Goblet squat", monday - 86_400_000L, 20.0, 10, null) // non noté : pas de progression
+        seed("Goblet squat", monday - 86_400_000L, 20.0, 10, null)
         val notifier = RecordingNotifier()
 
         assertTrue(runner(notifier).runWeeklyProgressionIfDue(monday).isEmpty())
@@ -182,8 +177,6 @@ class AutoProgressionRunnerTest {
 
     @Test
     fun `computeWeeklyChanges - planning effectif, exercices auto dédupliqués, jamais les programmes doux`() = runTest {
-        // Full-body A deux fois dans la semaine + dos/lombaire : Goblet squat ne compte qu'une fois,
-        // les exercices de renfort doux ne sont jamais touchés.
         repos.settings.setCustomWeekPlan(
             listOf(
                 PlannedSession.Muscu("Full-body A", TemplateId.FULLBODY_A),
@@ -197,7 +190,6 @@ class AutoProgressionRunnerTest {
         )
         seed("Goblet squat", monday - 86_400_000L, 20.0, 10, Difficulty.FACILE)
         seed("Pont fessier", monday - 86_400_000L, 0.0, 12, Difficulty.FACILE)
-        // Full-body B n'est pas au planning : ignoré même avec historique.
         seed("Soulevé de terre roumain haltères", monday - 86_400_000L, 20.0, 10, Difficulty.FACILE)
 
         val changes = runner().computeWeeklyChanges()

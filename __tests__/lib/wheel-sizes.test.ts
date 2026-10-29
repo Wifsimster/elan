@@ -1,4 +1,3 @@
-// Tests sanity sur le barème des circonférences de roue.
 import { WHEEL_SIZES, matchWheelSize } from '@/lib/wheel-sizes';
 
 describe('WHEEL_SIZES', () => {

@@ -1,7 +1,5 @@
 import { describeNetworkFailure, describeS3Failure, putObject } from '@/lib/s3';
 
-// Référence indépendante : `crypto` de Node (pas de @types/node dans le projet,
-// d'où le require typé à la main, comme better-sqlite3 dans db.test.ts).
 type Hasher = { update: (s: string, enc: 'utf8') => Hasher; digest: (enc?: 'hex') => string & Uint8Array };
 const { createHash, createHmac } = require('node:crypto') as {
   createHash: (alg: 'sha256') => Hasher;
@@ -9,12 +7,6 @@ const { createHash, createHmac } = require('node:crypto') as {
 };
 const g = globalThis as { fetch: typeof fetch };
 
-/**
- * Vérifie la signature SigV4 produite par le client (js-sha256) contre un
- * calcul indépendant en Node `crypto` : garantit que la dérivation de clé
- * (HMAC chaîné sur octets) et la requête canonique sont conformes au format
- * AWS — un écart ici se traduit par un `SignatureDoesNotMatch` côté serveur.
- */
 describe('s3 — signature SigV4', () => {
   const config = {
     endpoint: 'https://s3.example.tld',

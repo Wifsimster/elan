@@ -11,7 +11,6 @@ import org.robolectric.RobolectricTestRunner
 import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.tracking.LiveNotification
 
-/** Route à ouvrir depuis l'intent de `MainActivity` : extra de notification ou lien profond. */
 @RunWith(RobolectricTestRunner::class)
 class OpenRouteTest {
 
@@ -27,7 +26,6 @@ class OpenRouteTest {
     fun `extra de notification - sortie du type courant, muscu, inconnu ignoré`() {
         val outing = launcher().putExtra(LiveNotification.EXTRA_OPEN_ROUTE, "outing")
         assertEquals("outing/course", openRouteFor(outing, ActivityType.COURSE, outingLive = true))
-        // L'extra est consommé : une relecture de l'intent ne rejoue pas la navigation.
         assertFalse(outing.hasExtra(LiveNotification.EXTRA_OPEN_ROUTE))
         assertNull(openRouteFor(outing, ActivityType.COURSE, outingLive = true))
 
@@ -42,10 +40,8 @@ class OpenRouteTest {
     fun `lien profond - type demandé hors sortie, type en cours sinon`() {
         assertEquals("outing/course", openRouteFor(view("elan://outing/course"), ActivityType.VELO, outingLive = false))
         assertEquals("outing/velo", openRouteFor(view("elan://outing/course"), ActivityType.VELO, outingLive = true))
-        // Type inconnu ou absent : type courant du contrôleur.
         assertEquals("outing/marche", openRouteFor(view("elan://outing/xyz"), ActivityType.MARCHE, outingLive = false))
         assertEquals("outing/marche", openRouteFor(view("elan://outing"), ActivityType.MARCHE, outingLive = false))
-        // Muscu n'est pas une sortie GPS : type courant à la place.
         assertEquals("outing/course", openRouteFor(view("elan://outing/muscu"), ActivityType.COURSE, outingLive = false))
         assertEquals("muscu", openRouteFor(view("elan://muscu"), ActivityType.VELO, outingLive = false))
     }

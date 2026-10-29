@@ -21,7 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Elan"
-// Seul le module natif est inclus. Le dossier `android/` (projet Expo généré,
-// ignoré par git) contient son propre projet Gradle et ne doit jamais être
-// ramassé par ce build.
 include(":app")

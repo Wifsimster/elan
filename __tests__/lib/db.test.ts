@@ -1,12 +1,3 @@
-// Test d'intégration de la couche SQLite (lib/db.ts) : round-trip
-// exportAll → clear → importAll, exclusion des réglages secrets, et
-// idempotence de l'import Strava (index unique partiel sur externalId).
-//
-// Le harnais Jest n'exécute pas le module natif expo-sqlite (RN). On le
-// remplace ici par un adaptateur minimal au-dessus de better-sqlite3
-// (SQLite réel, en mémoire) qui implémente la surface d'API utilisée par
-// db.ts : execAsync / getFirstAsync / getAllAsync / runAsync /
-// prepareAsync / withTransactionAsync.
 jest.mock('expo-sqlite', () => {
   const Database = require('better-sqlite3');
   const num = (v: number | bigint) => (typeof v === 'bigint' ? Number(v) : v);
@@ -72,7 +63,6 @@ import {
   type ImportedSessionRow,
 } from '@/lib/db';
 
-/** Trie les tableaux d'un snapshot pour comparer indépendamment de l'ordre SQL. */
 function normalize(snap: DbSnapshot): DbSnapshot {
   return {
     sessions: [...snap.sessions].sort((a, b) => a.id - b.id),
@@ -103,7 +93,6 @@ const importedRow = (externalId: string): ImportedSessionRow => ({
 });
 
 beforeAll(async () => {
-  // Une séance vélo terminée + ses points GPS.
   const veloId = await createSession('velo', 1_700_000_000_000);
   await updateSession(veloId, {
     endedAt: 1_700_003_600_000,
@@ -119,7 +108,6 @@ beforeAll(async () => {
     { ts: 1_700_000_010_000, lat: 48.857, lon: 2.3525, altitude: 36, speedKmh: 18, hr: 120, cadence: 85 },
   ]);
 
-  // Une séance muscu terminée + ses séries.
   const muscuId = await createSession('muscu', 1_700_100_000_000);
   await updateSession(muscuId, { endedAt: 1_700_103_000_000, durationSec: 3000 });
   await replaceMuscuSets(muscuId, [
@@ -127,7 +115,6 @@ beforeAll(async () => {
     { exercise: 'Goblet squat', setIndex: 2, reps: 9, weightKg: 22 },
   ]);
 
-  // Réglages : un public (conservé) et deux secrets (exclus des sauvegardes).
   await setSetting('profile', JSON.stringify({ weightKg: 78, maxHr: 188 }));
   await setSetting('backup_s3', 'SECRET-CREDENTIALS');
   await setSetting('backup_last', '{"ok":true}');
@@ -181,7 +168,6 @@ describe('insertImportedSession — déduplication par externalId', () => {
     const second = await insertImportedSession(importedRow('strava-abc123'), []);
     expect(second).toBe('duplicate');
 
-    // Un externalId différent passe.
     const other = await insertImportedSession(importedRow('strava-def456'), []);
     expect(other).toBe('imported');
   });
@@ -190,7 +176,6 @@ describe('insertImportedSession — déduplication par externalId', () => {
 describe('sessionRecords — record de durée vélo sur le temps en mouvement', () => {
   it('un chrono oublié à l’arrêt ne rafle pas le record de durée', async () => {
     await clearAllData();
-    // Sortie A : 1 h roulée d'affilée (temps en mouvement = temps total).
     const a = await createSession('velo', 1_800_000_000_000);
     await updateSession(a, {
       endedAt: 1_800_003_600_000,
@@ -198,7 +183,6 @@ describe('sessionRecords — record de durée vélo sur le temps en mouvement', 
       movingTimeSec: 3600,
       distanceM: 30_000,
     });
-    // Sortie B : 3 h de temps total mais 10 min en mouvement (chrono oublié).
     const b = await createSession('velo', 1_800_100_000_000);
     await updateSession(b, {
       endedAt: 1_800_110_800_000,
@@ -209,8 +193,6 @@ describe('sessionRecords — record de durée vélo sur le temps en mouvement', 
 
     const recA = await sessionRecords((await getSession(a))!);
     const recB = await sessionRecords((await getSession(b))!);
-    // A (1 h en mouvement) détient le record de durée ; B (10 min) ne l'a pas,
-    // malgré ses 3 h de temps total.
     expect(recA.some((r) => r.kind === 'duration')).toBe(true);
     expect(recB.some((r) => r.kind === 'duration')).toBe(false);
   });
@@ -221,19 +203,16 @@ describe('statsBetween (filtre par type) & tonnageBetween — suivi d’objectif
 
   beforeAll(async () => {
     await clearAllData();
-    // Deux sorties vélo terminées (distances connues).
     const v1 = await createSession('velo', T);
     await updateSession(v1, { endedAt: T + 100, durationSec: 100, distanceM: 10_000 });
     const v2 = await createSession('velo', T + 1000);
     await updateSession(v2, { endedAt: T + 1100, durationSec: 100, distanceM: 5_000 });
-    // Une séance muscu terminée (tonnage = 10×20 + 8×30 = 440).
     const m1 = await createSession('muscu', T + 2000);
     await updateSession(m1, { endedAt: T + 2100, durationSec: 100 });
     await replaceMuscuSets(m1, [
       { exercise: 'Squat', setIndex: 1, reps: 10, weightKg: 20 },
       { exercise: 'Squat', setIndex: 2, reps: 8, weightKg: 30 },
     ]);
-    // Séance en cours (endedAt NULL) : ne doit jamais être comptée.
     await createSession('velo', T + 3000);
   });
 
@@ -256,14 +235,12 @@ describe('statsBetween (filtre par type) & tonnageBetween — suivi d’objectif
   });
 
   it('fenêtre exclut les bornes hautes (toMs exclusif)', async () => {
-    // [T, T+1000) ne contient que la première sortie vélo.
     const s = await statsBetween(T, T + 1000, 'velo');
     expect(s.sessionCount).toBe(1);
   });
 
   it('tonnageBetween : somme reps × charge des séances muscu de la fenêtre', async () => {
     expect(await tonnageBetween(T, T + 10_000)).toBe(440);
-    // Avant la séance muscu (à T+2000) : aucun tonnage.
     expect(await tonnageBetween(T, T + 2000)).toBe(0);
   });
 });
@@ -273,8 +250,6 @@ describe('exerciseHistory — topReps vient bien de la série la plus lourde', (
     await clearAllData();
     const id = await createSession('muscu', 2_100_000_000_000);
     await updateSession(id, { endedAt: 2_100_003_000_000, durationSec: 3000 });
-    // Échauffement léger et très répété (20 kg × 15), puis série lourde (100 kg × 3).
-    // Avec la colonne nue + double MAX, `topReps` pouvait renvoyer 15.
     await replaceMuscuSets(id, [
       { exercise: 'Développé couché', setIndex: 1, reps: 15, weightKg: 20, difficulty: 'facile' },
       { exercise: 'Développé couché', setIndex: 2, reps: 3, weightKg: 100, difficulty: 'facile' },
@@ -296,8 +271,6 @@ describe('listSessions — recherche : les jokers LIKE de la saisie sont neutral
     const other = await createSession('velo', 2_200_000_400_000);
     await updateSession(other, { endedAt: 2_200_000_700_000, distanceM: 1000 });
 
-    // Littéral « % » : ne doit matcher que la note contenant réellement « % »,
-    // pas toutes les lignes (ce que ferait un joker non échappé).
     const hits = await listSessions({ search: '%' });
     expect(hits).toHaveLength(1);
     expect(hits[0].id).toBe(withNote);

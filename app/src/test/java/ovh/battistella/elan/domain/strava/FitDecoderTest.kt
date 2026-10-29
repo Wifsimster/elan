@@ -7,7 +7,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayOutputStream
 
-/** Un fichier FIT synthétique : en-tête + définitions + enregistrements + session, construit octet par octet. */
 class FitDecoderTest {
 
     private class Fit {
@@ -17,11 +16,10 @@ class FitDecoderTest {
         fun u32(v: Long) = apply { u16((v and 0xffff).toInt()); u16(((v shr 16) and 0xffff).toInt()) }
         fun s32(v: Int) = u32(v.toLong() and 0xffffffffL)
 
-        /** Définition (little-endian) : `fields` = (numéro, taille, type). */
         fun definition(local: Int, global: Int, fields: List<Triple<Int, Int, Int>>, dev: List<Int> = emptyList()) = apply {
             u8(0x40 or (if (dev.isNotEmpty()) 0x20 else 0) or local)
-            u8(0) // réservé
-            u8(0) // architecture 0 = little-endian
+            u8(0)
+            u8(0)
             u16(global)
             u8(fields.size)
             for ((num, size, type) in fields) { u8(num); u8(size); u8(type) }
@@ -34,47 +32,41 @@ class FitDecoderTest {
         fun bytes(): ByteArray {
             val body = data.toByteArray()
             val out = ByteArrayOutputStream()
-            out.write(14) // taille d'en-tête
-            out.write(0x10) // version protocole
-            out.write(0x08); out.write(0x08) // version profil
+            out.write(14)
+            out.write(0x10)
+            out.write(0x08); out.write(0x08)
             val size = body.size.toLong()
             out.write((size and 0xff).toInt()); out.write(((size shr 8) and 0xff).toInt())
             out.write(((size shr 16) and 0xff).toInt()); out.write(((size shr 24) and 0xff).toInt())
             out.write('.'.code); out.write('F'.code); out.write('I'.code); out.write('T'.code)
-            out.write(0); out.write(0) // CRC d'en-tête
+            out.write(0); out.write(0)
             out.write(body)
-            out.write(0); out.write(0) // CRC final
+            out.write(0); out.write(0)
             return out.toByteArray()
         }
     }
 
-    private val T0 = 1_100_000_000L // secondes FIT
+    private val T0 = 1_100_000_000L
     private fun ms(fitSec: Long) = (fitSec + FitDecoder.FIT_EPOCH_OFFSET_S) * 1000
     private fun semi(deg: Double): Int = Math.round(deg / FitDecoder.SEMICIRCLE_TO_DEG).toInt()
 
     private val recordFields = listOf(
-        Triple(253, 4, 0x86), // timestamp uint32
-        Triple(0, 4, 0x85), // lat sint32
-        Triple(1, 4, 0x85), // lon sint32
-        Triple(2, 2, 0x84), // altitude uint16 (raw/5 - 500)
-        Triple(3, 1, 0x02), // hr uint8
-        Triple(4, 1, 0x02), // cadence uint8
+        Triple(253, 4, 0x86),
+        Triple(0, 4, 0x85),
+        Triple(1, 4, 0x85),
+        Triple(2, 2, 0x84),
+        Triple(3, 1, 0x02),
+        Triple(4, 1, 0x02),
     )
 
     private fun sample(): ByteArray = Fit()
-        // Message `sport` (12) avec un champ développeur de 2 octets à sauter.
         .definition(3, 12, listOf(Triple(0, 1, 0x00)), dev = listOf(2))
-        .u8(0x03).u8(1).u8(0xAA).u8(0xBB) // sport = 1 (running) + 2 octets dev
+        .u8(0x03).u8(1).u8(0xAA).u8(0xBB)
         .definition(0, 20, recordFields)
-        // Point 1 : complet.
         .u8(0x00).u32(T0).s32(semi(48.8566)).s32(semi(2.3522)).u16((35 + 500) * 5).u8(120).u8(80)
-        // Point 2 : FC invalide (0xff → null), altitude invalide (0xffff → null).
         .u8(0x00).u32(T0 + 10).s32(semi(48.857)).s32(semi(2.3525)).u16(0xffff).u8(0xff).u8(82)
-        // Définition sans horodatage pour un enregistrement à horodatage compressé.
         .definition(1, 20, listOf(Triple(0, 4, 0x85), Triple(1, 4, 0x85), Triple(3, 1, 0x02)))
-        // Point 3 : en-tête compressé, type local 1, offset = (T0+10+5) & 0x1f.
         .u8(0x80 or (1 shl 5) or ((T0 + 15) and 0x1f).toInt()).s32(semi(48.858)).s32(semi(2.353)).u8(130)
-        // Session (18) : sport 2 = cycling, start_time, distance en cm, calories.
         .definition(2, 18, listOf(Triple(5, 1, 0x00), Triple(2, 4, 0x86), Triple(9, 4, 0x86), Triple(11, 2, 0x84)))
         .u8(0x02).u8(2).u32(T0 - 5).u32(1_234_500).u16(321)
         .bytes()
@@ -105,7 +97,6 @@ class FitDecoderTest {
         assertNull(p2.hr)
         assertEquals(82.0, p2.cad)
 
-        // Horodatage compressé : reconstruit à partir du dernier absolu.
         val p3 = a.points[2]
         assertEquals(ms(T0 + 15), p3.ts)
         assertEquals(130.0, p3.hr)
@@ -122,7 +113,6 @@ class FitDecoderTest {
             .bytes()
         val a = FitDecoder.parse(onlySport).single()
         assertEquals(ParsedSport.CYCLING, a.sport)
-        // Sans session : début = premier point horodaté.
         assertEquals(ms(T0), a.startedAt)
         assertNull(a.distanceM)
     }
@@ -157,12 +147,9 @@ class FitDecoderTest {
     @Test
     fun `un flux tronqué ou sans définition s'arrête proprement`() {
         val full = sample()
-        // Coupé au milieu du 2e point (en-tête 14 + sport 17 + définition 24 +
-        // point 1 17 + 7 octets) : le 1er point survit, aucun plantage.
         val truncated = full.copyOf(14 + 17 + 24 + 17 + 7)
         val a = FitDecoder.parse(truncated).single()
         assertTrue(a.points.isNotEmpty())
-        // Données sans définition préalable : rien de décodé.
         val orphan = Fit().u8(0x05).u32(T0).bytes()
         assertTrue(FitDecoder.parse(orphan).single().points.isEmpty())
     }

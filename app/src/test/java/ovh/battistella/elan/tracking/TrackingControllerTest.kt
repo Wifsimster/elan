@@ -28,11 +28,6 @@ import ovh.battistella.elan.domain.GpsStatus
 import ovh.battistella.elan.testing.TestSupport
 import java.util.Optional
 
-/**
- * Cycle de vie complet d'une sortie sur une vraie base Room en mémoire, avec
- * une source GPS et des capteurs pilotés par le test et un temps virtuel
- * (chrono, flush périodique, horodatages des fixes).
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class TrackingControllerTest {
@@ -69,20 +64,18 @@ class TrackingControllerTest {
             clock = clock,
             scope = backgroundScope,
         )
-        runCurrent() // abonnements capteurs et chrono en place
+        runCurrent()
         return c
     }
 
     private fun TestScope.now(): Long = BASE_MS + testScheduler.currentTime
 
-    /** Démarre une sortie et laisse le flux GPS s'abonner. */
     private suspend fun TestScope.start(c: TrackingController, type: ActivityType = ActivityType.VELO): Long {
         assertEquals(BeginResult.STARTED, c.begin(type))
         runCurrent()
         return c.state.value.sessionId!!
     }
 
-    /** Pousse un fix à `northM` du départ, puis avance le temps d'une seconde. */
     private suspend fun TestScope.fix(northM: Double, accuracy: Double? = 5.0, speedMs: Double? = 5.0) {
         gps.flow.emit(fixAt(now(), northM, speedMs = speedMs, accuracy = accuracy))
         runCurrent()
@@ -90,7 +83,6 @@ class TrackingControllerTest {
         runCurrent()
     }
 
-    /** Un tracé rectiligne de `count` fixes espacés de 5 m à 1 Hz (18 km/h). */
     private suspend fun TestScope.straightTrack(count: Int, fromM: Double = 0.0) {
         for (i in 0 until count) fix(fromM + i * STEP_M)
     }
@@ -109,7 +101,6 @@ class TrackingControllerTest {
         val row = repos.sessions.getSession(id)!!
         assertNull(row.endedAt)
         assertEquals(ActivityType.VELO, row.type)
-        // Le service de premier plan a été demandé.
         val started = shadowOf(context as Application).nextStartedService
         assertEquals(TrackingService::class.java.name, started.component?.className)
     }
@@ -149,7 +140,7 @@ class TrackingControllerTest {
         val c = controller()
         start(c)
 
-        straightTrack(21) // 0 → 100 m
+        straightTrack(21)
 
         val s = c.state.value
         assertEquals(21, s.pointCount)
@@ -167,7 +158,7 @@ class TrackingControllerTest {
         start(c)
 
         fix(0.0)
-        fix(5.0, speedMs = 40.0) // 144 km/h : glitch
+        fix(5.0, speedMs = 40.0)
 
         assertEquals(18.0, c.state.value.maxSpeedKmh, 0.01)
     }
@@ -176,14 +167,13 @@ class TrackingControllerTest {
     fun `la pause gèle les cumuls et la reprise ne saute pas`() = runTest {
         val c = controller()
         start(c)
-        straightTrack(11) // 0 → 50 m
+        straightTrack(11)
         val beforePause = c.state.value
 
         c.pause()
         runCurrent()
         assertEquals(OutingPhase.PAUSED, c.state.value.phase)
-        // Le filtre reste alimenté pendant la pause, mais rien n'est cumulé.
-        straightTrack(10, fromM = 55.0) // 55 → 100 m
+        straightTrack(10, fromM = 55.0)
         val paused = c.state.value
         assertEquals(beforePause.distanceM, paused.distanceM, 0.0)
         assertEquals(beforePause.pointCount, paused.pointCount)
@@ -192,10 +182,9 @@ class TrackingControllerTest {
         c.resume()
         runCurrent()
         assertEquals(OutingPhase.ACTIVE, c.state.value.phase)
-        straightTrack(10, fromM = 105.0) // 105 → 150 m
+        straightTrack(10, fromM = 105.0)
         val resumed = c.state.value
         val gained = resumed.distanceM - paused.distanceM
-        // 10 fixes de 5 m : pas de rattrapage des 50 m parcourus en pause.
         assertTrue("gain $gained", gained in 30.0..60.0)
         assertEquals(paused.pointCount + 10, resumed.pointCount)
         assertEquals(paused.elapsedSec + 10, resumed.elapsedSec)
@@ -205,14 +194,13 @@ class TrackingControllerTest {
     fun `le flush périodique écrit les points toutes les 20 s et est idempotent`() = runTest {
         val c = controller()
         val id = start(c)
-        straightTrack(5) // 5 s écoulées
+        straightTrack(5)
 
         assertTrue(repos.sessions.getTrackPoints(id).isEmpty())
         advanceTimeBy(TrackingController.FLUSH_INTERVAL_MS)
         runCurrent()
         assertEquals(5, repos.sessions.getTrackPoints(id).size)
 
-        // Rien de neuf : le tick suivant n'écrit rien de plus.
         advanceTimeBy(TrackingController.FLUSH_INTERVAL_MS)
         runCurrent()
         assertEquals(5, repos.sessions.getTrackPoints(id).size)
@@ -263,14 +251,13 @@ class TrackingControllerTest {
         assertNotNull(row.endedAt)
         assertEquals(now(), row.endedAt)
         assertEquals(21, row.durationSec)
-        // 20 segments d'une seconde à 18 km/h : tous « en mouvement ».
         assertEquals(20, row.movingTimeSec)
         val distance = row.distanceM!!
         assertTrue("distance $distance", distance in 80.0..105.0)
         assertEquals(distance / 1000 / (20 / 3600.0), row.avgSpeedKmh!!, 0.001)
         assertEquals(18.0, row.maxSpeedKmh!!, 0.01)
         assertTrue("calories ${row.calories}", row.calories!! > 0)
-        assertEquals(140.0, row.avgHr!!, 0.0) // 11 × 140 + 10 × 141 → 140,5 arrondi
+        assertEquals(140.0, row.avgHr!!, 0.0)
         assertEquals(141.0, row.maxHr!!, 0.0)
         assertEquals(80.0, row.avgCadence!!, 0.0)
         assertEquals(80.0, row.maxCadence!!, 0.0)
@@ -298,7 +285,6 @@ class TrackingControllerTest {
         assertEquals(id, c.state.value.sessionId)
         assertNull(repos.sessions.getSession(id)!!.endedAt)
 
-        // Le GPS est coupé : un fix tardif ne change plus rien.
         gps.flow.emit(fixAt(now(), 500.0))
         runCurrent()
         advanceTimeBy(5_000)
@@ -308,7 +294,7 @@ class TrackingControllerTest {
         val row = repos.sessions.getSession(id)!!
         assertNotNull(row.endedAt)
         assertEquals(frozenDistance, row.distanceM!!, 0.0)
-        assertEquals(11, row.durationSec) // chrono figé au premier « Terminer »
+        assertEquals(11, row.durationSec)
         assertEquals(11, repos.sessions.getTrackPoints(id).size)
     }
 
@@ -332,14 +318,13 @@ class TrackingControllerTest {
         val c = controller()
         start(c)
 
-        straightTrack(21) // 21 points de 5 m en 5 m
+        straightTrack(21)
 
         val s = c.state.value
         val path = s.livePath
         assertTrue("taille ${path.size}", path.size in 8..12)
         assertTrue(path.size < s.pointCount)
         assertEquals(48.8566, path.first().lat, 1e-9)
-        // Les ancres consécutives sont toujours à ≥ 8 m les unes des autres.
         for (i in 1 until path.size - 1) {
             val d = ovh.battistella.elan.domain.haversineMeters(path[i - 1], path[i])
             assertTrue("écart $d", d >= TrackingController.LIVE_DECIMATE_M)
@@ -364,7 +349,6 @@ class TrackingControllerTest {
         straightTrack(2, fromM = 15.0)
 
         c.finish()
-        // La trame reçue en pause n'a pas été retenue : la moyenne ne la voit pas.
         assertNull(repos.sessions.getSession(id)!!.avgHr)
     }
 

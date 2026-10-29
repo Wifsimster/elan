@@ -1,12 +1,9 @@
-// Calculs géographiques.
-
-const R = 6371000; // rayon terrestre en mètres
+const R = 6371000;
 
 function toRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }
 
-/** Distance en mètres entre deux coordonnées (formule de haversine). */
 export function haversineMeters(
   a: { lat: number; lon: number },
   b: { lat: number; lon: number },
@@ -20,12 +17,6 @@ export function haversineMeters(
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-/**
- * Décime un tracé en ne conservant qu'un point tous les `minMeters` (départ et
- * arrivée toujours préservés). Réduit le nombre de sommets dessinés sur une
- * longue sortie sans altérer la forme — purement pour l'affichage, la base
- * conserve la résolution pleine.
- */
 export function decimateByDistance<T extends { lat: number; lon: number }>(
   points: T[],
   minMeters: number,

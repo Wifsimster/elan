@@ -55,7 +55,6 @@ class OutingScreenTest {
         compose.onNodeWithText(text(R.string.outing_speed)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.outing_max_speed)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.outing_pause)).assertDoesNotExist()
-        // Pas de pastille GPS ni de carte avant le départ.
         compose.onNodeWithText("Recherche GPS…").assertDoesNotExist()
 
         compose.onNodeWithText(text(R.string.outing_start)).performClick()
@@ -138,7 +137,6 @@ class OutingScreenTest {
 
         compose.onNodeWithContentDescription(text(R.string.outing_quit)).performClick()
         compose.onNodeWithText(text(R.string.outing_discard_title)).assertIsDisplayed()
-        // « Continuer » referme sans rien faire.
         compose.onNodeWithText(text(R.string.common_continue)).performClick()
         compose.onNodeWithText(text(R.string.outing_discard_title)).assertDoesNotExist()
         assertEquals(0, exits)

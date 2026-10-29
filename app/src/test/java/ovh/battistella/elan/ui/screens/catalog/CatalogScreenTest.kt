@@ -53,7 +53,6 @@ class CatalogScreenTest {
 
     @Test
     fun `catalogue autonome - en-tête, compteur, fiche avec le profil des réglages, ajout vers la séance`() {
-        // Profil force à 80 kg : goblet squat 0,3 × 80 × 1,15 = 27,6 → 28 kg, 5 × 3-6, repos 180 s.
         runBlocking { repos.settings.saveProfile(Profile(weightKg = 80.0, goal = TrainingGoal.FORCE)) }
         var added: String? = null
         var backs = 0

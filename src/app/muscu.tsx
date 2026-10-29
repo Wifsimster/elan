@@ -64,25 +64,15 @@ type Exercise = {
   id: string;
   name: string;
   sets: SetRow[];
-  /** Cible issue d'un programme, ex. « 3 × 8-12 / bras » (absente en saisie libre). */
   target?: string;
-  /** Unité des reps : « sec » pour le gainage chronométré, « reps » sinon. */
   repUnit?: string;
-  /** Dernière charge enregistrée pour cet exercice (amorce de progression). */
   lastWeight?: number;
-  /** Explication « comment faire », montrée dans la fiche détaillée. */
   howTo?: string;
-  /** Groupes musculaires sollicités, affichés dans la fiche. */
   muscles?: string[];
-  /** Glyphe MaterialCommunityIcons illustrant le mouvement. */
   icon?: string;
-  /** Clé d'illustration photo (paire départ → fin), affichée dans la fiche. */
   imageKey?: string;
-  /** Ressenti d'effort noté pendant la séance (facile / moyen / dur). */
   difficulty?: Difficulty;
-  /** Ajustement appliqué par la progression auto au pré-remplissage (kg ou s ; 0/absent = aucun). */
   bump?: number;
-  /** Nature du `bump` : charge (kg) ou gainage chronométré (s). */
   bumpKind?: 'load' | 'time';
 };
 
@@ -102,7 +92,6 @@ const nextId = () => `e${uid++}`;
 
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
 
-/** Indice « progression auto » sous le nom de l'exercice, ex. « Auto : +2,5 kg cette semaine ». */
 function bumpHint(bump: number, kind?: 'load' | 'time'): string {
   const unit = kind === 'time' ? 's' : 'kg';
   const amount = kind === 'time' ? String(Math.abs(bump)) : fmtKg(Math.abs(bump));
@@ -111,12 +100,6 @@ function bumpHint(bump: number, kind?: 'load' | 'time'): string {
     : `Allégé : −${amount} ${unit} cette semaine`;
 }
 
-/**
- * Construit un exercice de séance à partir d'une fiche du catalogue : reps,
- * séries et charge pré-remplis depuis la recommandation (poids/taille/objectif),
- * mais la dernière charge enregistrée prime si elle existe (continuité de la
- * progression). Tout reste modifiable ensuite dans la séance.
- */
 function buildCatalogExercise(
   ex: CatalogExercise,
   profile: RecoProfile,
@@ -157,45 +140,29 @@ export default function MuscuScreen() {
   const [paused, setPaused] = useState(false);
   const [infoExercise, setInfoExercise] = useState<Exercise | null>(null);
   const [catalogOpen, setCatalogOpen] = useState(false);
-  // Profil réduit aux champs qui pilotent les recommandations du catalogue.
   const [recoProfile, setRecoProfile] = useState<RecoProfile>({
     weightKg: 70,
     heightCm: 175,
     sex: null,
     goal: 'hypertrophie',
   });
-  // Repos inter-séries : horodatage de fin (null = aucun repos en cours).
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
 
   const startedAtRef = useRef<number>(0);
-  // Id réutilisé entre tentatives d'enregistrement (retry) : l'écriture atomique
-  // roule tout en une transaction, donc il reste null tant que rien n'est validé.
   const muscuIdRef = useRef<number | null>(null);
-  // Garde de réentrance : un double-tap sur « Terminer » ne doit pas lancer deux
-  // enregistrements concurrents.
   const savingRef = useRef<boolean>(false);
   const hrSamplesRef = useRef<HrSample[]>([]);
   const pausedRef = useRef<boolean>(false);
   const weightRef = useRef<number>(70);
   const maxHrRef = useRef<number>(190);
-  // Durée de repos préférée (s), réutilisée à chaque série cochée et persistée.
   const restDurationRef = useRef<number>(90);
-  // Passe à true une fois le montage (reprise ou démarrage) terminé : évite
-  // d'écraser un brouillon valide pendant la phase d'hydratation.
   const hydratedRef = useRef<boolean>(false);
 
   useEffect(() => {
     pausedRef.current = paused;
   }, [paused]);
 
-  // Pré-remplit la séance depuis un programme. Appelé uniquement sur une séance
-  // vide (bouton « Charger un programme » ou « Séance du jour ») : on remplace la
-  // liste plutôt que d'empiler, pour ne jamais dupliquer les exercices.
   const loadTemplate = async (t: WorkoutTemplate) => {
-    // Cible par exercice : dernière charge/durée enregistrée, éventuellement
-    // relevée d'un cran par la progression auto (selon le ressenti des semaines
-    // passées). Remplace l'ancien `lastWeightByExercise` — la montée est ainsi
-    // appliquée à un seul endroit, jamais deux fois.
     const targets = await targetsForExercises(t.exercises);
     setExercises(
       t.exercises.map((ex) => {
@@ -209,7 +176,6 @@ export default function MuscuScreen() {
           muscles: ex.muscles,
           icon: ex.icon,
           imageKey: ex.imageKey,
-          // Le gainage n'a pas de charge : on n'affiche pas de « dernière fois ».
           lastWeight: tgt.lastWeightKg,
           bump: tgt.bump,
           bumpKind: tgt.bumpKind,
@@ -232,8 +198,6 @@ export default function MuscuScreen() {
       const rp: RecoProfile = { weightKg: p.weightKg, heightCm: p.heightCm, sex: p.sex, goal: p.goal };
       setRecoProfile(rp);
 
-      // Durée de repos préférée, mémorisée d'une séance à l'autre. À défaut, on
-      // part du repos conseillé pour l'objectif (force = long, endurance = court).
       const savedRest = Number(await getSetting('rest_seconds'));
       if (cancelled) return;
       if (Number.isFinite(savedRest) && savedRest > 0) {
@@ -246,32 +210,21 @@ export default function MuscuScreen() {
       if (cancelled) return;
 
       if (draft) {
-        // Reprise d'une séance mise en pause : on restaure tout son état et on
-        // la laisse en pause (l'utilisateur appuie sur « Reprendre » pour repartir).
         startedAtRef.current = draft.startedAt;
         hrSamplesRef.current = draft.hrSamples;
-        // Ré-attribue des ids frais : le compteur `uid` est repassé à 0 au
-        // redémarrage de l'app et collisionnerait avec les ids sauvegardés.
         const restored = (draft.exercises as Exercise[]).map((e) => ({ ...e, id: nextId() }));
         setExercises(restored);
         watch.seed(draft.elapsedSec);
         setPaused(true);
       } else {
-        // Démarrage normal d'une nouvelle séance.
         startedAtRef.current = nowMs();
         watch.start();
-        // Permission notifications (Android 13+) best-effort, une fois, pour que
-        // la notification persistante de séance soit visible dans le volet.
         ensureNotificationPermission();
-        // Notification persistante (appui = retour à la séance). Fire-and-forget.
-        // Une séance reprise depuis un brouillon reste en pause (ci-dessus) : on
-        // n'affiche rien tant que l'utilisateur n'a pas tapé « Reprendre ».
         showLiveSessionNotification('muscu');
         const preset = templateById(template);
-        if (preset) await loadTemplate(preset); // pré-chargement depuis la « Séance du jour »
+        if (preset) await loadTemplate(preset);
       }
 
-      // Ajout direct d'un exercice du catalogue (depuis l'écran « Catalogue »).
       const addId = typeof add === 'string' ? add : undefined;
       if (addId) {
         const cat = catalogById(addId);
@@ -290,22 +243,14 @@ export default function MuscuScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Ajout d'un exercice depuis le magasin : reps/séries/charge pré-remplis
-  // depuis la recommandation, la dernière charge enregistrée prenant le relais.
   const addCatalogExercise = async (ex: CatalogExercise) => {
     const last = await lastWeightByExercise([ex.name]);
     setExercises((prev) => [...prev, buildCatalogExercise(ex, recoProfile, last[ex.name])]);
   };
 
-  // Échantillonnage FC : on s'abonne aux trames BLE brutes pour ne pas perdre
-  // les paliers (React déduplique les setStates identiques côté `bpm`).
-  // Les trames reçues en pause sont ignorées pour ne pas fausser la moyenne.
   useEffect(() => {
     return subscribeHr((sample) => {
       if (pausedRef.current) return;
-      // Down-sampling sur palier : un seul échantillon par seconde tant que la FC
-      // ne bouge pas. Borne le buffer (et le brouillon re-sérialisé à chaque set)
-      // sans altérer moyenne, max, ni l'attachement temporel.
       pushDownsampled(hrSamplesRef.current, sample, (s) => s.hr);
     });
   }, [subscribeHr]);
@@ -318,8 +263,6 @@ export default function MuscuScreen() {
   const resume = () => {
     watch.start();
     setPaused(false);
-    // Reprise (y compris depuis un brouillon) : (ré)affiche la notification.
-    // Identifiant stable = idempotent, ne crée pas de doublon.
     showLiveSessionNotification('muscu');
   };
 
@@ -365,9 +308,6 @@ export default function MuscuScreen() {
       ),
     );
 
-  // Une série déjà cochée (effectuée) ne se supprime pas d'un geste : un pouce
-  // qui dérape juste à côté du « + kg » effacerait un résultat sans retour. On
-  // confirme dans ce cas ; une série vide non cochée part directement.
   const removeSet = (id: string, idx: number) => {
     const done = exercises.find((e) => e.id === id)?.sets[idx]?.done ?? false;
     if (!done) {
@@ -392,8 +332,6 @@ export default function MuscuScreen() {
       ),
     );
 
-  // Cocher / décocher une série une fois exécutée (suivi en cours de séance).
-  // Cocher une série démarre automatiquement le minuteur de repos.
   const toggleSet = (id: string, idx: number) => {
     const wasDone = exercises.find((e) => e.id === id)?.sets[idx]?.done ?? false;
     setExercises((prev) =>
@@ -406,8 +344,6 @@ export default function MuscuScreen() {
     if (!wasDone) setRestEndsAt(nowMs() + restDurationRef.current * 1000);
   };
 
-  // Note le ressenti de l'exercice (facile / moyen / dur). Re-taper la valeur
-  // déjà sélectionnée la désélectionne : la note reste facultative.
   const setDifficulty = (id: string, value: Difficulty) =>
     setExercises((prev) =>
       prev.map((e) =>
@@ -415,14 +351,10 @@ export default function MuscuScreen() {
       ),
     );
 
-  // Ouvre / décale / ferme le minuteur de repos (horodatage de fin seul).
   const handleRestChange = (next: number | null) => {
     setRestEndsAt(next);
   };
 
-  // Ajustement ±15 s : mémorise la nouvelle DURÉE préférée (repos souhaité + delta),
-  // et non le temps restant — « +15 » à 2 s de la fin ne doit pas régler le repos
-  // préféré à ~16 s. Réutilisée à la prochaine série. Best-effort, local.
   const adjustRestPreference = (deltaSec: number) => {
     const secs = Math.max(15, Math.min(600, restDurationRef.current + deltaSec));
     restDurationRef.current = secs;
@@ -432,11 +364,8 @@ export default function MuscuScreen() {
   const stats = muscuStats(exercises);
   const { totalSets, doneSets, totalVolume } = stats;
 
-  // Sauvegarde du brouillon (séance en pause, reprenable). Best-effort, local.
-  // `getElapsedSec()` (temps live) plutôt que le state `elapsedSec` : au passage
-  // en arrière-plan on veut le chrono à l'instant T, pas la valeur figée.
   const persistDraft = () => {
-    if (totalSets === 0) return; // ne pas persister un brouillon vide
+    if (totalSets === 0) return;
     saveMuscuDraft({
       version: 1,
       startedAt: startedAtRef.current,
@@ -446,10 +375,6 @@ export default function MuscuScreen() {
     });
   };
 
-  // Écriture continue : à chaque changement structurel (exercices, pause), on
-  // re-sauvegarde, pour qu'une fermeture brutale de l'app ne perde rien. Quand la
-  // séance retombe à vide (dernier exercice retiré), on EFFACE le brouillon —
-  // sinon un ancien état ressusciterait au prochain lancement.
   useEffect(() => {
     if (!hydratedRef.current) return;
     if (totalSets === 0) {
@@ -461,7 +386,7 @@ export default function MuscuScreen() {
   }, [exercises, paused]);
 
   const finish = () => {
-    if (savingRef.current) return; // réentrance
+    if (savingRef.current) return;
     if (totalSets === 0) {
       Alert.alert('Séance vide', 'Ajoute au moins un exercice avant de terminer.');
       return;
@@ -473,12 +398,10 @@ export default function MuscuScreen() {
   };
 
   const save = async () => {
-    if (savingRef.current) return; // réentrance (double-tap « Terminer »)
+    if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
     watch.pause();
-    // Durée lue en direct au moment du « Terminer » (pas la valeur figée du state,
-    // qui se cristallise dans la closure de l'Alert de confirmation).
     const durationSec = watch.getElapsedSec();
     const { avgHr, maxHr } = summarizeHr(hrSamplesRef.current);
     const calories = estimateCalories({
@@ -497,13 +420,9 @@ export default function MuscuScreen() {
           setIndex: i + 1,
           reps: s.reps,
           weightKg: s.weightKg,
-          // Ressenti dénormalisé : même valeur sur toutes les séries de l'exercice.
           difficulty: e.difficulty ?? null,
         })),
       );
-      // Écriture atomique : création + agrégats + séries dans une transaction.
-      // En cas d'échec, rien n'est écrit (ni séance visible sans séries, ni
-      // orpheline `endedAt IS NULL`), et le retry réutilise l'id éventuel.
       const id = await saveMuscuSession(
         muscuIdRef.current,
         startedAtRef.current,
@@ -512,8 +431,6 @@ export default function MuscuScreen() {
       );
       muscuIdRef.current = id;
 
-      // Le brouillon n'est effacé qu'APRÈS l'écriture réussie : si l'étape
-      // ci-dessus lève, la séance reste reprenable au prochain lancement.
       await clearMuscuDraft();
       finalizeSavedSession({
         type: 'muscu',
@@ -525,8 +442,6 @@ export default function MuscuScreen() {
       clearLiveSessionNotification();
       router.replace({ pathname: '/session/[id]', params: { id } });
     } catch {
-      // Échec d'écriture : on ne reste pas bloqué sur « saving ». Le brouillon est
-      // intact, l'utilisateur peut réessayer de terminer.
       savingRef.current = false;
       setSaving(false);
       Alert.alert(
@@ -536,8 +451,6 @@ export default function MuscuScreen() {
     }
   };
 
-  // Quitter sans terminer : met la séance en pause (brouillon sauvegardé,
-  // reprenable plus tard) ou l'abandonne. Une séance vide sort sans rien garder.
   const exitSession = (): boolean => {
     if (saving) return true;
     if (totalSets === 0) {
@@ -573,9 +486,6 @@ export default function MuscuScreen() {
     return true;
   };
 
-  // Persiste le brouillon au passage en arrière-plan (chrono live + buffer FC
-  // depuis la dernière écriture structurelle) : sinon un kill mémoire en arrière-
-  // plan perdrait ces secondes/échantillons. Ref pour capter le dernier état.
   const persistDraftRef = useRef(persistDraft);
   useEffect(() => {
     persistDraftRef.current = persistDraft;
@@ -589,8 +499,6 @@ export default function MuscuScreen() {
     return () => sub.remove();
   }, []);
 
-  // Le bouton retour matériel (Android) doit suivre le même chemin que la croix,
-  // sinon il quitterait la modale en perdant la séance en mémoire.
   const exitRef = useRef(exitSession);
   useEffect(() => {
     exitRef.current = exitSession;
@@ -610,7 +518,6 @@ export default function MuscuScreen() {
           paddingBottom: insets.bottom + 120,
           gap: 14,
         }}>
-        {/* En-tête */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <PressableScale
             onPress={exitSession}
@@ -627,7 +534,6 @@ export default function MuscuScreen() {
           <View style={{ width: 26 }} />
         </View>
 
-        {/* Résumé */}
         <Card style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
           <Summary label="Durée" value={formatDuration(watch.elapsedSec)} theme={theme} />
           <Summary
@@ -649,9 +555,6 @@ export default function MuscuScreen() {
           />
         </Card>
 
-        {/* Charger un programme — uniquement pour démarrer une séance vide.
-            Une fois des exercices en place, le sélecteur disparaît : on ne
-            « recharge » pas un programme par-dessus (ça empilait des doublons). */}
         {exercises.length === 0 ? (
           <Card style={{ gap: 10 }}>
             <Text style={{ ...Type.subtitle, color: theme.text }}>Charger un programme</Text>
@@ -688,7 +591,6 @@ export default function MuscuScreen() {
           </Card>
         ) : null}
 
-        {/* Exercices */}
         {exercises.map((ex) => (
           <Card key={ex.id} style={{ gap: 10 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -799,8 +701,6 @@ export default function MuscuScreen() {
               <Text style={{ color: theme.muscu, fontWeight: '700' }}>Ajouter une série</Text>
             </PressableScale>
 
-            {/* Ressenti : alimente le conseil de progression (reps/charge à monter
-                ou non) visible plus tard sur la fiche de l'exercice. Facultatif. */}
             <View style={{ gap: 6 }}>
               <Text style={{ ...Type.label, color: theme.textSecondary }}>Ressenti</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -818,7 +718,6 @@ export default function MuscuScreen() {
           </Card>
         ))}
 
-        {/* Ajout d'exercice */}
         <Card style={{ gap: 12 }}>
           <Text style={{ ...Type.subtitle, color: theme.text }}>Ajouter un exercice</Text>
           <Button
@@ -872,7 +771,6 @@ export default function MuscuScreen() {
         </Card>
       </ScrollView>
 
-      {/* Repos inter-séries + contrôles, ancrés en bas */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
         <RestTimer
           key={restEndsAt ?? 'idle'}
@@ -902,7 +800,6 @@ export default function MuscuScreen() {
               onPress={paused ? resume : pause}
             />
           </View>
-          {/* Terminer reçoit plus de poids que Pause (cf. velo.tsx). */}
           <View style={{ flex: 1.4 }}>
             <Button
               title="Terminer"
@@ -917,7 +814,6 @@ export default function MuscuScreen() {
 
       <ExerciseInfoSheet exercise={infoExercise} onClose={() => setInfoExercise(null)} />
 
-      {/* Magasin d'exercices : parcourir, voir le détail, ajouter à la séance. */}
       <Modal
         visible={catalogOpen}
         animationType="slide"
@@ -998,22 +894,19 @@ function Stepper({
   suffix: string;
   step: number;
   min: number;
-  /** Autorise la saisie décimale (poids : réglage au kg, voire 0,5 kg près). */
   decimal?: boolean;
   onChange: (v: number) => void;
 }) {
   const theme = useTheme();
   const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
 
-  // Saisie directe : taper la valeur ouvre un champ pour la régler à l'unité
-  // exacte (les boutons +/- restent pour un ajustement rapide par paliers).
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState('');
 
   const commit = () => {
     setEditing(false);
     const parsed = parseFloat(text.replace(',', '.'));
-    if (!Number.isFinite(parsed)) return; // saisie vide / invalide : on garde la valeur
+    if (!Number.isFinite(parsed)) return;
     const rounded = decimal ? Math.round(parsed * 10) / 10 : Math.round(parsed);
     onChange(Math.max(min, rounded));
   };

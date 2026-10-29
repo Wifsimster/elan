@@ -1,5 +1,3 @@
-// Tests des métadonnées d'activité : la table qui décide partout ailleurs si
-// une séance a un tracé GPS et si l'effort se lit en allure.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -66,7 +64,6 @@ class ActivityTest {
         assertEquals(ActivityType.VELO, toActivityType(null))
         assertEquals(ActivityType.VELO, toActivityType("natation"))
         assertEquals(ActivityType.VELO, toActivityType(42))
-        // Une clé héritée d'Object.prototype ne doit pas passer pour un type.
         assertEquals(ActivityType.VELO, toActivityType("toString"))
     }
 

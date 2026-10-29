@@ -1,22 +1,8 @@
-// Catalogue d'exercices (« magasin ») + moteur de recommandation.
-//
-// Objectif : rendre la musculation libre et adaptée à tous. Plutôt qu'un
-// programme figé, l'utilisateur pioche dans une bibliothèque d'exercices, en
-// voit le détail (muscles, matériel, exécution) et reçoit un nombre de
-// répétitions et une charge conseillés, calculés à partir de son profil (poids,
-// taille, sexe) et de ce qu'il cherche à faire (objectif). Tout est ensuite
-// personnalisable à la main dans la séance.
-//
-// 100 % local, sans dépendance UI : ce module ne contient que des données et de
-// l'arithmétique, comme `Program.kt`. Les charges conseillées sont un POINT DE
-// DÉPART pour un pratiquant intermédiaire ; le moteur de progression (dernière
-// charge enregistrée) prend ensuite le relais.
 package ovh.battistella.elan.domain
 
 import kotlin.math.max
 import kotlin.math.roundToLong
 
-/** Grand groupe musculaire — sert de rayon dans le magasin (filtre/section). */
 enum class ExerciseCategory(val label: String) {
     JAMBES("Jambes"),
     PECTORAUX("Pectoraux"),
@@ -30,7 +16,6 @@ enum class ExerciseCategory(val label: String) {
     }
 }
 
-/** Matériel nécessaire — sert de second filtre (« je n'ai que des haltères »). */
 enum class Equipment(val label: String) {
     POIDS_DU_CORPS("poids du corps"),
     HALTERES("haltères"),
@@ -44,35 +29,21 @@ enum class Equipment(val label: String) {
     }
 }
 
-/** Une fiche d'exercice du catalogue. */
 data class CatalogExercise(
     val id: String,
     val name: String,
     val category: ExerciseCategory,
-    /** Muscles sollicités (affichés en pastilles), libellés alignés sur `Program.kt`. */
     val muscles: List<String>,
     val equipment: List<Equipment>,
-    /** Glyphe MaterialCommunityIcons illustrant le mouvement. */
     val icon: String,
-    /** Clé d'illustration photo (paire départ → fin). */
     val imageKey: String? = null,
-    /** « bras » / « jambe » / « côté » — travail unilatéral. */
     val perSideLabel: String? = null,
-    /** Exercice chronométré (gainage) : les « reps » sont des secondes. */
     val timed: Boolean = false,
-    /** Polyarticulaire (gros mouvement) vs isolation. */
     val compound: Boolean,
-    /**
-     * Base de la charge conseillée : charge de travail d'un pratiquant
-     * intermédiaire en hypertrophie, exprimée en fraction du poids de corps.
-     * 0 = au poids du corps / non chargeable.
-     */
     val loadFactor: Double,
-    /** Vrai si `loadFactor` s'entend PAR haltère (mouvements aux haltères). */
     val loadPerSide: Boolean = false,
 )
 
-/** Ordre d'affichage des rayons. */
 val CATEGORIES: List<ExerciseCategory> = listOf(
     ExerciseCategory.JAMBES,
     ExerciseCategory.PECTORAUX,
@@ -82,7 +53,6 @@ val CATEGORIES: List<ExerciseCategory> = listOf(
     ExerciseCategory.GAINAGE,
 )
 
-/** Matériels filtrables (ordre d'affichage). */
 val EQUIPMENTS: List<Equipment> = listOf(
     Equipment.POIDS_DU_CORPS,
     Equipment.HALTERES,
@@ -93,7 +63,6 @@ val EQUIPMENTS: List<Equipment> = listOf(
 )
 
 val CATALOG: List<CatalogExercise> = listOf(
-    // ---------- JAMBES ----------
     CatalogExercise(
         id = "goblet-squat",
         name = "Goblet squat",
@@ -225,7 +194,6 @@ val CATALOG: List<CatalogExercise> = listOf(
         loadPerSide = true,
     ),
 
-    // ---------- PECTORAUX ----------
     CatalogExercise(
         id = "dumbbell-bench-press",
         name = "Développé couché haltères",
@@ -291,7 +259,6 @@ val CATALOG: List<CatalogExercise> = listOf(
         loadFactor = 0.0,
     ),
 
-    // ---------- DOS ----------
     CatalogExercise(
         id = "one-arm-dumbbell-row",
         name = "Rowing haltère un bras",
@@ -378,7 +345,6 @@ val CATALOG: List<CatalogExercise> = listOf(
         loadFactor = 0.0,
     ),
 
-    // ---------- ÉPAULES ----------
     CatalogExercise(
         id = "standing-dumbbell-press",
         name = "Développé épaules debout haltères",
@@ -434,7 +400,6 @@ val CATALOG: List<CatalogExercise> = listOf(
         loadFactor = 0.0,
     ),
 
-    // ---------- BRAS ----------
     CatalogExercise(
         id = "dumbbell-biceps-curl",
         name = "Curl biceps haltères",
@@ -488,7 +453,6 @@ val CATALOG: List<CatalogExercise> = listOf(
         loadFactor = 0.0,
     ),
 
-    // ---------- GAINAGE ----------
     CatalogExercise(
         id = "plank",
         name = "Gainage planche",
@@ -558,29 +522,19 @@ val CATALOG: List<CatalogExercise> = listOf(
     ),
 )
 
-// ---------------------------------------------------------------------------
-// Objectifs d'entraînement
-// ---------------------------------------------------------------------------
-
-/** Paramètres d'un objectif : schéma de séries/reps/repos + intensité (charge). */
 data class GoalSpec(
     val id: TrainingGoal,
     val label: String,
-    /** Phrase courte décrivant l'objectif (affichée à la sélection). */
     val blurb: String,
     val sets: Int,
     val repsMin: Int,
     val repsMax: Int,
     val restSec: Int,
-    /** Multiplie `loadFactor` pour obtenir la charge conseillée. */
     val intensityFactor: Double,
-    /** Fourchette en secondes pour les exercices chronométrés (gainage). */
     val timedMinSec: Int,
     val timedMaxSec: Int,
 )
 
-// Fourchettes standard (NSCA / ACSM) : force = lourd/peu de reps/repos long,
-// hypertrophie = modéré, endurance = léger/beaucoup de reps/repos court.
 val GOALS: List<GoalSpec> = listOf(
     GoalSpec(
         id = TrainingGoal.FORCE,
@@ -644,27 +598,18 @@ val GOALS: List<GoalSpec> = listOf(
     ),
 )
 
-/** Spécification d'un objectif (repli sur l'hypertrophie si inconnu). */
 fun goalSpec(goal: TrainingGoal?): GoalSpec = GOALS.firstOrNull { it.id == goal } ?: GOALS[1]
 
-/** Libellé court d'un objectif, pour l'affichage. */
 fun goalLabel(goal: TrainingGoal?): String = goalSpec(goal).label
 
-// ---------------------------------------------------------------------------
-// Moteur de recommandation
-// ---------------------------------------------------------------------------
-
-/** Facteurs haut / bas du corps appliqués à la charge selon le sexe. */
 data class SexFactor(val upper: Double, val lower: Double)
 
-// Femmes : charges absolues plus basses, écart plus marqué sur le haut du corps.
 val SEX_FACTOR: Map<Sex?, SexFactor> = mapOf(
     Sex.F to SexFactor(upper = 0.65, lower = 0.8),
     Sex.H to SexFactor(upper = 1.0, lower = 1.0),
     null to SexFactor(upper = 1.0, lower = 1.0),
 )
 
-/** Catégories considérées « haut du corps » pour le facteur sexe. */
 private val UPPER_BODY: Set<ExerciseCategory> = setOf(
     ExerciseCategory.PECTORAUX,
     ExerciseCategory.DOS,
@@ -672,31 +617,22 @@ private val UPPER_BODY: Set<ExerciseCategory> = setOf(
     ExerciseCategory.BRAS,
 )
 
-/**
- * Arrondit une charge à un pas réaliste : barre / charges lourdes au pas de
- * 2,5 kg, travail léger à l'haltère au kg, très léger au demi-kilo.
- */
 fun roundWeight(kg: Double, ex: CatalogExercise): Double {
     if (kg <= 0.0) return 0.0
     val step = if (!ex.loadPerSide && ex.loadFactor >= 0.5) 2.5 else if (kg < 6) 0.5 else 1.0
     return max(0.0, (kg / step).roundToLong() * step)
 }
 
-/** Recommandation calculée pour un exercice donné et un profil donné. */
 data class Recommendation(
     val sets: Int,
     val repsMin: Int,
     val repsMax: Int,
     val restSec: Int,
-    /** Charge conseillée en kg. Si `perDumbbell`, c'est la charge PAR haltère. */
     val weightKg: Double,
-    /** Vrai ⇒ `weightKg` s'entend par haltère (afficher « / main »). */
     val perDumbbell: Boolean,
-    /** Vrai ⇒ `repsMin`/`repsMax` sont des SECONDES (gainage chronométré). */
     val timed: Boolean,
 )
 
-/** Sous-ensemble de profil dont dépend la recommandation. */
 data class RecoProfile(
     val weightKg: Double,
     val heightCm: Double,
@@ -704,20 +640,11 @@ data class RecoProfile(
     val goal: TrainingGoal,
 )
 
-/** Projection d'un profil complet sur les champs utiles à la recommandation. */
 fun Profile.toRecoProfile(): RecoProfile = RecoProfile(weightKg, heightCm, sex, goal)
 
-/**
- * Calcule reps, séries, repos et charge conseillés pour un exercice à partir du
- * profil (poids, taille, sexe) et de l'objectif. La taille n'entre pas dans le
- * calcul de charge : le poids de corps capture déjà l'essentiel du gabarit, et
- * des bras de levier plus longs auraient un effet inverse non fiable — on évite
- * de compter deux fois la morphologie.
- */
 fun recommend(profile: RecoProfile, ex: CatalogExercise): Recommendation {
     val goal = goalSpec(profile.goal)
 
-    // 1) Exercices chronométrés (gainage) → pas de charge, reps = secondes.
     if (ex.timed) {
         return Recommendation(
             sets = goal.sets,
@@ -730,7 +657,6 @@ fun recommend(profile: RecoProfile, ex: CatalogExercise): Recommendation {
         )
     }
 
-    // 2) Mouvements au poids du corps / non chargeables.
     if (ex.loadFactor == 0.0) {
         return Recommendation(
             sets = goal.sets,
@@ -743,10 +669,8 @@ fun recommend(profile: RecoProfile, ex: CatalogExercise): Recommendation {
         )
     }
 
-    // 3) Charge de base = loadFactor × poids de corps × intensité de l'objectif.
     var w = ex.loadFactor * profile.weightKg * goal.intensityFactor
 
-    // 4) Facteur sexe (haut vs bas du corps).
     val factor = SEX_FACTOR.getValue(profile.sex)
     w *= if (ex.category in UPPER_BODY) factor.upper else factor.lower
 
@@ -761,29 +685,18 @@ fun recommend(profile: RecoProfile, ex: CatalogExercise): Recommendation {
     )
 }
 
-/** Variante prenant le profil complet. */
 fun recommend(profile: Profile, ex: CatalogExercise): Recommendation = recommend(profile.toRecoProfile(), ex)
 
-// ---------------------------------------------------------------------------
-// Recherche / formatage
-// ---------------------------------------------------------------------------
-
-/** Retrouve une fiche du catalogue par son id. */
 fun catalogById(id: String?): CatalogExercise? {
     if (id.isNullOrEmpty()) return null
     return CATALOG.firstOrNull { it.id == id }
 }
 
-/** Retrouve une fiche par son nom exact (enrichit un exercice enregistré). */
 fun catalogByName(name: String?): CatalogExercise? {
     if (name.isNullOrEmpty()) return null
     return CATALOG.firstOrNull { it.name == name }
 }
 
-/**
- * Indice de cible lisible à partir d'une recommandation, ex.
- * « 4 × 8-12 » ou « 3 × 30-45 s / côté ».
- */
 fun recoHint(ex: CatalogExercise, rec: Recommendation): String {
     val reps = if (rec.repsMin == rec.repsMax) "${rec.repsMin}" else "${rec.repsMin}-${rec.repsMax}"
     val unit = if (rec.timed) " s" else ""
@@ -791,20 +704,12 @@ fun recoHint(ex: CatalogExercise, rec: Recommendation): String {
     return "${rec.sets} × $reps$unit$side"
 }
 
-/** Libellé de charge conseillée, ex. « 16 kg / main » ou « au poids du corps ». */
 fun recoWeightLabel(rec: Recommendation): String {
     if (rec.timed) return "gainage chronométré"
     if (rec.weightKg <= 0.0) return "au poids du corps"
     return "${fmtKg(rec.weightKg)} kg${if (rec.perDumbbell) " / main" else ""}"
 }
 
-// ---------------------------------------------------------------------------
-// Exécution (« comment faire ») par exercice
-// ---------------------------------------------------------------------------
-
-// Texte d'exécution simple et sûr pour chaque mouvement. Repris à l'identique de
-// `Program.kt` pour les exercices communs, rédigé dans le même esprit pour les
-// autres. Séparé du tableau `CATALOG` pour garder ce dernier lisible.
 private val HOWTO: Map<String, String> = mapOf(
     "goblet-squat" to
         "Tiens un haltère verticalement contre la poitrine, à deux mains. Pieds largeur d’épaules. Descends en pliant les genoux, dos droit et talons au sol, jusqu’à ce que les cuisses soient parallèles au sol, puis remonte.",
@@ -892,5 +797,4 @@ private val HOWTO: Map<String, String> = mapOf(
         "Allongé sur le ventre, bras tendus devant. Décolle légèrement bras, poitrine et jambes du sol en gardant le regard vers le bas et la nuque longue, sur une amplitude réduite. Tiens brièvement puis relâche. À n’introduire que sans aucune douleur.",
 )
 
-/** Texte d'exécution (« comment faire ») d'un exercice, ou `null`. */
 fun exerciseHowTo(id: String): String? = HOWTO[id]

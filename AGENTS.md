@@ -33,10 +33,18 @@ Tous les tests tournent sur la **JVM hôte** (JUnit 4, Robolectric `sdk=34`,
 MockK, Compose UI test, MockWebServer) : aucun émulateur nécessaire. Une PR
 n'est finie que si `./gradlew testDebugUnitTest assembleDebug` passe.
 
+## Commentaires
+
+Aucun commentaire dans le code (décision du 2026-10-29) : ils vieillissent et
+égarent les agents ; le pourquoi va dans les commits et les PR. KDoc incluse.
+Seules exceptions : les directives d'outils qui changent un comportement
+(`eslint-disable*`, `@ts-expect-error`, `/// <reference`, shebang,
+`//noinspection`, `# shellcheck`, `noqa`, commentaires magiques de bundler) et
+les en-têtes de licence. Fichiers générés et Markdown intacts.
+
 ## Langue
 
-- **Interface** (`app/src/main/res/values/strings*.xml`) et **commentaires**
-  en **français**. Les ressources par défaut sont en français
+- **Interface** (`app/src/main/res/values/strings*.xml`) en **français**. Les ressources par défaut sont en français
   (`res/resources.properties` → `unqualifiedResLocale=fr-FR`) ; il n'y a pas
   d'autre locale.
 - Messages de commit en français (voir plus bas).
@@ -112,7 +120,7 @@ rend chaque écran en sombre et en clair pour vérifier une modification visuell
 - Pas de Play Services au-delà du lecteur de codes (`play-services-code-scanner`),
   pas de Firebase, pas d'analytics.
 - `app/proguard-rules.pro` reste minimal : un `-keep` n'est ajouté que sur un
-  crash release constaté, avec un commentaire qui l'explique.
+  crash release constaté, avec le crash expliqué dans le message de commit.
 
 ## Bord à bord
 

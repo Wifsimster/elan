@@ -256,6 +256,6 @@ ELAN_SCREENSHOTS=1 ./gradlew testDebugUnitTest --tests '*ScreenshotTourTest*'
 # → app/build/screenshots/*.png
 ```
 
-**Contraintes** : interface et commentaires en français ; seuls littéraux
+**Contraintes** : interface en français ; seuls littéraux
 tolérés hors `ui/theme/` : `Color.White` / `ElanGradients.OnBright` comme
 encre calculée ; 100 % local et hors-ligne.

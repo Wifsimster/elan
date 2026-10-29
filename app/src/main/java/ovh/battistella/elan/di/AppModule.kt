@@ -27,31 +27,14 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
-/**
- * Portée de coroutines liée à la vie du processus, pour les travaux qui ne
- * doivent pas mourir avec une activité (tâches de démarrage, import de
- * l'ancienne base). `SupervisorJob` : un échec n'annule pas les voisins.
- */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class ApplicationScope
 
-/**
- * Module Hilt unique de l'application : dispatcher d'E/S, OkHttp, Room et ses
- * DAO. Les migrations futures viendront ici en `val MIGRATION_x_y` publiques
- * (testées par `MigrationTest` contre les schémas exportés).
- */
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    /**
-     * Le dispatcher sur lequel les dépôts déportent les E/S bloquantes
-     * (réseau, disque, base). Injecté plutôt que codé en dur pour que les
-     * tests puissent le remplacer par un ordonnanceur déterministe. Comme
-     * Ondes, il est fourni sans qualificatif : `CoroutineDispatcher` n'a
-     * qu'une seule liaison dans le graphe.
-     */
     @Provides
     @Singleton
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
@@ -61,7 +44,6 @@ object AppModule {
     @ApplicationScope
     fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    /** Horloge injectée : les tests figent le temps (purge à J+30, horodatages). */
     @Provides
     @Singleton
     fun provideClock(): Clock = Clock.systemUTC()
@@ -84,10 +66,6 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ElanDatabase =
         Room.databaseBuilder(context, ElanDatabase::class.java, ElanDatabase.NAME)
-            // Volontairement AUCUN repli destructif : une migration oubliée doit
-            // planter bruyamment (et être attrapée par MigrationTest en CI), pas
-            // effacer en silence les séances de l'utilisateur. Les migrations
-            // s'ajoutent ici : .addMigrations(MIGRATION_8_9, …)
             .build()
 
     @Provides
@@ -106,7 +84,6 @@ object AppModule {
     fun provideSettingsDao(db: ElanDatabase): SettingsDao = db.settingsDao()
 }
 
-/** Liaisons interface → implémentation (un module abstrait est requis pour `@Binds`). */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class BindingsModule {

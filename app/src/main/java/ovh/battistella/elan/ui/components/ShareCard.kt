@@ -1,6 +1,3 @@
-// Carte partageable d'une séance, façon Strava : tracé (ou héros d'activité)
-// + stats + marque « Élan ». Rendue dans l'aperçu de partage puis capturée en
-// PNG (GraphicsLayer), sans aucun appel réseau : le partage est délégué à l'OS.
 package ovh.battistella.elan.ui.components
 
 import androidx.annotation.DrawableRes
@@ -58,10 +55,8 @@ import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.forKey
 import kotlin.math.roundToInt
 
-/** Largeur de la carte (dp) — le PNG partagé a ce ratio. */
 val SHARE_CARD_WIDTH = 360.dp
 
-/** Hauteur du visuel d'en-tête (tracé). */
 val SHARE_HERO_HEIGHT = 200.dp
 
 private data class StatItem(val label: String, val value: String, val color: Color? = null)
@@ -73,11 +68,6 @@ private fun recordNoun(kind: RecordKind): String = when (kind) {
     RecordKind.SPEED -> "vitesse"
 }
 
-/**
- * Carte de partage : héros (tracé GPS ou dégradé d'activité + icône), marque,
- * activité et date, grille de stats sur 3 colonnes, badge record (trophée) ou
- * niveau d'effort.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ShareCard(
@@ -98,7 +88,6 @@ fun ShareCard(
     val stats = buildList {
         if (isGps) {
             add(StatItem(stringResource(R.string.share_stat_distance), formatDistance(session.distanceM), color))
-            // Temps en mouvement (hors arrêts) s'il est connu, sinon durée totale.
             add(StatItem(stringResource(R.string.share_stat_duration), formatDuration(session.movingTimeSec ?: session.durationSec)))
             add(
                 if (pace) StatItem(stringResource(R.string.share_stat_pace), formatPace(session.avgSpeedKmh))
@@ -118,7 +107,6 @@ fun ShareCard(
         }
     }
 
-    // Badge : un record si la séance en détient un (absolu d'abord), sinon l'effort.
     val topRecord = records.sortedBy { if (it.scope == RecordScope.ALL) 0 else 1 }.firstOrNull()
     val badgeIcon: Int
     val badgeLabel: String
@@ -188,7 +176,6 @@ fun ShareCard(
     }
 }
 
-/** Héros sans tracé : dégradé d'activité (140 dp) + icône 56, encre sombre sur les dégradés clairs. */
 @Composable
 private fun IconHero(gradient: List<Color>, @DrawableRes icon: Int) {
     Box(
@@ -202,7 +189,6 @@ private fun IconHero(gradient: List<Color>, @DrawableRes icon: Int) {
     }
 }
 
-/** Dégradé sillage par clé d'activité (`velo`, `muscu`, `course`, `marche`), marque sinon. */
 fun ElanGradients.forKey(key: String): List<Color> = when (key) {
     "velo" -> velo
     "muscu" -> muscu

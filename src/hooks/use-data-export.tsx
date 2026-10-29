@@ -1,7 +1,3 @@
-// Export des données vers un fichier partageable (bilan Markdown ou JSON brut).
-// Écrit dans le cache puis ouvre la feuille de partage du système — l'utilisateur
-// choisit la destination (Drive, mail, fichier…) : coach IA, tableur, sauvegarde…
-// Aucun appel réseau : le partage est délégué à l'OS.
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useState } from 'react';
@@ -42,8 +38,6 @@ export function useDataExport() {
           dialogTitle: 'Exporter mes données',
         });
       } finally {
-        // L'export contient l'historique GPS complet : on ne le laisse pas
-        // traîner dans le cache après le partage.
         if (file.exists) file.delete();
       }
     } catch (e) {

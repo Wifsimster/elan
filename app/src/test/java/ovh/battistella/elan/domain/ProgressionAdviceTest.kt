@@ -1,5 +1,3 @@
-// Tests du conseil de progression muscu (ProgressionAdvice.kt) : mapping du
-// ressenti vers un score, heuristique augmente/maintiens/réduis, libellés. Pur.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -67,16 +65,12 @@ class ProgressionAdviceTest {
     @Test
     fun `respecte la fenêtre - un dur ancien sort du calcul`() {
         val recent = listOf(Difficulty.DUR, Difficulty.FACILE, Difficulty.FACILE)
-        // window=2 : seules [facile, facile] comptent -> augmente.
         assertEquals(ProgressionAdvice.AUGMENTE, suggestProgression(recent, 2))
-        // window=3 : le « dur » revient dans la fenêtre, dernière reste facile mais
-        // un « dur » est présent -> on retombe sur la moyenne (1+1+3)/3 ≈ 1.67 -> maintiens.
         assertEquals(ProgressionAdvice.MAINTIENS, suggestProgression(recent, 3))
     }
 
     @Test
     fun `fenêtre nulle - toutes les séances notées comptent (slice(-0) JS)`() {
-        // [dur, facile, facile] entier : dernière facile mais « dur » présent -> moyenne 1,67 -> maintiens.
         assertEquals(
             ProgressionAdvice.MAINTIENS,
             suggestProgression(listOf(Difficulty.DUR, Difficulty.FACILE, Difficulty.FACILE), 0),

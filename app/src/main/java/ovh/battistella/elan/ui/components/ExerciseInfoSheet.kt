@@ -25,20 +25,14 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
-/** Données d'illustration d'un exercice affichées dans la fiche. */
 data class ExerciseInfo(
     val name: String,
-    /** Glyphe MDI du mouvement (repli sans photo). */
     val icon: String? = null,
-    /** Clé d'illustration photo (paire départ → fin). */
     val imageKey: String? = null,
-    /** Groupes musculaires sollicités, en pastilles. */
     val muscles: List<String> = emptyList(),
-    /** Explication « comment faire ». */
     val howTo: String? = null,
 )
 
-/** Pastille de tag (muscle ciblé, matériel) : fond teinte à 12 %, texte 13/700 teinté. */
 @Composable
 fun TagPill(label: String, color: Color, modifier: Modifier = Modifier) {
     Box(
@@ -50,14 +44,6 @@ fun TagPill(label: String, color: Color, modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * Feuille basse illustrée détaillant un exercice (port de
- * `exercise-info-sheet.tsx`) : illustration départ → fin, nom, « Muscles
- * ciblés » en pastilles, « Exécution ». Glisser vers le bas ou toucher le
- * voile la referme (comportement natif de [ModalBottomSheet]).
- *
- * @param exercise exercice à présenter ; `null` = fiche fermée
- */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExerciseInfoSheet(exercise: ExerciseInfo?, onClose: () -> Unit) {

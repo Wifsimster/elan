@@ -42,7 +42,6 @@ class ReminderReceiverTest {
     private lateinit var db: ElanDatabase
     private lateinit var repos: TestSupport.Repositories
 
-    /** Vendredi 5 juin 2026, 12:00 heure locale — l'instant du rappel du vendredi. */
     private val zone: ZoneId = ZoneId.systemDefault()
     private val now: ZonedDateTime = ZonedDateTime.of(2026, 6, 5, 12, 0, 0, 0, zone)
 
@@ -76,7 +75,6 @@ class ReminderReceiverTest {
         assertEquals("Aujourd'hui : Full-body B", n.extras.getString(Notification.EXTRA_TITLE))
         assertTrue(n.extras.getString(Notification.EXTRA_TEXT)!!.startsWith("Au programme : "))
 
-        // Réarmement : les trois jours planifiés, le vendredi désormais dans une semaine.
         val friday = alarms.scheduledAlarms.single { shadowOf(it.operation).requestCode == 104 }
         assertEquals(now.plusWeeks(1).toInstant().toEpochMilli(), friday.triggerAtTime)
         assertEquals(3, alarms.scheduledAlarms.size)

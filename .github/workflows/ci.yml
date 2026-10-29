@@ -1,14 +1,8 @@
-# Intégration continue : vérifie chaque PR et chaque push sur main.
-# Ne couvre que la couche framework-agnostique testable (src/lib via jest-expo),
-# plus le typage et le lint — pas de build natif (Android/iOS) qui exigerait le SDK.
 name: CI
 
-# OBSOLÈTE depuis Élan 2.0 (app native) : recette Expo 1.x conservée pour la
-# branche legacy/expo-1.x, déclenchement manuel seulement. À supprimer.
 on:
   workflow_dispatch:
 
-# Annule les exécutions précédentes encore en cours sur la même réf (PR/branche).
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

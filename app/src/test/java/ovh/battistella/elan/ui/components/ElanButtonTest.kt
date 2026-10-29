@@ -64,7 +64,6 @@ class ElanButtonTest {
         for (c in listOf(ElanColors.Light, ElanColors.Dark)) {
             assertEquals(c.onBrand, inkOn(c.brand, c))
         }
-        // Teintes profondes du thème clair : blanc ; teintes vives du sombre : encre.
         assertEquals(Color.White, inkOn(ElanColors.Light.muscu, ElanColors.Light))
         assertEquals(ElanColors.Dark.onBrand, inkOn(ElanColors.Dark.velo, ElanColors.Dark))
     }

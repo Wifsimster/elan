@@ -11,20 +11,10 @@ import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
   visible: boolean;
-  /** Retour à l'accueil premier lancement sans restaurer. */
   onCancel: () => void;
-  /** Restauration réussie : `count` séances rechargées depuis le serveur. */
   onRestored: (count: number) => void;
 };
 
-/**
- * Feuille « J'ai déjà une sauvegarde » du premier lancement : après une
- * réinstallation, la base est vide — y compris la config S3, qui vit dans la
- * même base. On redemande donc les identifiants du serveur, on récupère le
- * snapshot, et on active dans la foulée la sauvegarde automatique vers ce même
- * serveur (l'utilisateur vient de montrer qu'il veut ses données à l'abri).
- * Pas de confirmation destructive ici : il n'y a encore rien à écraser.
- */
 export function RestoreSheet({ visible, onCancel, onRestored }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -32,7 +22,7 @@ export function RestoreSheet({ visible, onCancel, onRestored }: Props) {
 
   const restore = async () => {
     const count = await backup.restore();
-    if (count == null) return; // l'erreur est affichée sous les champs
+    if (count == null) return;
     backup.update({ enabled: true });
     onRestored(count);
   };

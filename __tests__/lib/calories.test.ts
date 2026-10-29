@@ -1,4 +1,3 @@
-// Tests pour l'estimation calories (méthode MET) et les zones cardio.
 import { ZONE_LABELS, estimateCalories, heartRateZone } from '@/lib/calories';
 
 describe('estimateCalories', () => {
@@ -12,7 +11,6 @@ describe('estimateCalories', () => {
   });
 
   it('vélo à vitesse par défaut (18 km/h, interpolé entre 16/19), 70 kg, 1 h', () => {
-    // Interpolation linéaire : 4,0 + (18-16)/(19-16) * (6,8-4,0) = 5,866…
     const kcal = estimateCalories({
       type: 'velo',
       weightKg: 70,
@@ -77,7 +75,6 @@ describe('estimateCalories', () => {
   });
 
   it('points exacts de la table MET vélo', () => {
-    // 16 km/h pile → 4,0 MET (point d'ancrage)
     const a = estimateCalories({
       type: 'velo',
       weightKg: 70,
@@ -85,7 +82,6 @@ describe('estimateCalories', () => {
       avgSpeedKmh: 16,
     });
     expect(a).toBeCloseTo(4.0 * 70, 5);
-    // 22,5 km/h pile → 8,0 MET (point d'ancrage)
     const b = estimateCalories({
       type: 'velo',
       weightKg: 70,
@@ -109,7 +105,6 @@ describe('estimateCalories', () => {
       avgSpeedKmh: 22.5,
       elevationGainM: 200,
     });
-    // 70 * 0,011 * 200 = 154 kcal de bonus
     expect(avec - sans).toBeCloseTo(154, 5);
   });
 
@@ -139,7 +134,6 @@ describe('estimateCalories', () => {
       avgHr: 145,
       maxHr: 190,
     });
-    // Valeurs différentes (cardio à 76 % FCmax tire vers le bas).
     expect(avecHr).not.toBeCloseTo(sansHr, 0);
   });
 
@@ -153,7 +147,6 @@ describe('estimateCalories', () => {
       avgHr: 145,
       maxHr: 190,
     });
-    // Cible ~504 kcal d'après l'exemple documenté.
     expect(kcal).toBeGreaterThan(480);
     expect(kcal).toBeLessThan(530);
   });
@@ -163,29 +156,29 @@ describe('heartRateZone', () => {
   const max = 180;
 
   it('zone 1 sous 60 % FCmax', () => {
-    expect(heartRateZone(100, max)).toBe(1); // ~56 %
+    expect(heartRateZone(100, max)).toBe(1);
   });
 
   it('zone 2 entre 60 et 70 %', () => {
-    expect(heartRateZone(120, max)).toBe(2); // ~67 %
+    expect(heartRateZone(120, max)).toBe(2);
   });
 
   it('zone 3 entre 70 et 80 %', () => {
-    expect(heartRateZone(135, max)).toBe(3); // 75 %
+    expect(heartRateZone(135, max)).toBe(3);
   });
 
   it('zone 4 entre 80 et 90 %', () => {
-    expect(heartRateZone(155, max)).toBe(4); // ~86 %
+    expect(heartRateZone(155, max)).toBe(4);
   });
 
   it('zone 5 à 90 % et plus', () => {
-    expect(heartRateZone(170, max)).toBe(5); // ~94 %
+    expect(heartRateZone(170, max)).toBe(5);
     expect(heartRateZone(180, max)).toBe(5);
-    expect(heartRateZone(200, max)).toBe(5); // dépassement FCmax théorique
+    expect(heartRateZone(200, max)).toBe(5);
   });
 
   it('frontière 60 % pile → zone 2', () => {
-    expect(heartRateZone(108, max)).toBe(2); // 0,6 exact
+    expect(heartRateZone(108, max)).toBe(2);
   });
 });
 

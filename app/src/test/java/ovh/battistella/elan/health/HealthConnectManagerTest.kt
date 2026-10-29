@@ -26,7 +26,6 @@ import ovh.battistella.elan.tracking.SavedSessionData
 import ovh.battistella.elan.tracking.SessionFinalizer
 import java.util.Optional
 
-/** Passerelle factice : journal des opérations, statut et permissions pilotables. */
 private class FakeGateway : HealthConnectGateway {
     var status = HealthSdkStatus.AVAILABLE
     var granted: Set<String> = HealthRecordType.WRITE_PERMISSIONS
@@ -171,7 +170,6 @@ class HealthConnectManagerTest {
     @Test
     fun `enable - demande système puis refus partiel = DENIED, opt-in non mémorisé`() = runTest {
         gateway.granted = emptySet()
-        // L'écran s'abonne (LaunchedEffect) avant de déclencher l'activation.
         val requested = async { manager.permissionRequests.first() }
         val result = async { manager.enable() }
         advanceUntilIdle()
@@ -200,7 +198,6 @@ class HealthConnectManagerTest {
 
     @Test
     fun `le contrat de permission est celui de la passerelle`() {
-        // Pas de résolution système sous JVM : on vérifie seulement le câblage.
         assertTrue(manager.permissionContract() !is ActivityResultContracts.RequestPermission)
     }
 }

@@ -28,7 +28,6 @@ class LegacySecretsReaderTest {
     private val suffixedKey = newKey()
     private val baseKey = newKey()
 
-    /** KeyStore factice : une clé par alias, et mémorise les alias demandés. */
     private val requestedAliases = mutableListOf<String>()
     private val keyStore = KeyStoreAccess { alias ->
         requestedAliases += alias
@@ -68,7 +67,6 @@ class LegacySecretsReaderTest {
         assertEquals(1 + 16, withSuffix.ciphertext.size)
 
         assertEquals(LegacySecretsReader.ALIAS_BASE, reader.parse(encrypt("x", baseKey, usesSuffix = false))!!.alias)
-        // Champ absent (entrée très ancienne) : alias sans suffixe.
         assertEquals(LegacySecretsReader.ALIAS_BASE, reader.parse(encrypt("x", baseKey, usesSuffix = null))!!.alias)
     }
 
@@ -77,7 +75,6 @@ class LegacySecretsReaderTest {
         assertEquals("AKIA-suffixe", reader.decrypt(encrypt("AKIA-suffixe", suffixedKey, usesSuffix = true)))
         assertEquals("AKIA-base", reader.decrypt(encrypt("AKIA-base", baseKey, usesSuffix = false)))
         assertEquals("accents éèà/+=", reader.decrypt(encrypt("accents éèà/+=", suffixedKey, usesSuffix = true)))
-        // Base64 avec retours à la ligne (Base64.DEFAULT sur un long texte) : accepté.
         val long = "x".repeat(200)
         assertEquals(long, reader.decrypt(encrypt(long, suffixedKey, usesSuffix = true)))
     }
@@ -113,12 +110,9 @@ class LegacySecretsReaderTest {
         assertNull(reader.decrypt("""{"ct":"","iv":"","scheme":"aes"}"""))
         assertNull(reader.decrypt("""{"ct":"AAAA","iv":"AAAA","scheme":"rsa"}"""))
         assertNull(reader.decrypt("""{"ct":"%%%","iv":"AAAA","scheme":"aes"}"""))
-        // Mauvaise clé pour l'alias (tag GCM invalide).
         assertNull(reader.decrypt(encrypt("x", baseKey, usesSuffix = true)))
-        // Alias inconnu du KeyStore.
         val noKeys = LegacySecretsReader({ prefs }, KeyStoreAccess { null })
         assertNull(noKeys.decrypt(encrypt("x", suffixedKey, usesSuffix = true)))
-        // Préférences indisponibles ou en erreur.
         assertNull(LegacySecretsReader({ null }, keyStore).read("k"))
         assertNull(LegacySecretsReader({ error("boum") }, keyStore).read("k"))
     }

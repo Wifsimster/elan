@@ -32,27 +32,18 @@ import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.roundToInt
 
-/** Fourchette de bpm d'une zone, en texte court (« < 114 », « 133–151 », « 171+ »). */
 internal fun rangeLabel(slice: ZoneSlice): String = when {
     slice.maxBpm == null -> "${slice.minBpm}+"
     slice.minBpm <= 0 -> "< ${slice.maxBpm + 1}"
     else -> "${slice.minBpm}–${slice.maxBpm}"
 }
 
-/** Légende de clôture : « Surtout en zone N (label) — X % du temps avec la ceinture. » */
 internal fun dominantCaption(distribution: ZoneDistribution): String {
     val dominant = dominantZone(distribution)
     val pct = (dominant.ratio * 100).roundToInt()
     return "Surtout en zone ${dominant.zone} (${dominant.label.lowercase()}) — $pct % du temps avec la ceinture."
 }
 
-/**
- * Temps passé dans chaque zone cardiaque : barre empilée 14 dp + détail par
- * zone. Les zones étant ordonnées, la barre suit une rampe d'une seule teinte
- * (`HrZoneColors`) et non cinq couleurs catégorielles ; deux dp de fond
- * séparent les segments, et chaque zone est nommée en toutes lettres pour que
- * l'information ne repose jamais sur la couleur seule.
- */
 @Composable
 fun HrZonesCard(distribution: ZoneDistribution, modifier: Modifier = Modifier) {
     val colors = ElanTheme.colors
@@ -80,7 +71,6 @@ fun HrZonesCard(distribution: ZoneDistribution, modifier: Modifier = Modifier) {
             filled.forEach { slice ->
                 Box(
                     modifier = Modifier
-                        // Poids = part du temps ; un passage très court reste visible.
                         .weight(slice.ratio.toFloat())
                         .widthIn(min = 3.dp)
                         .height(14.dp)

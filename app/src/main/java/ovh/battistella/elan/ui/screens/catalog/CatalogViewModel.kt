@@ -13,10 +13,6 @@ import ovh.battistella.elan.domain.RecoProfile
 import ovh.battistella.elan.domain.toRecoProfile
 import javax.inject.Inject
 
-/**
- * Catalogue autonome (port de `exercises.tsx`) : le profil de recommandation
- * suit les réglages en flux ; l'exercice choisi démarre une séance muscu.
- */
 @HiltViewModel
 class CatalogViewModel @Inject constructor(settings: SettingsRepository) : ViewModel() {
     val profile: StateFlow<RecoProfile> = settings.settings

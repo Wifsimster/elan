@@ -1,8 +1,3 @@
-// Notification « programme régénéré » (port de `notifyProgression` dans
-// `lib/notifications.ts`). Canal `progression` (« Progression du programme »,
-// importance par défaut). N'annonce QUE si la permission est déjà accordée :
-// on ne la réclame pas ici, la bannière d'accueil reste le canal garanti.
-// 100 % local, échec silencieux.
 package ovh.battistella.elan.sync
 
 import android.app.NotificationChannel
@@ -17,7 +12,6 @@ import ovh.battistella.elan.MainActivity
 import ovh.battistella.elan.R
 import ovh.battistella.elan.tracking.LiveNotification
 
-/** Point d'entrée injectable de la notification (les tests substituent un enregistreur). */
 fun interface ProgressionNotify {
     fun notify(title: String, body: String)
 }
@@ -25,21 +19,17 @@ fun interface ProgressionNotify {
 object ProgressionNotifier {
     const val CHANNEL = "progression"
 
-    /** Identifiant stable : une nouvelle annonce remplace la précédente. */
     const val NOTIFICATION_ID = 3101
 
-    /** Route ouverte par `MainActivity` au tap (extra [LiveNotification.EXTRA_OPEN_ROUTE]). */
     const val ROUTE = "progression"
 
     private const val ACCENT = "#0D0E0B"
 
-    /** Canal « Progression du programme », importance par défaut. Idempotent. */
     fun ensureChannel(context: Context) {
         val channel = NotificationChannel(CHANNEL, "Progression du programme", NotificationManager.IMPORTANCE_DEFAULT)
         NotificationManagerCompat.from(context).createNotificationChannel(channel)
     }
 
-    /** Poste l'annonce si la permission est déjà accordée ; sinon ne fait rien. Best-effort. */
     fun notify(context: Context, title: String, body: String) {
         try {
             if (!LiveNotification.hasPermission(context)) return
@@ -68,7 +58,6 @@ object ProgressionNotifier {
                 .build()
             NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
         } catch (_: Exception) {
-            // Permission révoquée, gestionnaire indisponible… : on continue sans.
         }
     }
 }

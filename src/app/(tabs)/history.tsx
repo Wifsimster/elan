@@ -47,26 +47,18 @@ export default function HistoryScreen() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
-  // Identifie le « run » de chargement courant : tout résultat d'un run
-  // obsolète (filtre changé entre temps) est ignoré, ce qui évite les
-  // courses de réponses.
   const runRef = useRef(0);
 
-  // Debounce de la saisie (200 ms) — déclenche le rechargement.
   useEffect(() => {
     const id = setTimeout(() => setSearch(searchInput.trim()), 200);
     return () => clearTimeout(id);
   }, [searchInput]);
 
-  // Convertit la plage de dates en borne `fromMs`. Évalué hors render
-  // (`Date.now()` impur) — appelé depuis les callbacks de chargement.
   const computeFromMs = (key: RangeKey) => {
     const days = RANGE_FILTERS.find((r) => r.key === key)?.days;
     return days != null ? Date.now() - days * 86_400_000 : undefined;
   };
 
-  // (Re)charge la première page à chaque changement de filtre, et au focus
-  // de l'onglet pour refléter une séance fraîchement enregistrée.
   const loadFirstPage = useCallback(async () => {
     const myRun = ++runRef.current;
     setLoading(true);
@@ -89,7 +81,6 @@ export default function HistoryScreen() {
     }, [loadFirstPage]),
   );
 
-  // Pagination : charge la page suivante quand on approche du bas.
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return;
     const myRun = ++runRef.current;
@@ -110,10 +101,6 @@ export default function HistoryScreen() {
   return (
     <FlatList
       style={{ backgroundColor: theme.background }}
-      // Espacement des lignes géré par le seul `ItemSeparatorComponent` (10 px) —
-      // pas de `gap` ici, sinon lignes espacées de 20 (gap + séparateur) alors que
-      // l'en-tête → 1re ligne n'a que le gap. La marge en-tête est portée par le
-      // `paddingBottom` du ListHeaderComponent (10, cohérent avec les lignes).
       contentContainerStyle={{
         ...contentStyle,
         paddingTop: insets.top + 12,
@@ -161,7 +148,6 @@ export default function HistoryScreen() {
             </PressableScale>
           </Link>
 
-          {/* Recherche — exercice, note ou type. */}
           <View
             style={{
               flexDirection: 'row',
@@ -201,7 +187,6 @@ export default function HistoryScreen() {
             ) : null}
           </View>
 
-          {/* Filtres par type d'activité. */}
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             {TYPE_FILTERS.map((f) => (
               <Chip
@@ -214,7 +199,6 @@ export default function HistoryScreen() {
             ))}
           </View>
 
-          {/* Plage de dates. */}
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             {RANGE_FILTERS.map((r) => (
               <Chip
@@ -241,8 +225,6 @@ export default function HistoryScreen() {
                     ? 'Aucune séance ne correspond à ces filtres.'
                     : 'Tes séances enregistrées apparaîtront ici. Tu peux aussi importer ton historique Strava.'
                 }
-                // Pas d'import quand un filtre masque les résultats : l'utilisateur
-                // a des séances, elles sont juste filtrées.
                 action={
                   filtered
                     ? undefined

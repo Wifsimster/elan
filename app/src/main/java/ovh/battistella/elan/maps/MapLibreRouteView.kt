@@ -1,9 +1,3 @@
-// Fond de carte MapLibre avec le tracé en surimpression (port de
-// components/maplibre-route.tsx). Le style provient du serveur configuré par
-// l'utilisateur (OpenFreeMap ou son propre serveur de tuiles). N'est rendu que
-// si un fond de carte est activé ; sinon `RouteMap` retombe sur `RouteCanvas`.
-// L'attribution OSM est affichée en surimpression, comme l'exige l'usage des
-// données OpenStreetMap.
 package ovh.battistella.elan.maps
 
 import android.content.Context
@@ -66,7 +60,6 @@ private const val LAYER_LINE = "route-line"
 private const val LAYER_START = "route-start-dot"
 private const val LAYER_END = "route-end-dot"
 
-/** Initialise MapLibre une fois par processus (idempotent, mais évite l'appel à chaque carte). */
 @Volatile
 private var initialized = false
 
@@ -80,7 +73,6 @@ internal fun ensureMapLibre(context: Context) {
     }
 }
 
-/** Ce que la carte doit refléter à un instant donné. */
 internal data class RouteMapContent(
     val points: List<GeoPoint>,
     val lineColor: Int,
@@ -90,11 +82,6 @@ internal data class RouteMapContent(
     val boundsPaddingPx: Int,
 )
 
-/**
- * `MapView` qui laisse passer les touches à Compose quand la carte n'est pas
- * explorable (`interactive = false`) : la page défile, la carte reste passive
- * (sécurité à vélo en mode live).
- */
 internal class RouteMapView(context: Context, options: MapLibreMapOptions) : MapView(context, options) {
     var touchable: Boolean = false
 
@@ -102,11 +89,6 @@ internal class RouteMapView(context: Context, options: MapLibreMapOptions) : Map
         if (touchable) super.dispatchTouchEvent(ev) else false
 }
 
-/**
- * Pilote une `MapView` : style, sources GeoJSON, couches et caméra. Le
- * contenu arrive avant ou après le chargement du style ; on rejoue le dernier
- * connu à chaque étape pour ne rien perdre.
- */
 internal class RouteMapController(private val view: MapView, private val styleUrl: String) {
     private var map: MapLibreMap? = null
     private var style: Style? = null
@@ -167,8 +149,6 @@ internal class RouteMapController(private val view: MapView, private val styleUr
                     PropertyFactory.circleRadius(6f),
                     PropertyFactory.circleColor(content.startColor),
                     PropertyFactory.circleStrokeWidth(2f),
-                    // Liseré blanc fixe : le marqueur de départ se détache sur les
-                    // tuiles claires comme sombres, indépendamment du thème de l'app.
                     PropertyFactory.circleStrokeColor(android.graphics.Color.WHITE),
                 ),
             )
@@ -191,8 +171,6 @@ internal class RouteMapController(private val view: MapView, private val styleUr
             )
         }
 
-        // Caméra : en live on suit la position courante (zoom 15, 600 ms) ;
-        // sinon on cadre l'emprise du tracé une fois, sans animation.
         if (content.points != lastPoints) {
             lastPoints = content.points
             val last = content.points.last()
@@ -210,10 +188,6 @@ internal class RouteMapController(private val view: MapView, private val styleUr
     }
 }
 
-/**
- * Carte MapLibre du parcours. [styleUrl] doit être une URL HTTPS valide et
- * [points] compter au moins 2 points — c'est `RouteMap` qui décide.
- */
 @Composable
 fun MapLibreRouteView(
     points: List<GeoPoint>,
@@ -255,7 +229,6 @@ fun MapLibreRouteView(
             .semantics { contentDescription = if (live) "Tracé GPS de la sortie en cours" else "Tracé GPS de la sortie" }
             .then(frame),
     ) {
-        // Un nouveau style = une nouvelle vue (le style se fixe à la création).
         key(styleUrl) {
         val holder = remember { MapViewHolder() }
         DisposableEffect(lifecycle, holder) {
@@ -287,8 +260,6 @@ fun MapLibreRouteView(
                 RouteMapView(ctx, options).also { view ->
                     view.onCreate(null)
                     holder.view = view
-                    // L'observateur (ajouté après la création du nœud) reçoit
-                    // ON_CREATE/ON_START/ON_RESUME de rattrapage : rien à rejouer ici.
                     holder.controller = RouteMapController(view, styleUrl)
                 }
             },
@@ -299,10 +270,6 @@ fun MapLibreRouteView(
             },
         )
         }
-        // Attribution OSM — obligatoire dès qu'un fond de carte est affiché.
-        // Noir sur voile blanc, hors thème : la mention reste lisible sur les
-        // tuiles (claires) quel que soit le mode de l'app, comme le font les
-        // attributions MapLibre/OSM. Taille réduite volontaire (discrète).
         Text(
             text = mapAttribution(styleUrl),
             style = ElanType.micro.copy(fontSize = 9.sp, lineHeight = 12.sp, fontWeight = FontWeight.Normal),
@@ -317,7 +284,6 @@ fun MapLibreRouteView(
     }
 }
 
-/** Référence mutable vers la vue et son pilote, partagée entre la fabrique et le cycle de vie. */
 private class MapViewHolder {
     var view: RouteMapView? = null
     var controller: RouteMapController? = null

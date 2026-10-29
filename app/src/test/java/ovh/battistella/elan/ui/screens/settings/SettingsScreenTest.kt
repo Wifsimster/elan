@@ -124,7 +124,6 @@ class SettingsScreenTest {
         compose.onNodeWithText(text(R.string.settings_hr_idle)).assertExists()
         compose.onNodeWithText(text(R.string.settings_hr_scan)).assertExists()
         compose.onNodeWithText(text(R.string.settings_csc_scan)).assertExists()
-        // Preset de pneu par défaut.
         compose.onNodeWithText("700×25c").assertExists()
     }
 
@@ -145,7 +144,6 @@ class SettingsScreenTest {
     fun `planning - une puce change le jour et replanifie, réinitialisation confirmée`() {
         setScreen(healthSupported = false)
 
-        // Lundi : Vélo → Cervicales (première des sept puces, libellé absent des autres cartes).
         compose.onAllNodesWithText("Cervicales")[0].performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals("muscu", runBlocking { repos.settings.snapshot().weekPlan[0].kind })
@@ -181,7 +179,6 @@ class SettingsScreenTest {
 
         compose.onNodeWithText(text(R.string.settings_backup_now)).performScrollTo().assertExists()
         compose.onNodeWithText(text(R.string.settings_backup_restore)).performScrollTo().performClick()
-        // Config incomplète : aucun dialogue de confirmation.
         compose.onNodeWithText(text(R.string.settings_backup_restore_title)).assertDoesNotExist()
     }
 }

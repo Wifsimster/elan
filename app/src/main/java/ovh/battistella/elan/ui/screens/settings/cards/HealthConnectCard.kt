@@ -12,12 +12,6 @@ import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 
-/**
- * Carte Réglages : export opt-in des séances vers Android Health Connect. Les
- * permissions système ne sont demandées qu'à l'activation du commutateur
- * (jamais au lancement). Masquée par l'écran quand Health Connect n'est pas
- * supporté.
- */
 @Composable
 fun HealthConnectCard(
     enabled: Boolean,
@@ -47,7 +41,6 @@ fun HealthConnectCard(
                     try {
                         launcher.launch(permissions)
                     } catch (e: ActivityNotFoundException) {
-                        // Health Connect absent : aucune activité ne répond au contrat.
                         onUnavailable()
                     }
                 }

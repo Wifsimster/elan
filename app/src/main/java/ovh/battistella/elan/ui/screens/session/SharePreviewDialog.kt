@@ -37,11 +37,6 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
-/**
- * Aperçu de la carte de partage : la carte est dessinée dans un
- * `GraphicsLayer` enregistré à chaque frame ; « Partager » la convertit en
- * bitmap (exactement ce qui est à l'écran) et la transmet à [onShare].
- */
 @Composable
 fun SharePreviewDialog(
     session: Session,

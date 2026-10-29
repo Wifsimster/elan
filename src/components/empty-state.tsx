@@ -15,17 +15,10 @@ type Props = {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
   subtitle?: string;
-  /** Teinte de la pastille d'icône (défaut : accent). */
   tint?: string;
-  /** Action proposée pour sortir de l'état vide (ex. « Importer depuis Strava »). */
   action?: Action;
 };
 
-/**
- * État vide PULSE : pastille d'icône teintée (comme les autres surfaces de repos),
- * titre/sous-titre sur l'échelle typographique, et une action facultative pour ne
- * jamais laisser l'utilisateur dans une impasse.
- */
 export function EmptyState({ icon, title, subtitle, tint, action }: Props) {
   const theme = useTheme();
   const color = tint ?? theme.accent;

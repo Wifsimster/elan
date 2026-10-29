@@ -1,4 +1,3 @@
-// Tests pour le parseur GPX / TCX (regex, pure JS, sans dépendance XML).
 import { parseStravaFile } from '@/lib/strava/parse';
 
 const GPX_SAMPLE = `<?xml version="1.0" encoding="UTF-8"?>
@@ -87,7 +86,6 @@ describe('parseStravaFile — GPX', () => {
     const a = r.activities[0];
     expect(a.points[0].hr).toBe(120);
     expect(a.points[0].cad).toBe(80);
-    // Sans extension : null.
     expect(a.points[1].hr).toBeNull();
   });
 
@@ -99,7 +97,6 @@ describe('parseStravaFile — GPX', () => {
   </trkseg></trk>
 </gpx>`;
     const a = parseStravaFile(gpx).activities[0];
-    // <ele></ele> vide : altitude null (et non 0, ce que donnait Number('')).
     expect(a.points[0].ele).toBeNull();
   });
 

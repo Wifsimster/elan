@@ -1,4 +1,3 @@
-// Tests pour la projection géo → SVG (cadrage + ratio préservé).
 import { createProjection } from '@/lib/route-projection';
 
 describe('createProjection', () => {

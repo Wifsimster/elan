@@ -1,8 +1,3 @@
-// Sauvegarde des données vers un stockage S3-compatible auto-hébergé (homelab)
-// — port de `src/lib/backup.ts`. Sérialise toute la base en un seul objet JSON
-// (écrasé à chaque sauvegarde), et la restaure en remplaçant les données
-// locales. Les identifiants S3 vivent dans le [SecretStore], jamais dans la
-// table `settings` (donc jamais dans une sauvegarde ni un export).
 package ovh.battistella.elan.data.backup
 
 import android.content.Context
@@ -34,11 +29,6 @@ import java.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Configuration de sauvegarde COMPLÈTE : la partie persistée dans `settings`
- * ([BackupConfig]) plus les identifiants du stockage sécurisé. C'est la forme
- * que manipule l'écran Réglages (équivalent du `BackupConfig` d'origine).
- */
 data class BackupConfigFull(
     val enabled: Boolean = false,
     val endpoint: String = "",
@@ -48,13 +38,11 @@ data class BackupConfigFull(
     val accessKeyId: String = "",
     val secretAccessKey: String = "",
 ) {
-    /** Partie non secrète, telle que persistée dans `backup_s3`. */
     fun toSettings(): BackupConfig = BackupConfig(enabled, endpoint, region, bucket, objectKey)
 
     fun toS3Config(): S3Config = S3Config(endpoint, region, bucket, accessKeyId, secretAccessKey, objectKey)
 }
 
-/** Modification partielle de la config : seuls les champs non `null` sont appliqués. */
 data class BackupConfigPatch(
     val enabled: Boolean? = null,
     val endpoint: String? = null,
@@ -65,7 +53,6 @@ data class BackupConfigPatch(
     val secretAccessKey: String? = null,
 )
 
-/** Fragment lu dans un QR → patch de config (jamais `enabled`). */
 fun BackupQrPatch.toConfigPatch(): BackupConfigPatch = BackupConfigPatch(
     endpoint = this[BackupField.ENDPOINT],
     bucket = this[BackupField.BUCKET],
@@ -75,14 +62,8 @@ fun BackupQrPatch.toConfigPatch(): BackupConfigPatch = BackupConfigPatch(
     objectKey = this[BackupField.OBJECT_KEY],
 )
 
-/** Échec de sauvegarde ou de restauration, message français affichable tel quel. */
 class BackupException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-/**
- * Config prête à signer : champs nettoyés des espaces parasites (collage sur
- * mobile — une clé secrète avec un espace final donne un SignatureDoesNotMatch
- * incompréhensible) et défauts appliqués aux champs optionnels.
- */
 fun effectiveConfig(c: BackupConfigFull): BackupConfigFull = c.copy(
     endpoint = c.endpoint.trim(),
     bucket = c.bucket.trim(),
@@ -92,10 +73,6 @@ fun effectiveConfig(c: BackupConfigFull): BackupConfigFull = c.copy(
     objectKey = c.objectKey.trim().ifEmpty { DEFAULT_BACKUP_OBJECT_KEY },
 )
 
-/**
- * Vrai si la config contient le minimum requis pour contacter le serveur :
- * endpoint, bucket et le couple de clés (région et objet ont des défauts).
- */
 fun isConfigComplete(c: BackupConfigFull): Boolean {
     val e = effectiveConfig(c)
     return e.endpoint.isNotEmpty() && e.bucket.isNotEmpty() && e.accessKeyId.isNotEmpty() && e.secretAccessKey.isNotEmpty()
@@ -112,18 +89,11 @@ class BackupManager @Inject constructor(
 ) {
     private data class Secrets(val accessKeyId: String, val secretAccessKey: String)
 
-    /** Identifiants en mémoire (`null` = pas encore lus dans le stockage sécurisé). */
     private val secretsState = MutableStateFlow<Secrets?>(null)
     private val secretsLock = Mutex()
 
-    /**
-     * Mutex de sauvegarde/restauration : sérialise `runBackup` (lit toute la
-     * base) et `restoreBackup` (la remplace). Sans lui, une auto-backup
-     * déclenchée après une séance pourrait lire une base à moitié restaurée.
-     */
     private val backupLock = Mutex()
 
-    /** Config complète (réglages + secrets), réactive aux changements de réglages. */
     val config: Flow<BackupConfigFull> = flow {
         loadSecrets()
         emitAll(
@@ -132,20 +102,10 @@ class BackupManager @Inject constructor(
         )
     }
 
-    /** Instantané ponctuel de la config complète. */
     suspend fun currentConfig(): BackupConfigFull = full(settings.snapshot().backupConfig, loadSecrets())
 
-    /**
-     * Vrai si les identifiants n'ont pas pu être repris de l'app d'origine
-     * alors qu'une config S3 existait : l'écran invite à les ressaisir.
-     */
     suspend fun secretsMissing(): Boolean = settings.getSetting(Keys.BACKUP_SECRETS_MISSING) == "1"
 
-    /**
-     * Applique un patch : les secrets vont dans le stockage sécurisé (une
-     * valeur vide efface le secret), le reste dans `backup_s3`. Une fois les
-     * deux identifiants renseignés, le marqueur « secrets manquants » tombe.
-     */
     suspend fun updateConfig(patch: BackupConfigPatch) {
         val current = currentConfig()
         val next = current.copy(
@@ -166,7 +126,6 @@ class BackupManager @Inject constructor(
         }
     }
 
-    /** Téléverse une sauvegarde complète. Lève ([BackupException]) en cas d'erreur réseau/HTTP. */
     suspend fun runBackup(config: BackupConfigFull? = null): BackupLast = backupLock.withLock {
         val cfg = effectiveConfig(config ?: currentConfig())
         if (!isConfigComplete(cfg)) throw BackupException("Configuration S3 incomplète.")
@@ -189,11 +148,6 @@ class BackupManager @Inject constructor(
         }
     }
 
-    /**
-     * Sauvegarde automatique « best-effort » : ne lève jamais, ne fait rien si
-     * la sauvegarde auto est désactivée ou mal configurée. À appeler après une
-     * séance. L'échec éventuel est consigné dans `backup_last`.
-     */
     suspend fun autoBackup() {
         try {
             val cfg = currentConfig()
@@ -202,14 +156,9 @@ class BackupManager @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // silencieux : l'échec est consigné dans `backup_last`, l'UI le montrera
         }
     }
 
-    /**
-     * Télécharge la dernière sauvegarde et REMPLACE les données locales.
-     * Renvoie le nombre de séances restaurées.
-     */
     suspend fun restoreBackup(config: BackupConfigFull? = null): Int = backupLock.withLock {
         val cfg = effectiveConfig(config ?: currentConfig())
         if (!isConfigComplete(cfg)) throw BackupException("Configuration S3 incomplète.")
@@ -224,18 +173,11 @@ class BackupManager @Inject constructor(
             }
             val data = parsed.data
             if (parsed.app != BACKUP_APP || data == null) throw BackupException("Format de sauvegarde non reconnu.")
-            // Refuse une sauvegarde d'un format plus récent que celui géré :
-            // l'importer pourrait corrompre les données locales. (Champ absent =
-            // format 1 hérité.)
             if ((parsed.format ?: 1) > BACKUP_FORMAT) {
                 throw BackupException(
                     "Sauvegarde créée par une version plus récente (format ${parsed.format}). Mets l'application à jour.",
                 )
             }
-            // Garde-fou schéma : une sauvegarde d'un schéma plus récent peut
-            // contenir des colonnes/tables que cette version ne sait pas
-            // restaurer → perte silencieuse. (Champ absent = sauvegarde
-            // héritée : son schéma est forcément ≤ courant.)
             if ((parsed.schema ?: BACKUP_SCHEMA) > BACKUP_SCHEMA) {
                 throw BackupException(
                     "Sauvegarde créée par une version plus récente (schéma ${parsed.schema}). Mets l'application à jour.",
@@ -254,14 +196,6 @@ class BackupManager @Inject constructor(
         }
     }
 
-    // ---- secrets ---------------------------------------------------------
-
-    /**
-     * Lit les identifiants une fois (puis les garde en mémoire). Migration
-     * héritée : si une ancienne version a laissé les secrets dans le JSON
-     * `backup_s3`, on les déplace une fois pour toutes dans le stockage
-     * sécurisé puis on réécrit la config sans eux.
-     */
     private suspend fun loadSecrets(): Secrets {
         secretsState.value?.let { return it }
         return secretsLock.withLock {
@@ -281,7 +215,6 @@ class BackupManager @Inject constructor(
         }
     }
 
-    /** Écrit (ou efface, si vide) les identifiants S3 dans le stockage sécurisé. */
     private suspend fun persistSecrets(accessKeyId: String, secretAccessKey: String) {
         if (accessKeyId.isNotEmpty()) secrets.put(SecretStore.BACKUP_S3_ACCESS_KEY_ID, accessKeyId)
         else secrets.remove(SecretStore.BACKUP_S3_ACCESS_KEY_ID)

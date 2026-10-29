@@ -61,10 +61,8 @@ class StravaImporterTest {
         val sessions = db.sessionDao().getAll()
         assertEquals(2, sessions.size)
         assertTrue(sessions.all { it.source == "strava" && it.externalId!!.startsWith("strava-") })
-        // 3 points pour le GPX, 2 pour le TCX.
         assertEquals(listOf(2, 3), db.trackPointDao().getAll().groupBy { it.sessionId }.values.map { it.size }.sorted())
 
-        // Ré-import du même fichier : doublon, rien d'écrit.
         val r2 = importer.importUris(listOf(gpx))
         assertEquals(ImportReport(0, 1, 0, 0, emptyList()), r2)
         assertEquals(2, db.sessionDao().getAll().size)

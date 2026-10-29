@@ -1,5 +1,3 @@
-// Arbitrage du scan partagé : un seul scan matériel, propriétaire volé
-// notifié, relâchement borné au propriétaire, arrêt automatique à 20 s.
 package ovh.battistella.elan.sensors.ble
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,7 +41,7 @@ class BleScannerTest {
         runCurrent()
         assertEquals(0, le.active)
         assertNull(scanner.currentOwner)
-        assertTrue(job.isCompleted) // le flux se termine au relâchement
+        assertTrue(job.isCompleted)
     }
 
     @Test
@@ -61,12 +59,11 @@ class BleScannerTest {
         runCurrent()
         assertEquals(1, hrStolen)
         assertEquals(0, cscStolen)
-        assertEquals(1, le.active) // toujours un seul scan matériel
+        assertEquals(1, le.active)
         assertEquals(BleUuids.CSC_SERVICE, le.lastServiceUuid)
         assertSame(csc, scanner.currentOwner)
         assertTrue(hrJob.isCompleted)
 
-        // Relâcher par l'ancien propriétaire ne coupe pas le scan du voleur.
         scanner.release(hr)
         runCurrent()
         assertEquals(1, le.active)

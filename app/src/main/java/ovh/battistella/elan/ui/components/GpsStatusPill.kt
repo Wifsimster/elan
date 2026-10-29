@@ -17,7 +17,6 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import kotlin.math.roundToInt
 
-/** Libellé du point d'état GPS (pur, pour les tests). */
 internal fun gpsStatusLabel(status: GpsStatus, accuracyM: Double?): String = when {
     status == GpsStatus.DENIED -> "GPS refusé"
     status == GpsStatus.TRACKING && accuracyM != null && accuracyM <= 10 -> "GPS précis"
@@ -25,11 +24,6 @@ internal fun gpsStatusLabel(status: GpsStatus, accuracyM: Double?): String = whe
     else -> "Recherche GPS…"
 }
 
-/**
- * Point coloré + libellé de qualité du signal : « GPS précis » (success,
- * ≤ 10 m), « GPS ±N m » (warning), « Recherche GPS… » (warning) ou
- * « GPS refusé » (danger).
- */
 @Composable
 fun GpsStatusPill(
     status: GpsStatus,

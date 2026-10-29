@@ -1,4 +1,3 @@
-// Tests pour la projection géo → viewBox (cadrage + ratio préservé).
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -73,7 +72,6 @@ class RouteProjectionTest {
 
     @Test
     fun `metersPerUnit - 111 320 m par degré de latitude divisé par l'échelle`() {
-        // 0,02° de latitude sur 200 − 2×40 = 120 unités → scale = 6000 u/° → 18,55 m/u.
         val proj = createProjection(points, width = 1000.0, height = 200.0)
         assertEquals(111_320 / 6000.0, proj.metersPerUnit, 1e-6)
     }

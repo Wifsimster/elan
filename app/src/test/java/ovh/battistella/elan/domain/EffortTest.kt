@@ -1,4 +1,3 @@
-// Tests de l'indicateur d'effort : zone cardio quand une FC existe, durée sinon.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals

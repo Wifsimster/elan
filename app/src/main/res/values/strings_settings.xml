@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Jalon M3 : écran Réglages (13 cartes), feuille de restauration, carte de partage. -->
 <resources>
-    <!-- Ceinture cardiaque -->
     <string name="settings_hr_title">Ceinture cardiaque</string>
     <string name="settings_hr_connected">Connectée</string>
     <string name="settings_hr_connected_to">Connectée · %1$s</string>
@@ -19,7 +17,6 @@
     <string name="settings_ble_unsupported">Le Bluetooth n\'est pas disponible sur cet appareil.</string>
     <string name="settings_ble_permission_denied">Permissions Bluetooth refusées. Autorise « Appareils à proximité » dans les réglages système.</string>
 
-    <!-- Capteurs vélo -->
     <string name="settings_csc_title">Capteurs vélo</string>
     <string name="settings_csc_intro">Cadence et vitesse via le profil BLE standard (iGPSPORT CAD70 / SPD70, ou équivalent). Tu peux en connecter deux à la fois.</string>
     <string name="settings_csc_scan">Rechercher un capteur</string>
@@ -33,7 +30,6 @@
     <string name="settings_wheel_hint">Choisis ton pneu, ou ajuste la circonférence au mm près si tu l\'as mesurée.</string>
     <string name="settings_wheel_mm">%1$d mm</string>
 
-    <!-- Carte -->
     <string name="settings_map_title">Carte</string>
     <string name="settings_map_toggle">Fond de carte en ligne</string>
     <string name="settings_map_on_text">Tes sorties affichent un vrai fond de carte (rues). Les requêtes de tuiles (zone du parcours + adresse IP) transitent par le serveur ci-dessous. Désactive pour rester 100 % hors-ligne.</string>
@@ -46,7 +42,6 @@
     <string name="settings_map_invalid_title">URL invalide</string>
     <string name="settings_map_invalid_text">Le serveur de tuiles doit être en HTTPS (https://…).</string>
 
-    <!-- Health Connect -->
     <string name="settings_health_title">Health Connect</string>
     <string name="settings_health_toggle">Exporter les séances</string>
     <string name="settings_health_on_text">Chaque séance terminée (type, durée, distance, calories, fréquence cardiaque) est copiée dans Health Connect, la base santé locale d’Android. Tout reste sur l’appareil, aucun cloud.</string>
@@ -56,7 +51,6 @@
     <string name="settings_health_unavailable_title">Health Connect indisponible</string>
     <string name="settings_health_unavailable_text">Health Connect n\'est pas disponible sur cet appareil. Il fait partie d\'Android 14+, et s\'installe depuis le Play Store sur Android 8 à 13.</string>
 
-    <!-- Profil -->
     <string name="settings_profile_title">Profil</string>
     <string name="settings_profile_intro">Utilisé pour estimer les calories et les zones cardio, et pour conseiller reps et charge dans le catalogue.</string>
     <string name="settings_weight_journal_title">Journal de poids</string>
@@ -67,7 +61,6 @@
     <string name="settings_sex_male">Homme</string>
     <string name="settings_sex_female">Femme</string>
 
-    <!-- Objectifs -->
     <string name="settings_goals_title">Objectifs</string>
     <string name="settings_goals_intro">Fixe des objectifs simples (séances, distance, tonnage) par semaine ou par mois. Leur progression s’affiche sur l’accueil. 100 % local.</string>
     <string name="settings_goals_remove">Supprimer l\'objectif %1$s</string>
@@ -81,7 +74,6 @@
     <string name="settings_goal_target">Cible</string>
     <string name="settings_goals_add">Ajouter l’objectif</string>
 
-    <!-- Planning hebdomadaire -->
     <string name="settings_plan_title">Planning hebdomadaire</string>
     <string name="settings_plan_intro">Choisis la séance prévue pour chaque jour. L\'accueil propose la séance du jour selon ce planning.</string>
     <string name="settings_plan_reset">Réinitialiser le planning</string>
@@ -89,19 +81,16 @@
     <string name="settings_plan_reset_text">Le planning par défaut sera restauré (Vélo lundi, Full-body A mardi, Full-body B vendredi, repos les autres jours).</string>
     <string name="settings_plan_reset_confirm">Réinitialiser</string>
 
-    <!-- Progression automatique -->
     <string name="settings_progression_title">Progression automatique</string>
     <string name="settings_progression_text">Élan relève un peu la charge conseillée des exercices que tu notes « facile », et l\'allège si tu notes « dur » — d\'une semaine sur l\'autre, d\'après ton ressenti. Un cran de 2,5 kg au maximum par semaine, jamais sur les exercices de renfort doux (dos, cervicales). 100 % local. Tu gardes la main : chaque charge reste modifiable pendant la séance.</string>
     <string name="settings_progression_toggle">Ajuster le programme selon mon ressenti</string>
 
-    <!-- Rappels -->
     <string name="settings_notif_title">Rappels de séance</string>
     <string name="settings_notif_text">Un rappel local le jour même d\'une séance prévue, à l\'heure de ton choix (midi par défaut). Il liste les exercices du programme du jour pour t\'aider à le respecter. Aucune notification les jours de repos, et aucune relance si la séance est manquée. 100 % local — aucune connexion réseau.</string>
     <string name="settings_notif_toggle">Activer les rappels</string>
     <string name="settings_notif_hour">Heure du rappel</string>
     <string name="settings_notif_denied">Permission refusée. Active les notifications de l\'app dans les réglages système pour utiliser les rappels.</string>
 
-    <!-- Données -->
     <string name="settings_data_title">Données</string>
     <string name="settings_data_privacy">Toutes tes données restent sur cet appareil (base SQLite locale). Rien n\'est envoyé sur internet.</string>
     <string name="settings_data_clear">Effacer toutes les séances</string>
@@ -121,7 +110,6 @@
     <string name="settings_data_clear_failed">L\'effacement a échoué.</string>
     <string name="settings_data_reset_failed">La réinitialisation a échoué.</string>
 
-    <!-- Exporter mes données -->
     <string name="settings_export_card_title">Exporter mes données</string>
     <string name="settings_export_intro">Génère un bilan lisible de ton programme, de ta progression et de ton historique, ou un export brut complet. À déposer dans l\'outil de ton choix : coach IA, tableur, sauvegarde personnelle… Tout est généré sur l\'appareil, le partage se fait via la feuille système (Drive, mail, fichier…).</string>
     <string name="settings_privacy_title">Zone de confidentialité</string>
@@ -133,7 +121,6 @@
     <string name="settings_export_title">Exporter mes données</string>
     <string name="settings_export_failed">Export impossible.</string>
 
-    <!-- Import Strava -->
     <string name="settings_strava_title">Import Strava</string>
     <string name="settings_strava_intro">Exporte depuis Strava (page de l\'activité → « Exporter GPX », ou « Télécharger tes données » dans les réglages du compte), puis importe le fichier ici. Formats acceptés : GPX, TCX et FIT, y compris compressés (.gz) — comme dans l\'export en masse. Tout est traité sur l\'appareil.</string>
     <string name="settings_strava_note">Pas de synchronisation automatique avec ton compte Strava : cela demanderait un serveur, incompatible avec le fonctionnement 100 % hors-ligne de l\'app. La ré-importation d\'un même fichier ne crée pas de doublon.</string>
@@ -146,7 +133,6 @@
     <string name="settings_strava_details_more">… et %1$d autre(s)</string>
     <string name="settings_strava_failed">Import impossible.</string>
 
-    <!-- Sauvegarde -->
     <string name="settings_backup_title">Sauvegarde homelab</string>
     <string name="settings_backup_intro">Backup automatique de toutes tes données vers ton stockage S3 (MinIO). Elles restent sur ton serveur — rien chez un tiers.</string>
     <string name="settings_backup_auto">Sauvegarde automatique</string>
@@ -181,14 +167,12 @@
     <string name="settings_backup_advanced">Options avancées (région, nom de l\'objet)</string>
     <string name="settings_backup_advanced_hint">Vidés, ils reviennent aux défauts (%1$s, %2$s).</string>
 
-    <!-- Feuille de restauration (premier lancement) -->
     <string name="restore_title">Restaurer une sauvegarde</string>
     <string name="restore_text">Renseigne ton stockage S3 auto-hébergé : tes séances, ton profil et tes réglages seront rechargés depuis le serveur.</string>
     <string name="restore_note">La sauvegarde automatique après chaque séance sera activée vers ce serveur (modifiable dans Réglages).</string>
     <string name="restore_button">Restaurer</string>
     <string name="restore_done_snackbar">Restauration terminée — %1$d séance(s) restaurée(s)</string>
 
-    <!-- Partage d'une séance -->
     <string name="share_preview_title">Aperçu</string>
     <string name="share_action">Partager</string>
     <string name="share_stat_distance">Distance</string>

@@ -1,7 +1,3 @@
-// Contexte global pour les capteurs vélo BLE « Cycling Speed and Cadence »
-// (profil GATT CSC) : cadence (pédalier) et vitesse (roue). Gère un ou deux
-// capteurs simultanés — typiquement un iGPSPORT CAD70 (cadence) + un SPD70
-// (vitesse), qui sont deux périphériques distincts.
 import {
   createContext,
   use,
@@ -49,28 +45,17 @@ export type CscSample = {
 
 type CadenceSpeedContextValue = {
   status: CscStatus;
-  /** Cadence instantanée en tours/min (null si aucun capteur de cadence). */
   cadenceRpm: number | null;
-  /** Vitesse roue instantanée en km/h (null si aucun capteur de vitesse). */
   speedKmh: number | null;
-  /** Capteurs actuellement connectés. */
   devices: CscDevice[];
-  /** Capteurs détectés pendant le scan. */
   scanned: CscDevice[];
   error: string | null;
-  /** Circonférence de roue en mm (pour convertir les tours en distance). */
   wheelCircumferenceMm: number;
   setWheelCircumferenceMm: (mm: number) => void;
   startScan: () => Promise<void>;
   stopScan: () => void;
   connect: (deviceId: string) => Promise<void>;
-  /** Déconnecte un capteur, ou tous si `deviceId` est omis. */
   disconnect: (deviceId?: string) => Promise<void>;
-  /**
-   * S'abonne aux mesures brutes (même valeur identique : nécessaire pour ne
-   * pas perdre d'échantillons sur un palier de cadence/vitesse, que React
-   * dédupliquerait via setState).
-   */
   subscribe: (listener: (sample: CscSample) => void) => () => void;
 };
 
@@ -79,13 +64,10 @@ const CadenceSpeedContext = createContext<CadenceSpeedContextValue | null>(null)
 const SUPPORTED = Platform.OS === 'android' || Platform.OS === 'ios';
 const DEVICES_KEY = 'csc_devices';
 const WHEEL_MM_KEY = 'csc_wheel_mm';
-const DEFAULT_WHEEL_MM = 2105; // 700×25c, valeur par défaut courante
+const DEFAULT_WHEEL_MM = 2105;
 
-/** Unité de temps CSC : 1/1024 s. */
 const TIME_UNIT = 1024;
-/** Au-delà, on considère le capteur silencieux et on retombe à zéro. */
 const STALE_MS = 3000;
-/** Reconnexion auto : nombre max de tentatives par capteur après coupure involontaire. */
 const MAX_RECONNECT_ATTEMPTS = 5;
 
 const delta = (curr: number, prev: number, mod: number) => (curr - prev + mod) % mod;
@@ -99,17 +81,11 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [wheelCircumferenceMm, setWheelMm] = useState(DEFAULT_WHEEL_MM);
 
-  // Connexions actives + dernière mesure brute par capteur (pour les deltas).
-  // `disconnectSub` est conservé pour être retiré (sinon les handlers
-  // onDisconnected s'accumulent à chaque reconnexion d'un capteur).
   const connRef = useRef<
     Map<string, { device: Device; sub: Subscription; disconnectSub: Subscription | null }>
   >(new Map());
   const lastSampleRef = useRef<Map<string, CscRaw>>(new Map());
-  // Connexions en vol (garde anti-double-connexion, par capteur).
   const connectingRef = useRef<Set<string>>(new Set());
-  // Scan partagé (coordinateur lib/ble) : propriétaire + timeout d'auto-arrêt.
-  // useState (initialiseur paresseux) : jeton stable propre à cette instance.
   const [scanOwner] = useState(() => Symbol('csc-scan'));
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const circMmRef = useRef(DEFAULT_WHEEL_MM);
@@ -118,7 +94,6 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
   const listenersRef = useRef<Set<(s: CscSample) => void>>(new Set());
   const lastCadenceRef = useRef<number | null>(null);
   const lastSpeedRef = useRef<number | null>(null);
-  // Reconnexion auto par capteur (coupure involontaire d'un des deux périphériques).
   const intentionalDisconnectRef = useRef<Set<string>>(new Set());
   const reconnectTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const reconnectAttemptsRef = useRef<Map<string, number>>(new Map());
@@ -151,18 +126,16 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
     setStatus(connRef.current.size > 0 ? 'connected' : SUPPORTED ? 'idle' : 'unsupported');
   }, []);
 
-  // Traite une mesure CSC d'un capteur donné et met à jour cadence/vitesse.
   const handleSample = useCallback(
     (id: string, value: string | null) => {
       const raw = parseCsc(value);
       if (!raw) return;
       const prev = lastSampleRef.current.get(id);
       lastSampleRef.current.set(id, raw);
-      if (!prev) return; // il faut deux mesures pour un delta
+      if (!prev) return;
 
       let updated = false;
 
-      // Cadence (pédalier).
       if (
         raw.crankRevs != null &&
         prev.crankRevs != null &&
@@ -186,7 +159,6 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Vitesse (roue).
       if (
         raw.wheelRevs != null &&
         prev.wheelRevs != null &&
@@ -211,21 +183,17 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Notifie les abonnés à chaque trame exploitable (même valeur égale).
       if (updated) notify();
     },
     [notify],
   );
 
-  // Retombe à zéro quand un capteur cesse d'émettre (arrêt prolongé).
   useEffect(() => {
     if (!SUPPORTED) return;
     const t = setInterval(() => {
       const now = nowMs();
       if (crankMoveTsRef.current && now - crankMoveTsRef.current > STALE_MS) {
         setCadenceRpm((c) => (c ? 0 : c));
-        // Zéro AUSSI la ref : sinon un notify() déclenché par l'autre capteur
-        // re-diffuserait une cadence fantôme périmée alors que l'UI affiche 0.
         lastCadenceRef.current = 0;
       }
       if (wheelMoveTsRef.current && now - wheelMoveTsRef.current > STALE_MS) {
@@ -260,8 +228,6 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
       setStatus('error');
       return;
     }
-    // Coordination du scan partagé : notifie/arrête le scan de la ceinture s'il
-    // tournait ; « scan volé » nous ramène à l'arrêt dans le cas inverse.
     acquireScan(scanOwner, () => {
       setStatus((s) => (s === 'scanning' ? idleStatus() : s));
     });
@@ -308,8 +274,6 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
         : [...connRef.current.entries()];
 
       for (const [id, conn] of targets) {
-        // Déconnexion volontaire : désarme la reconnexion auto de ce capteur
-        // (marqué AVANT cancelConnection, car onDisconnected suit aussitôt).
         intentionalDisconnectRef.current.add(id);
         const timer = reconnectTimersRef.current.get(id);
         if (timer) {
@@ -325,7 +289,6 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
         try {
           await conn.device.cancelConnection();
         } catch {
-          // déjà déconnecté
         }
       }
 
@@ -366,12 +329,9 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
   const connect = useCallback(
     async (deviceId: string) => {
       if (!SUPPORTED) return;
-      // Garde anti-double-connexion : déjà connecté OU tentative en vol.
       if (connRef.current.has(deviceId) || connectingRef.current.has(deviceId)) return;
       connectingRef.current.add(deviceId);
       setError(null);
-      // Tentative volontaire : réarme la reconnexion auto et annule une tentative
-      // différée pour ce capteur.
       intentionalDisconnectRef.current.delete(deviceId);
       const pending = reconnectTimersRef.current.get(deviceId);
       if (pending) {
@@ -386,7 +346,6 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
         if (!ok) throw new Error('Permissions Bluetooth refusées.');
 
         const manager = getManager();
-        // Timeout : un capteur endormi ne doit pas bloquer ~30 s au lancement.
         dev = await manager.connectToDevice(deviceId, {
           autoConnect: false,
           timeout: CONNECT_TIMEOUT_MS,
@@ -415,26 +374,22 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
             lastCadenceRef.current = null;
             lastSpeedRef.current = null;
           }
-          scheduleReconnect(device.id); // coupure involontaire : back-off borné
+          scheduleReconnect(device.id);
         });
 
         connRef.current.set(device.id, { device, sub, disconnectSub });
-        reconnectAttemptsRef.current.delete(device.id); // connexion établie
+        reconnectAttemptsRef.current.delete(device.id);
         syncDevices();
         await persistDevices();
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Échec de connexion.');
-        // Découverte/monitoring échoué (GATT 133) : ferme le GATT semi-connecté,
-        // sinon l'appareil devient indétectable au scan.
         if (dev) {
           try {
             await dev.cancelConnection();
           } catch {
-            // déjà fermé
           }
         }
         connectingRef.current.delete(deviceId);
-        // Replanifie tant que le budget de tentatives n'est pas épuisé.
         scheduleReconnect(deviceId);
         return;
       }
@@ -449,12 +404,10 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
     setSetting(WHEEL_MM_KEY, String(mm));
   }, []);
 
-  // Réf vers le dernier `connect` pour la reconnexion différée.
   useEffect(() => {
     connectRef.current = connect;
   }, [connect]);
 
-  // Nettoyage : annule toutes les reconnexions / le scan en attente au démontage.
   useEffect(() => {
     const timers = reconnectTimersRef.current;
     return () => {
@@ -464,7 +417,6 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
     };
   }, [scanOwner]);
 
-  // Chargement initial de la circonférence de roue (préférence locale).
   useEffect(() => {
     if (!SUPPORTED) return;
     let cancelled = false;
@@ -483,11 +435,6 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Reconnexion aux capteurs mémorisés, pilotée par l'état de l'adaptateur BT.
-  // `emitCurrentState` couvre le lancement ; un cycle BT off→on re-déclenche la
-  // reconnexion. On appelle toujours connect() (même si un capteur est déjà
-  // connecté au niveau BLE, il faut réattacher le moniteur), en PARALLÈLE pour
-  // ne pas cumuler les timeouts capteur par capteur au démarrage.
   useEffect(() => {
     if (!SUPPORTED) return;
     const reconnectSaved = () => {
@@ -500,7 +447,6 @@ export function CadenceSpeedProvider({ children }: { children: ReactNode }) {
             connectRef.current?.(d.id);
           }
         } catch {
-          // réglage illisible : on attend l'utilisateur
         }
       });
     };

@@ -24,16 +24,13 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import kotlin.math.roundToLong
 
-/** Un point d'une série (x croissant). */
 data class ChartPoint(val x: Double, val y: Double)
 
-// Marges réservées aux libellés d'axes.
 private val PAD_L = 40.dp
 private val PAD_R = 10.dp
 private val PAD_T = 12.dp
 private val PAD_B = 22.dp
 
-/** Résumé lu par les lecteurs d'écran : min / max / moyenne (pur, pour les tests). */
 internal fun lineChartSummary(
     data: List<ChartPoint>,
     avg: Double?,
@@ -48,25 +45,15 @@ internal fun lineChartSummary(
 
 private fun defaultFormat(v: Double): String = v.roundToLong().toString()
 
-/**
- * Graphe d'aire façon Strava : tracé + remplissage en « sillage » vertical
- * (couleur 0,35 → transparent), grille discrète (3 lignes), ligne de moyenne
- * pointillée « moy. » et libellés d'axes (3 ticks Y, 5 ticks X). 100 % local,
- * aucune dépendance réseau. Ne dessine rien sous 2 points. Le tracé étant
- * invisible pour les lecteurs d'écran, un résumé min / max / moyenne est
- * exposé en `contentDescription`.
- */
 @Composable
 fun LineChart(
     data: List<ChartPoint>,
     color: Color,
     modifier: Modifier = Modifier,
     height: Dp = 168.dp,
-    /** Ligne pointillée horizontale (la moyenne, façon Strava). */
     avg: Double? = null,
     formatY: (Double) -> String = ::defaultFormat,
     formatX: (Double) -> String = ::defaultFormat,
-    /** Nom de la métrique (ex. « Vitesse »), pour le résumé d'accessibilité. */
     label: String? = null,
 ) {
     if (data.size < 2) return
@@ -85,8 +72,6 @@ fun LineChart(
         minY -= 1
         maxY += 1
     }
-    // Un peu de marge verticale pour ne pas coller le tracé aux bords, sans
-    // descendre sous zéro pour une grandeur positive (vitesse, cadence…).
     val headroom = (maxY - minY) * 0.08
     val dataMin = minY
     minY -= headroom
@@ -131,7 +116,6 @@ fun LineChart(
             close()
         }
 
-        // Grille (3 lignes horizontales aux ticks Y).
         yTicks.forEach { t ->
             val y = sy(t)
             drawLine(hairline, Offset(padL, y), Offset(size.width - padR, y), strokeWidth = 1.dp.toPx())
@@ -140,7 +124,6 @@ fun LineChart(
         drawPath(
             path = area,
             brush = Brush.verticalGradient(
-                // Sillage : la teinte de la série s'efface jusqu'au transparent.
                 0f to color.copy(alpha = 0.35f),
                 1f to color.copy(alpha = 0f),
                 startY = padT,
@@ -153,8 +136,6 @@ fun LineChart(
             style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
         )
 
-        // Moyenne pointillée + étiquette « moy. » (sinon le trait n'est lisible
-        // que par sa position, signal visuel seul).
         if (avg != null) {
             val y = sy(avg)
             drawLine(
@@ -168,13 +149,11 @@ fun LineChart(
             drawText(layout, topLeft = Offset(size.width - padR - 2.dp.toPx() - layout.size.width, y - 14.dp.toPx()))
         }
 
-        // Libellés d'axe Y (haut / milieu / bas), alignés à droite de la marge.
         yTicks.forEach { t ->
             val layout = measurer.measure(formatY(t), tickStyle)
             drawText(layout, topLeft = Offset(padL - 6.dp.toPx() - layout.size.width, sy(t) - layout.size.height / 2f))
         }
 
-        // Libellés d'axe X (extrémités alignées aux bords pour ne pas déborder).
         val xLabelY = size.height - 14.dp.toPx()
         xTicks.forEachIndexed { i, t ->
             val layout = measurer.measure(formatX(t), tickStyle)

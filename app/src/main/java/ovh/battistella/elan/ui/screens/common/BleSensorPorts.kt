@@ -12,11 +12,6 @@ import ovh.battistella.elan.sensors.ble.SensorStatus
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Adaptateurs des gestionnaires BLE vers les vues minimales des écrans : chaque
- * champ est une projection de l'état du gestionnaire, partagée sur la portée
- * applicative (les gestionnaires sont eux-mêmes des singletons de processus).
- */
 @Singleton
 class BleHeartRatePort @Inject constructor(
     manager: HeartRateManager,

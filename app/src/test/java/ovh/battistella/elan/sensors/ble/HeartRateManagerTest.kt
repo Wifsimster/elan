@@ -1,5 +1,3 @@
-// Machine d'états de la ceinture cardiaque sur doublures, en temps virtuel.
-// Robolectric uniquement pour `org.json` (sérialisation de `hr_device`).
 package ovh.battistella.elan.sensors.ble
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -47,15 +45,12 @@ class HeartRateManagerTest {
     private fun TestScope.harness(adapterOn: Boolean = true, supported: Boolean = true) =
         Harness(this, adapterOn, supported).also { it.start() }
 
-    /** Connecte « AA » et attend l'établissement. */
     private fun TestScope.connected(h: Harness): FakeGattLink {
         h.manager.connect("AA")
         runCurrent()
         assertEquals(SensorStatus.Connected, h.state.status)
         return h.links.last("AA")
     }
-
-    // ---- scan ------------------------------------------------------------
 
     @Test
     fun `le scan liste les ceintures dédupliquées puis s'arrête à la demande`() = runTest {
@@ -98,7 +93,7 @@ class HeartRateManagerTest {
         launch { h.scanner.acquire(Any(), BleUuids.CSC_SERVICE) {}.collect {} }
         runCurrent()
         assertEquals(SensorStatus.Idle, h.state.status)
-        assertEquals(1, h.le.active) // le scan du voleur tourne, pas le nôtre
+        assertEquals(1, h.le.active)
     }
 
     @Test
@@ -122,8 +117,6 @@ class HeartRateManagerTest {
         assertEquals("Échec du scan Bluetooth (2).", h.state.error)
     }
 
-    // ---- connexion -------------------------------------------------------
-
     @Test
     fun `la connexion découvre, active les notifications, vide le scan et mémorise la ceinture`() = runTest {
         val h = harness()
@@ -137,7 +130,7 @@ class HeartRateManagerTest {
         assertEquals(BleUuids.HEART_RATE_SERVICE to BleUuids.HEART_RATE_MEASUREMENT, link.notifications)
         assertEquals(ScannedDevice("AA", "Polar H10"), h.state.device)
         assertTrue(h.state.scanned.isEmpty())
-        assertEquals(0, h.le.active) // le scan est coupé par la connexion
+        assertEquals(0, h.le.active)
         assertNull(h.state.error)
         assertEquals(BleDevice("AA", "Polar H10"), h.savedDevice())
     }
@@ -216,8 +209,6 @@ class HeartRateManagerTest {
         assertEquals(0, h.links.created.size)
     }
 
-    // ---- reconnexion -----------------------------------------------------
-
     @Test
     fun `un GATT 133 ferme le lien et replanifie en back-off exponentiel borné à 5 tentatives`() = runTest {
         val h = harness()
@@ -230,7 +221,6 @@ class HeartRateManagerTest {
         assertEquals(1, h.links.created.size)
         assertTrue(h.links.created[0].closed)
 
-        // Délais : 1 s, 2 s, 4 s, 8 s, 15 s (plafond) → tirs à 1 s, 3 s, 7 s, 15 s, 30 s.
         var fireAt = testScheduler.currentTime
         for ((i, delayMs) in listOf(1_000L, 2_000L, 4_000L, 8_000L, 15_000L).withIndex()) {
             fireAt += delayMs
@@ -243,7 +233,6 @@ class HeartRateManagerTest {
             assertTrue(h.links.created[i + 1].closed)
         }
 
-        // Budget épuisé : retour au repos, message conservé, plus aucune tentative.
         assertEquals(SensorStatus.Idle, h.state.status)
         assertEquals("Erreur GATT 133.", h.state.error)
         advanceTimeBy(60_000)
@@ -255,7 +244,7 @@ class HeartRateManagerTest {
     fun `une coupure involontaire reconnecte et le compteur repart à zéro après succès`() = runTest {
         val h = harness()
         val first = connected(h)
-        h.manager.frames() // sans effet, juste pour l'API
+        h.manager.frames()
 
         first.drop(8)
         runCurrent()
@@ -269,7 +258,6 @@ class HeartRateManagerTest {
         assertEquals(SensorStatus.Connected, h.state.status)
         assertEquals(2, h.links.created.size)
 
-        // Nouvelle coupure : le premier délai est de nouveau 1 s (compteur remis à zéro).
         h.links.last("AA").drop(8)
         runCurrent()
         assertEquals(SensorStatus.Reconnecting, h.state.status)
@@ -294,7 +282,7 @@ class HeartRateManagerTest {
         assertNull(h.state.bpm)
         assertTrue(link.closed)
 
-        link.drop(8) // rappel tardif du lien fermé : ignoré
+        link.drop(8)
         advanceTimeBy(60_000)
         runCurrent()
         assertEquals(SensorStatus.Idle, h.state.status)
@@ -315,8 +303,6 @@ class HeartRateManagerTest {
         assertEquals(SensorStatus.Idle, h.state.status)
         assertEquals(1, h.links.created.size)
     }
-
-    // ---- adaptateur Bluetooth --------------------------------------------
 
     @Test
     fun `au lancement, reconnexion à la ceinture mémorisée`() = runTest {
@@ -350,10 +336,10 @@ class HeartRateManagerTest {
         assertEquals("Bluetooth désactivé.", h.state.error)
         assertNull(h.state.bpm)
 
-        link.drop(8) // la pile coupe le lien dans la foulée
+        link.drop(8)
         advanceTimeBy(60_000)
         runCurrent()
-        assertEquals(SensorStatus.Error, h.state.status) // pas de tentative radio éteinte
+        assertEquals(SensorStatus.Error, h.state.status)
         assertEquals(1, h.links.created.size)
 
         h.adapter.turnOn()

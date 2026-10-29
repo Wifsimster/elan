@@ -1,6 +1,3 @@
-// Tests du catalogue et du moteur de recommandation (Exercises.kt) : charges
-// conseillées par objectif / sexe / poids de corps, exercices chronométrés et au
-// poids du corps, pas d'arrondi, recherche, intégrité du catalogue.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -19,8 +16,6 @@ class ExercisesTest {
     ) = RecoProfile(weightKg = weightKg, heightCm = 180.0, sex = sex, goal = goal)
 
     private fun ex(id: String): CatalogExercise = catalogById(id) ?: error("exercice inconnu : $id")
-
-    // --- Catalogue -----------------------------------------------------------
 
     @Test
     fun `42 fiches, ids uniques, chacune avec un texte d'exécution`() {
@@ -67,8 +62,6 @@ class ExercisesTest {
         }
     }
 
-    // --- GOALS / goalSpec ----------------------------------------------------
-
     @Test
     fun `cinq objectifs dans l'ordre, repli sur l'hypertrophie`() {
         assertEquals(
@@ -86,21 +79,16 @@ class ExercisesTest {
         assertEquals(1.15, force.intensityFactor, 0.0)
     }
 
-    // --- recommend -----------------------------------------------------------
-
     @Test
     fun `charge = loadFactor × poids × intensité, arrondie au pas`() {
-        // goblet-squat : 0,3 × 80 × 1,0 = 24 kg (bas du corps, pas de 1 kg)
         val r = recommend(profile(), ex("goblet-squat"))
         assertEquals(Recommendation(sets = 4, repsMin = 8, repsMax = 12, restSec = 90, weightKg = 24.0, perDumbbell = false, timed = false), r)
-        // force : 0,3 × 80 × 1,15 = 27,6 → 28 kg, 5 × 3-6, repos 180 s
         val f = recommend(profile(goal = TrainingGoal.FORCE), ex("goblet-squat"))
         assertEquals(28.0, f.weightKg, 0.0)
         assertEquals(5, f.sets)
         assertEquals(3, f.repsMin)
         assertEquals(6, f.repsMax)
         assertEquals(180, f.restSec)
-        // endurance : 0,3 × 80 × 0,65 = 15,6 → 16 kg, 3 × 15-20, repos 45 s
         val e = recommend(profile(goal = TrainingGoal.ENDURANCE), ex("goblet-squat"))
         assertEquals(16.0, e.weightKg, 0.0)
         assertEquals(3, e.sets)
@@ -111,19 +99,16 @@ class ExercisesTest {
 
     @Test
     fun `la charge suit le poids de corps`() {
-        assertEquals(18.0, recommend(profile(weightKg = 60.0), ex("goblet-squat")).weightKg, 0.0) // 0,3 × 60
-        assertEquals(30.0, recommend(profile(weightKg = 100.0), ex("goblet-squat")).weightKg, 0.0) // 0,3 × 100
+        assertEquals(18.0, recommend(profile(weightKg = 60.0), ex("goblet-squat")).weightKg, 0.0)
+        assertEquals(30.0, recommend(profile(weightKg = 100.0), ex("goblet-squat")).weightKg, 0.0)
     }
 
     @Test
     fun `facteur sexe - femme 0,65 haut du corps et 0,8 bas du corps, homme ou non précisé 1`() {
-        // dumbbell-bench-press (haut, par haltère) : 0,22 × 80 = 17,6 → 18 ; femme 17,6 × 0,65 = 11,44 → 11
         assertEquals(18.0, recommend(profile(sex = Sex.H), ex("dumbbell-bench-press")).weightKg, 0.0)
         assertEquals(18.0, recommend(profile(sex = null), ex("dumbbell-bench-press")).weightKg, 0.0)
         assertEquals(11.0, recommend(profile(sex = Sex.F), ex("dumbbell-bench-press")).weightKg, 0.0)
-        // goblet-squat (bas) : femme 24 × 0,8 = 19,2 → 19
         assertEquals(19.0, recommend(profile(sex = Sex.F), ex("goblet-squat")).weightKg, 0.0)
-        // back-squat (barre, bas) : 80 → pas de 2,5 ; femme 64 → 65
         assertEquals(80.0, recommend(profile(), ex("back-squat")).weightKg, 0.0)
         assertEquals(65.0, recommend(profile(sex = Sex.F), ex("back-squat")).weightKg, 0.0)
     }
@@ -171,11 +156,9 @@ class ExercisesTest {
         assertEquals(recommend(profile(), ex("goblet-squat")), recommend(p, ex("goblet-squat")))
     }
 
-    // --- roundWeight ---------------------------------------------------------
-
     @Test
     fun `roundWeight - pas de 2,5 kg pour les charges lourdes non par haltère`() {
-        val barre = ex("back-squat") // loadFactor 1.0, pas par haltère
+        val barre = ex("back-squat")
         assertEquals(60.0, roundWeight(61.0, barre), 0.0)
         assertEquals(62.5, roundWeight(61.3, barre), 0.0)
         assertEquals(2.5, roundWeight(2.0, barre), 0.0)
@@ -183,12 +166,11 @@ class ExercisesTest {
 
     @Test
     fun `roundWeight - pas de 1 kg au-delà de 6 kg, demi-kilo en dessous`() {
-        val leger = ex("goblet-squat") // loadFactor 0.3
+        val leger = ex("goblet-squat")
         assertEquals(7.0, roundWeight(7.4, leger), 0.0)
         assertEquals(8.0, roundWeight(7.5, leger), 0.0)
         assertEquals(3.5, roundWeight(3.3, leger), 0.0)
         assertEquals(5.5, roundWeight(5.6, leger), 0.0)
-        // par haltère, même lourd : jamais le pas de 2,5
         val parHaltere = leger.copy(loadFactor = 1.0, loadPerSide = true)
         assertEquals(61.0, roundWeight(61.3, parHaltere), 0.0)
     }
@@ -201,15 +183,11 @@ class ExercisesTest {
 
     @Test
     fun `très léger - élévations latérales au demi-kilo`() {
-        // 0,06 × 80 = 4,8 → pas 0,5 → 5 kg / main
         val r = recommend(profile(), ex("lateral-raise"))
         assertEquals(5.0, r.weightKg, 0.0)
         assertEquals("5 kg / main", recoWeightLabel(r))
-        // charge décimale : virgule française
         assertEquals("17,5 kg", recoWeightLabel(Recommendation(4, 8, 12, 90, 17.5, perDumbbell = false, timed = false)))
     }
-
-    // --- catalogById / catalogByName -----------------------------------------
 
     @Test
     fun `catalogById et catalogByName retrouvent les fiches, null sinon`() {

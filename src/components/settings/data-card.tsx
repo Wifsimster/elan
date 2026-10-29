@@ -7,7 +7,6 @@ import { SettingCardHeader } from '@/components/setting-card-header';
 import { clearAllData, clearAllDataIncludingSettings } from '@/lib/db';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Carte Réglages : gestion des données locales (effacement, réinitialisation). */
 export function DataCard() {
   const theme = useTheme();
 

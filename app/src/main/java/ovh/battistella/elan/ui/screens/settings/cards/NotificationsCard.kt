@@ -18,11 +18,6 @@ import ovh.battistella.elan.ui.components.SettingStepper
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 
-/**
- * Carte Réglages : rappels locaux de séance (opt-in, jour du planning + heure).
- * Sur Android 13+, l'activation demande d'abord `POST_NOTIFICATIONS` ; un
- * refus laisse le commutateur éteint avec une erreur en ligne.
- */
 @Composable
 fun NotificationsCard(
     config: NotificationConfig,

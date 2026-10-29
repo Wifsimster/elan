@@ -1,5 +1,3 @@
-// Tests des helpers d'échantillons capteurs : agrégation FC/cadence,
-// down-sampling des paliers et appariement temporel par dichotomie.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -17,7 +15,6 @@ class SamplesTest {
     @Test
     fun `meanMax arrondit la moyenne et garde le max réel`() {
         assertEquals(MeanMax(101.0, 102.0), meanMax(listOf(100.0, 101.0, 102.0)))
-        // moyenne 100.5 -> arrondi 101 (arrondi mathématique)
         assertEquals(MeanMax(101.0, 101.0), meanMax(listOf(100.0, 101.0)))
     }
 
@@ -44,7 +41,6 @@ class SamplesTest {
 
     @Test
     fun `summarizeCadence exclut la roue libre (0) de la moyenne mais pas du max`() {
-        // moyenne sur {90,100} = 95 ; max sur toutes = 100
         assertEquals(CadenceSummary(95.0, 100.0), summarizeCadence(listOf(0.0, 90.0, 0.0, 100.0, 0.0)))
     }
 
@@ -62,7 +58,7 @@ class SamplesTest {
     fun `pushDownsampled ignore une valeur identique reçue trop tôt`() {
         val buf = ArrayList<HrSample>()
         pushDownsampled(buf, HrSample(0, 120.0), { it.hr })
-        pushDownsampled(buf, HrSample(500, 120.0), { it.hr }) // même valeur, < 1 s
+        pushDownsampled(buf, HrSample(500, 120.0), { it.hr })
         assertEquals(1, buf.size)
     }
 
@@ -70,7 +66,7 @@ class SamplesTest {
     fun `pushDownsampled garde une valeur identique reçue après minGapMs`() {
         val buf = ArrayList<HrSample>()
         pushDownsampled(buf, HrSample(0, 120.0), { it.hr })
-        pushDownsampled(buf, HrSample(1000, 120.0), { it.hr }) // même valeur, >= 1 s
+        pushDownsampled(buf, HrSample(1000, 120.0), { it.hr })
         assertEquals(2, buf.size)
     }
 
@@ -86,8 +82,8 @@ class SamplesTest {
     fun `pushDownsampled respecte un minGapMs personnalisé`() {
         val buf = ArrayList<V>()
         pushDownsampled(buf, V(0, 5), { it.v }, 5000)
-        pushDownsampled(buf, V(3000, 5), { it.v }, 5000) // < 5 s, ignoré
-        pushDownsampled(buf, V(6000, 5), { it.v }, 5000) // >= 5 s, gardé
+        pushDownsampled(buf, V(3000, 5), { it.v }, 5000)
+        pushDownsampled(buf, V(6000, 5), { it.v }, 5000)
         assertEquals(listOf(0L, 6000L), buf.map { it.ts })
     }
 
@@ -105,8 +101,8 @@ class SamplesTest {
 
     @Test
     fun `nearestSample choisit le plus proche entre deux voisins`() {
-        assertEquals(110.0, nearestSample(samples, 1400, { it.hr })) // plus près de 1000
-        assertEquals(120.0, nearestSample(samples, 1600, { it.hr })) // plus près de 2000
+        assertEquals(110.0, nearestSample(samples, 1400, { it.hr }))
+        assertEquals(120.0, nearestSample(samples, 1600, { it.hr }))
     }
 
     @Test
@@ -117,9 +113,7 @@ class SamplesTest {
 
     @Test
     fun `nearestSample renvoie null au-delà de la tolérance`() {
-        // 3000 est à 1 s de 2000 et 2 s de 5000 -> plus proche 2000 (diff 1000 <= 10 s)
         assertEquals(120.0, nearestSample(samples, 3000, { it.hr }))
-        // tolérance réduite à 500 ms : 3000 est à 1 s du plus proche -> null
         assertNull(nearestSample(samples, 3000, { it.hr }, 500))
     }
 }

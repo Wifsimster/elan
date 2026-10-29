@@ -22,22 +22,14 @@ import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.Spacing
 import ovh.battistella.elan.ui.theme.bestInk
 
-/** Encre posée sur une puce sélectionnée de teinte [tint] : la plus lisible entre `OnBright` et blanc. */
 fun chipInk(tint: Color): Color = bestInk(tint, listOf(ElanGradients.OnBright, Color.White))
 
-/**
- * Puce de filtre / suggestion Sillage, en pilule, sélectionnable, avec appui
- * ressort (échelle 0,94). Au repos : aplat tonal sans bordure. Sélectionnée :
- * aplat de la teinte (le Volt de marque par défaut) sous l'encre la plus
- * lisible.
- */
 @Composable
 fun ElanChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    /** Teinte à l'état sélectionné (défaut : marque). */
     color: Color? = null,
 ) {
     val colors = ElanTheme.colors

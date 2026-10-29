@@ -1,7 +1,3 @@
-// Sauvegarde S3 automatique en tâche WorkManager : déclenchée après chaque
-// séance enregistrée (`SessionFinalizer` → `BackupTrigger`), elle attend une
-// connexion réseau et réessaie avec recul exponentel — un tunnel ou un mode
-// avion au moment de l'arrêt du chrono ne fait plus perdre la sauvegarde.
 package ovh.battistella.elan.sync
 
 import android.content.Context
@@ -24,15 +20,8 @@ class BackupWorker @AssistedInject constructor(
     override suspend fun doWork(): Result = execute(manager, runAttemptCount)
 
     companion object {
-        /** Nombre maximal de tentatives (la première comprise). */
         const val MAX_ATTEMPTS = 3
 
-        /**
-         * Cœur testable du worker : rien à faire si la sauvegarde auto est
-         * désactivée ou incomplète ; sinon sauvegarde, réessai sur échec tant
-         * que le budget de tentatives n'est pas épuisé. L'échec reste consigné
-         * dans `backup_last` par le gestionnaire, l'écran Réglages le montre.
-         */
         suspend fun execute(manager: BackupManager, runAttemptCount: Int): Result {
             val cfg = try {
                 manager.currentConfig()

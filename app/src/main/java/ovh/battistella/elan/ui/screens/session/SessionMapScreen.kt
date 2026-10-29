@@ -68,11 +68,6 @@ class SessionMapViewModel @Inject constructor(
     }
 }
 
-/**
- * Carte plein écran d'une sortie : le tracé remplit l'écran et devient
- * explorable (pinch-zoom, pan, double-tap). Bouton retour flottant en haut à
- * gauche, sous l'encoche.
- */
 @Composable
 fun SessionMapScreen(
     contentPadding: PaddingValues,

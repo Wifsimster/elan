@@ -1,4 +1,3 @@
-// Tests pour les helpers de formatage (durée, distance, vitesse, FC, date — FR).
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -54,10 +53,8 @@ class FormatTest {
 
     @Test
     fun `formatDurationShort reporte la retenue des minutes au lieu de produire H h 60`() {
-        // 1 h 59 min 30 s arrondit à 2 h pile (et non « 1 h 60 »).
         assertEquals("2 h 00", formatDurationShort(7170))
         assertEquals("2 h 00", formatDurationShort(7189))
-        // Juste sous le seuil de report : reste « 1 h 59 ».
         assertEquals("1 h 59", formatDurationShort(7169))
     }
 
@@ -97,7 +94,6 @@ class FormatTest {
 
     @Test
     fun `decimalFr arrondit comme toFixed (demi-supérieur sur la valeur exacte)`() {
-        // 1,05 est stocké légèrement au-dessus : « 1,1 » ; 0,15 légèrement en dessous : « 0,1 » (comme en JS).
         assertEquals("1,1 km/h", formatSpeed(1.05))
         assertEquals("0,1 km/h", formatSpeed(0.15))
         assertEquals("2,5 km/h", formatSpeed(2.45))
@@ -169,7 +165,6 @@ class FormatTest {
         assertEquals("413 kcal", formatCalories(412.6))
     }
 
-    // 2 juin 2025 (lundi) à 18:30 — fixe par construction d'une date locale.
     private val ms = local(2025, 6, 2, 18, 30)
 
     @Test
@@ -201,7 +196,7 @@ class FormatTest {
     fun `formatRelativeDays - aujourd'hui, hier, il y a N jours`() {
         val now = local(2025, 6, 11, 14, 30)
         assertEquals("aujourd'hui", formatRelativeDays(local(2025, 6, 11, 0, 1), now))
-        assertEquals("aujourd'hui", formatRelativeDays(local(2025, 6, 12, 9, 0), now)) // futur → aujourd'hui
+        assertEquals("aujourd'hui", formatRelativeDays(local(2025, 6, 12, 9, 0), now))
         assertEquals("hier", formatRelativeDays(local(2025, 6, 10, 23, 59), now))
         assertEquals("il y a 4 jours", formatRelativeDays(local(2025, 6, 7, 12, 0), now))
     }
@@ -215,7 +210,6 @@ class FormatTest {
 
     @Test
     fun `paceParts padde les secondes à deux chiffres`() {
-        // 11,5 km/h → 313 s/km → 5 min 13 s
         assertEquals("5:13", paceParts(11.5).value)
     }
 
@@ -223,7 +217,6 @@ class FormatTest {
     fun `paceParts rend un tiret à l'arrêt ou sans mesure`() {
         assertEquals(Measure("—"), paceParts(null))
         assertEquals(Measure("—"), paceParts(0.0))
-        // Sous 1 km/h l'allure part à l'infini : un tiret plutôt qu'un nombre absurde.
         assertEquals(Measure("—"), paceParts(0.4))
     }
 
@@ -237,6 +230,6 @@ class FormatTest {
     fun `plus on va vite, plus l'allure est basse`() {
         val lent = paceParts(8.0).value
         val rapide = paceParts(16.0).value
-        assertTrue(lent > rapide) // '7:30' > '3:45' en ordre lexical à minutes égales
+        assertTrue(lent > rapide)
     }
 }

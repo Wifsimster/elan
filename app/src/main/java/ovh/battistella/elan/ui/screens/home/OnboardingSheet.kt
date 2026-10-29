@@ -56,13 +56,6 @@ import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.roundToInt
 
-/**
- * Accueil premier lancement (100 % local). Capture poids, taille, FC max et
- * objectif — sans eux, les calories, les zones cardio et les charges
- * conseillées tournent sur des valeurs par défaut silencieusement
- * approximatives dès la première séance. Rassure aussi sur le fait que rien
- * ne quitte l'appareil. Non fermable autrement que par ses boutons.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OnboardingSheet(
@@ -84,8 +77,6 @@ fun OnboardingSheet(
             usePlatformDefaultWidth = false,
         ),
     ) {
-        // Scrim + colonne centrée quand le contenu tient, défilable sinon
-        // (paysage court). Insets latéraux pour l'encoche.
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -185,8 +176,6 @@ fun OnboardingSheet(
                     onClick = { onDone(weightKg, heightCm, maxHr, goal) },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                // Réinstallation : la base est vide, on propose de tout recharger
-                // depuis le serveur plutôt que de repartir de zéro.
                 ElanButton(
                     title = stringResource(R.string.onboarding_restore),
                     icon = MdiIcons.CloudDownloadOutline,
@@ -199,14 +188,6 @@ fun OnboardingSheet(
     }
 }
 
-/**
- * Feuille « J'ai déjà une sauvegarde » du premier lancement : après une
- * réinstallation, la base est vide — y compris la config S3, qui vit dans la
- * même base. On redemande donc les identifiants du serveur, on récupère le
- * snapshot, et la sauvegarde automatique vers ce même serveur est activée
- * dans la foulée (`BackupViewModel.restoreNow`). Pas de confirmation
- * destructive : il n'y a encore rien à écraser.
- */
 @Composable
 fun RestoreSheet(
     onCancel: () -> Unit,

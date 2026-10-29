@@ -1,12 +1,8 @@
-// Tests du changement de type d'une séance enregistrée (lib/session-retype.ts).
-// Cœur pur : décider si le changement est permis, et recalculer ce qui dépend du
-// type. L'écriture en base (db.changeSessionType) n'est pas couverte ici.
 import { canRetype, retypeChanges } from '@/lib/session-retype';
 import type { ActivityType, Session } from '@/lib/types';
 
 const PROFILE = { weightKg: 70, maxHr: 190 };
 
-/** Sortie d'une heure, 20 km, 20 km/h de moyenne — de quoi comparer les barèmes. */
 const session = (overrides: Partial<Session> = {}): Session => ({
   id: 1,
   type: 'velo',
@@ -65,11 +61,8 @@ describe('retypeChanges', () => {
     const s = session();
     const versCourse = retypeChanges(s, 'course', PROFILE)!;
     const versMarche = retypeChanges(s, 'marche', PROFILE)!;
-    // À 20 km/h : courir coûte beaucoup plus que pédaler, marcher (extrapolation
-    // plate au-delà de la table) reste au-dessus du vélo mais loin de la course.
     expect(versCourse.calories).toBeGreaterThan(s.calories!);
     expect(versCourse.calories).toBeGreaterThan(versMarche.calories);
-    // La valeur stockée d'origine n'entre jamais dans le nouveau calcul.
     const memeSeanceAutreCalories = session({ calories: 99_999 });
     expect(retypeChanges(memeSeanceAutreCalories, 'course', PROFILE)!.calories).toBeCloseTo(
       versCourse.calories,
@@ -110,8 +103,6 @@ describe('retypeChanges', () => {
   });
 
   it('utilise la FC max du PROFIL, pas celle de la séance', () => {
-    // La FC max de la séance est une mesure ; celle du profil est la référence
-    // d'intensité du modèle cardio. Les confondre fausserait l'estimation.
     const a = session({ avgHr: 150, maxHr: 175 });
     const b = session({ avgHr: 150, maxHr: 200 });
     expect(retypeChanges(a, 'course', PROFILE)!.calories).toBeCloseTo(

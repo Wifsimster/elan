@@ -38,8 +38,6 @@ export function SessionRow({ session }: { session: Session }) {
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end', gap: 2 }}>
-            {/* En muscu la durée n'a pas de sens : on met en avant la complétion
-                (séries faites, puis exercices). Le vélo garde temps + distance. */}
             <Text style={{ color: theme.text, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
               {session.type === 'muscu'
                 ? `${session.setCount ?? 0} série${(session.setCount ?? 0) > 1 ? 's' : ''}`

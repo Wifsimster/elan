@@ -32,7 +32,6 @@
   .app { display: grid; grid-template-columns: 300px 1fr 360px; height: 100vh; }
   @media (max-width: 1100px) { .app { grid-template-columns: 260px 1fr; } .detail { display: none; } }
 
-  /* ---- Left: flow list ---- */
   .sidebar { background: var(--bg-soft); border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
   .brand { padding: 18px 18px 12px; border-bottom: 1px solid var(--border); }
   .brand h1 { margin: 0; font-size: 18px; letter-spacing: .3px; }
@@ -55,7 +54,6 @@
   .flow-btn.active { background: var(--panel-2); border-color: var(--accent); }
   .flow-btn .cnt { float: right; color: var(--text-faint); font-size: 11px; font-variant-numeric: tabular-nums; }
 
-  /* ---- Center: graph ---- */
   .stage { position: relative; overflow: auto; background:
       radial-gradient(circle at 1px 1px, rgba(255,255,255,.035) 1px, transparent 0) 0 0 / 22px 22px,
       var(--bg);
@@ -82,7 +80,6 @@
   .edge-badge text { font-size: 10px; font-weight: 700; fill: #0e1116; text-anchor: middle; }
   .edge-group.faded { opacity: .28; }
 
-  /* ---- Right: detail ---- */
   .detail { background: var(--bg-soft); border-left: 1px solid var(--border); overflow-y: auto; }
   .detail-inner { padding: 18px; }
   .detail h2 { font-size: 16px; margin: 0 0 6px; }
@@ -111,7 +108,6 @@
   .node-info ul { margin: 8px 0 0; padding-left: 18px; }
   .node-info li { font-size: 12.5px; margin: 3px 0; cursor: pointer; color: var(--accent); }
 
-  /* ---- Loader / error overlay ---- */
   .overlay {
     position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center;
     z-index: 50; padding: 24px;
@@ -157,7 +153,6 @@
 (function () {
   "use strict";
 
-  // ---- Layout constants ----
   var COL_W = 250, NODE_W = 184, NODE_H = 42, ROW_GAP = 60;
   var PAD_X = 40, PAD_TOP = 70, PAD_BOTTOM = 40;
 
@@ -167,7 +162,6 @@
   function $(sel, root) { return (root || document).querySelector(sel); }
   function el(name) { return document.createElementNS("http://www.w3.org/2000/svg", name); }
 
-  // ---------- Load JSON (separate file; helpful fallback on file://) ----------
   fetch("workflows.json", { cache: "no-store" })
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then(init)
@@ -183,7 +177,6 @@
       "<p style=\"color:var(--text-faint)\">(L'ouverture directe en <code>file://</code> est bloquée par la politique CORS des navigateurs ; les données vivent volontairement dans un fichier JSON séparé et éditable.)</p>";
   }
 
-  // ---------- Init ----------
   function init(data) {
     DATA = data;
     $("#overlay").hidden = true;
@@ -202,7 +195,6 @@
     bindSearch();
   }
 
-  // ---------- Layout: columns by layer, rows by order ----------
   function computeLayout() {
     var byLayer = {};
     DATA.layers.forEach(function (l) { byLayer[l.id] = []; });
@@ -240,7 +232,6 @@
     lg.appendChild(hint);
   }
 
-  // ---------- Graph rendering ----------
   function renderGraph() {
     var svg = $("#graph");
     svg.setAttribute("width", DATA._width);
@@ -248,13 +239,11 @@
     svg.setAttribute("viewBox", "0 0 " + DATA._width + " " + DATA._height);
     svg.innerHTML = "";
 
-    // defs: arrowheads (default + highlighted)
     var defs = el("defs");
     defs.appendChild(marker("arrow", "#5b6677"));
     defs.appendChild(marker("arrow-hi", "#ffd479"));
     svg.appendChild(defs);
 
-    // column header labels
     DATA.layers.forEach(function (l, ci) {
       var t = el("text");
       t.setAttribute("x", PAD_X + ci * COL_W + NODE_W / 2);
@@ -268,12 +257,10 @@
       svg.appendChild(t);
     });
 
-    // edge layer (drawn first, under nodes)
     var edgeLayer = el("g");
     edgeLayer.setAttribute("id", "edge-layer");
     svg.appendChild(edgeLayer);
 
-    // nodes
     DATA.nodes.forEach(function (n) {
       var p = POS[n.id];
       var g = el("g");
@@ -314,7 +301,7 @@
       svg.appendChild(g);
     });
 
-    $("#stage").addEventListener("click", function () { /* click on empty space keeps state */ });
+    $("#stage").addEventListener("click", function () { });
   }
 
   function marker(id, color) {
@@ -331,7 +318,6 @@
     return m;
   }
 
-  // Point on a node's rectangle border in the direction of (tx,ty).
   function edgePoint(id, tx, ty) {
     var p = POS[id];
     var cx = p.x + NODE_W / 2, cy = p.y + NODE_H / 2;
@@ -355,12 +341,10 @@
       var p1 = edgePoint(step.from, bcx, bcy);
       var p2 = edgePoint(step.to, acx, acy);
 
-      // control points: bow the curve sideways a touch for readability
       var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
       var dx = p2.x - p1.x, dy = p2.y - p1.y;
       var len = Math.sqrt(dx * dx + dy * dy) || 1;
       var bow = Math.min(40, len * 0.18);
-      // perpendicular offset, alternating per step to reduce overlap
       var ox = -dy / len * bow * (i % 2 === 0 ? 1 : -1);
       var oy = dx / len * bow * (i % 2 === 0 ? 1 : -1);
       var cx = mx + ox, cy = my + oy;
@@ -378,7 +362,6 @@
       path.setAttribute("marker-end", "url(#arrow-hi)");
       g.appendChild(path);
 
-      // numbered badge at curve midpoint (t=0.5 of quadratic)
       var bx = 0.25 * p1.x + 0.5 * cx + 0.25 * p2.x;
       var by = 0.25 * p1.y + 0.5 * cy + 0.25 * p2.y;
       var badge = el("g");
@@ -405,14 +388,12 @@
     });
   }
 
-  // ---------- Selection: flow ----------
   function selectFlow(id) {
     activeFlowId = id;
     activeStepIndex = null;
     var flow = DATA.flows.filter(function (f) { return f.id === id; })[0];
     if (!flow) return;
 
-    // highlight buttons
     Array.prototype.forEach.call(document.querySelectorAll(".flow-btn"), function (b) {
       b.classList.toggle("active", b.getAttribute("data-id") === id);
     });
@@ -447,7 +428,6 @@
     }
   }
 
-  // ---------- Selection: node (show flows that pass through it) ----------
   function selectNode(id) {
     var node = NODE_BY_ID[id];
     var related = DATA.flows.filter(function (f) {
@@ -484,7 +464,6 @@
     });
   }
 
-  // ---------- Detail panel (flow) ----------
   function renderFlowDetail(flow) {
     var html = '<span class="cat-tag">' + esc(flow.category) + "</span>";
     html += "<h2>" + esc(flow.title) + "</h2>";
@@ -532,7 +511,6 @@
     });
   }
 
-  // ---------- Flow list + search ----------
   function renderFlowList(flows) {
     var wrap = $("#flow-list");
     wrap.innerHTML = "";
@@ -565,7 +543,6 @@
       Array.prototype.forEach.call(document.querySelectorAll(".flow-btn"), function (b) {
         b.style.display = (!q || b.getAttribute("data-text").indexOf(q) !== -1) ? "" : "none";
       });
-      // hide empty category headers
       Array.prototype.forEach.call(document.querySelectorAll(".cat"), function (h) {
         var n = h.nextElementSibling, vis = false;
         while (n && n.classList.contains("flow-btn")) {
@@ -577,7 +554,6 @@
     });
   }
 
-  // ---------- utils ----------
   function clip(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }

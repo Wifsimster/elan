@@ -8,7 +8,6 @@ import { SettingCardHeader } from '@/components/setting-card-header';
 import { useHeartRate } from '@/hooks/use-heart-rate';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Carte Réglages : appairage et état de la ceinture cardiaque (BLE). */
 export function HeartRateCard() {
   const theme = useTheme();
   const hr = useHeartRate();
@@ -28,8 +27,6 @@ export function HeartRateCard() {
           onPress={hr.disconnect}
         />
       ) : hr.status === 'scanning' ? (
-        // Bouton « Stop » pendant le scan (plutôt que désactivé) : la radio ne
-        // reste pas à balayer si l'utilisateur change d'avis.
         <Button
           title="Arrêter la recherche"
           icon="bluetooth-off"
@@ -86,7 +83,6 @@ export function HeartRateCard() {
   );
 }
 
-/** Ligne d'état de la ceinture : pastille colorée + libellé + FC live si connectée. */
 function HrStatusLine() {
   const theme = useTheme();
   const { status, bpm, device } = useHeartRate();

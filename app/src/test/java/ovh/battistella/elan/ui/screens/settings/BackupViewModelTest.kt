@@ -51,7 +51,6 @@ class BackupViewModelTest {
         db.close()
     }
 
-    /** État courant après propagation des flux (combine sur le dispatcher de test). */
     private fun TestScope.ui(vm: BackupViewModel): BackupUi {
         advanceUntilIdle()
         return vm.ui.value
@@ -79,7 +78,6 @@ class BackupViewModelTest {
         advanceUntilIdle()
         assertTrue(ui(vm).ready)
         assertEquals("elan", ui(vm).config.bucket)
-        // Un patch vide n'est pas transmis.
         vm.update(BackupPatch())
         advanceUntilIdle()
         assertEquals(2, port.patches.size)
@@ -87,7 +85,6 @@ class BackupViewModelTest {
 
     @Test
     fun `saisie - le champ suit la frappe pendant l'écriture, puis le persisté reprend la main`() = runTest(mainDispatcher.dispatcher) {
-        // Port dont chaque écriture attend un feu vert : simule l'aller-retour Room.
         val gate = CompletableDeferred<Unit>()
         val port = object : FakeBackupPort() {
             override suspend fun updateConfig(patch: BackupPatch) {
@@ -101,7 +98,6 @@ class BackupViewModelTest {
         vm.update(BackupPatch(endpoint = "ht"))
         vm.update(BackupPatch(bucket = "e"))
         advanceUntilIdle()
-        // Rien n'est encore persisté, mais l'écran montre déjà la saisie complète.
         assertEquals("", port.state.value.endpoint)
         assertEquals("ht", ui(vm).config.endpoint)
         assertEquals("e", ui(vm).config.bucket)
@@ -126,7 +122,6 @@ class BackupViewModelTest {
         assertEquals("https://minio.lan", ui(vm).config.endpoint)
         assertEquals("SK", ui(vm).config.secretAccessKey)
         assertTrue(ui(vm).ready)
-        // `enabled` n'est jamais renseigné par un QR.
         assertFalse(ui(vm).config.enabled)
         vm.dismissDialog()
 
@@ -195,7 +190,6 @@ class BackupViewModelTest {
         advanceUntilIdle()
         assertEquals(1, port.restores)
         assertEquals(BackupDialog.RestoreDone(12), ui(vm).dialog)
-        // Pas d'activation automatique depuis les Réglages.
         assertTrue(port.patches.none { it.enabled == true })
     }
 
@@ -244,7 +238,6 @@ class BackupViewModelTest {
         assertEquals("SK", ui(vm).config.secretAccessKey)
         assertFalse(ui(vm).secretsMissing)
         assertTrue(ui(vm).ready)
-        // Les secrets ne vont jamais dans la table `settings`.
         assertFalse(repos.settings.getSetting(SettingsRepository.Keys.BACKUP_S3)!!.contains("SK"))
     }
 }

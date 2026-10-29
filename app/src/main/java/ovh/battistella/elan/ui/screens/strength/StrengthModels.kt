@@ -1,7 +1,3 @@
-// Modèle local de la séance muscu en cours (port de `Exercise`/`SetRow` de
-// `muscu.tsx`) et sa (dé)sérialisation JSON pour le brouillon `muscu_draft`.
-// Le format JSON reprend les clés de l'app d'origine pour qu'un brouillon
-// importé de l'ancienne base soit repris tel quel.
 package ovh.battistella.elan.ui.screens.strength
 
 import org.json.JSONArray
@@ -29,28 +25,20 @@ data class StrengthExercise(
     val id: String,
     val name: String,
     val sets: List<SetRow>,
-    /** Cible issue d'un programme, ex. « 3 × 8-12 / bras » (absente en saisie libre). */
     val target: String? = null,
-    /** Unité des reps : « sec » pour le gainage chronométré, « reps » sinon. */
     val repUnit: String = "reps",
-    /** Dernière charge enregistrée pour cet exercice (amorce de progression). */
     val lastWeight: Double? = null,
     val howTo: String? = null,
     val muscles: List<String> = emptyList(),
-    /** Glyphe MDI illustrant le mouvement. */
     val icon: String? = null,
-    /** Clé d'illustration photo (paire départ → fin). */
     val imageKey: String? = null,
-    /** Ressenti d'effort noté pendant la séance. */
     val difficulty: Difficulty? = null,
-    /** Ajustement appliqué par la progression auto au pré-remplissage (kg ou s ; 0 = aucun). */
     val bump: Double = 0.0,
     val bumpKind: ProgressKind? = null,
 ) {
     fun toStats(): StatsExercise = StatsExercise(sets.map { StatsSet(it.reps, it.weightKg, it.done) })
 }
 
-/** Exercices de saisie rapide (chips sous le champ libre). */
 val COMMON_EXERCISES: List<String> = listOf(
     "Développé couché",
     "Squat",
@@ -62,22 +50,18 @@ val COMMON_EXERCISES: List<String> = listOf(
     "Dips",
 )
 
-/** Série par défaut d'un exercice saisi à la main. */
 val DEFAULT_SET = SetRow(reps = 10, weightKg = 20.0)
 
 private val uid = AtomicLong(0)
 
-/** Identifiant local frais (jamais persisté tel quel : régénéré à la reprise d'un brouillon). */
 fun nextExerciseId(): String = "e${uid.getAndIncrement()}"
 
-/** Indice « progression auto » sous le nom, ex. « Auto : +2,5 kg cette semaine ». */
 fun bumpHint(bump: Double, kind: ProgressKind?): String {
     val unit = if (kind == ProgressKind.TIME) "s" else "kg"
     val amount = if (kind == ProgressKind.TIME) abs(bump).roundToInt().toString() else fmtKg(abs(bump))
     return if (bump > 0) "Auto : +$amount $unit cette semaine" else "Allégé : −$amount $unit cette semaine"
 }
 
-/** Exercice de séance depuis un exercice de programme et sa cible pré-calculée. */
 fun exerciseFromTemplate(ex: TemplateExercise, target: ExerciseTarget): StrengthExercise = StrengthExercise(
     id = nextExerciseId(),
     name = ex.name,
@@ -93,11 +77,6 @@ fun exerciseFromTemplate(ex: TemplateExercise, target: ExerciseTarget): Strength
     sets = List(ex.sets) { SetRow(target.reps, target.weightKg) },
 )
 
-/**
- * Exercice de séance depuis une fiche du catalogue : reps, séries et charge
- * pré-remplis depuis la recommandation, la dernière charge enregistrée primant
- * si elle existe (continuité de la progression).
- */
 fun exerciseFromCatalog(ex: CatalogExercise, profile: RecoProfile, lastWeight: Double?): StrengthExercise {
     val rec = recommend(profile, ex)
     val reps = ((rec.repsMin + rec.repsMax) / 2.0).roundToInt()
@@ -117,11 +96,8 @@ fun exerciseFromCatalog(ex: CatalogExercise, profile: RecoProfile, lastWeight: D
     )
 }
 
-/** Exercice saisi à la main : une série 10 × 20 kg. */
 fun exerciseFromName(name: String): StrengthExercise =
     StrengthExercise(id = nextExerciseId(), name = name, sets = listOf(DEFAULT_SET))
-
-// ---- JSON du brouillon --------------------------------------------------
 
 fun StrengthExercise.toJson(): JSONObject {
     val o = JSONObject()
@@ -148,7 +124,6 @@ fun StrengthExercise.toJson(): JSONObject {
 fun exercisesToJson(exercises: List<StrengthExercise>): JSONArray =
     JSONArray().also { arr -> exercises.forEach { arr.put(it.toJson()) } }
 
-/** Relit un exercice du brouillon ; `null` si mal formé. L'id est régénéré (compteur repassé à 0 au redémarrage). */
 fun exerciseFromJson(o: JSONObject): StrengthExercise? {
     val name = o.optString("name", "")
     if (name.isEmpty()) return null

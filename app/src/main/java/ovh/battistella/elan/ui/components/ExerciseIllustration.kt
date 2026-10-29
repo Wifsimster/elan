@@ -35,15 +35,6 @@ import ovh.battistella.elan.ui.theme.ElanGradients
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
-/**
- * Illustration d'un mouvement (port de `exercise-illustration.tsx`) : photos
- * « Départ » → flèche → « Fin » quand elles existent, sinon icône 72 dp sur un
- * dégradé muscu (132 dp). Photos domaine public bundlées : aucun réseau.
- *
- * @param imageKey clé d'illustration (paire départ → fin), résolue localement
- * @param icon glyphe MDI de repli (nom d'origine, résolu via [MdiIcons.byName])
- * @param height hauteur des vignettes photo (le repli garde sa propre hauteur)
- */
 @Composable
 fun ExerciseIllustration(
     imageKey: String?,
@@ -89,7 +80,6 @@ fun ExerciseIllustration(
     }
 }
 
-/** Une vignette : photo cadrée + libellé d'étape en surimpression. */
 @Composable
 private fun HeroPhoto(@DrawableRes res: Int, label: String, height: Dp, modifier: Modifier = Modifier) {
     val colors = ElanTheme.colors
@@ -115,7 +105,6 @@ private fun HeroPhoto(@DrawableRes res: Int, label: String, height: Dp, modifier
                 .background(colors.scrim, RoundedCornerShape(Radius.pill))
                 .padding(horizontal = 10.dp, vertical = 4.dp),
         ) {
-            // Blanc fixe : le voile [scrim] est noir dans les deux thèmes.
             Text(label.uppercase(), style = ElanType.overline, color = Color.White)
         }
     }

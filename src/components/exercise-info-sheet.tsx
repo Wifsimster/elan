@@ -13,46 +13,29 @@ import { ExerciseIllustration } from '@/components/exercise-illustration';
 import { Motion, Radius, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Données d'illustration d'un exercice affichées dans la fiche. */
 export type ExerciseInfo = {
   name: string;
-  /** Glyphe MaterialCommunityIcons illustrant le mouvement (repli sans photo). */
   icon?: string;
-  /** Clé d'illustration photo (paire départ → fin), résolue localement. */
   imageKey?: string;
-  /** Groupes musculaires sollicités, en pastilles. */
   muscles?: string[];
-  /** Explication « comment faire ». */
   howTo?: string;
 };
 
 type Props = {
-  /** Exercice à présenter ; `null` ferme la fiche. */
   exercise: ExerciseInfo | null;
   onClose: () => void;
 };
 
-/** Seuil de glissement (px) au-delà duquel le geste ferme la fiche. */
 const DISMISS_THRESHOLD = 120;
 
-/**
- * Bottom sheet illustrée détaillant un exercice : héros en dégradé avec une
- * icône du mouvement, muscles ciblés en pastilles et explication. Glisser la
- * poignée vers le bas ou toucher le voile la referme. 100 % local (icône +
- * dégradé SVG), conforme au design system PULSE.
- */
 export function ExerciseInfoSheet({ exercise, onClose }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  // Borne le défilement à la hauteur dispo : en paysage l'écran est court, un
-  // maxHeight fixe ferait déborder la fiche au-delà du voile.
   const { height: windowHeight } = useWindowDimensions();
   const translateY = useSharedValue(0);
 
   const visible = exercise != null;
 
-  // Referme en remettant la fiche en position haute : le shared value persiste
-  // entre les montages, on le réinitialise donc pour la prochaine ouverture.
   const handleClose = useCallback(() => {
     // eslint-disable-next-line react-hooks/immutability
     translateY.value = 0;
@@ -61,7 +44,6 @@ export function ExerciseInfoSheet({ exercise, onClose }: Props) {
 
   const pan = Gesture.Pan()
     .onChange((e) => {
-      // On ne suit le doigt que vers le bas.
       // eslint-disable-next-line react-hooks/immutability
       translateY.value = Math.max(0, translateY.value + e.changeY);
     })
@@ -96,9 +78,7 @@ export function ExerciseInfoSheet({ exercise, onClose }: Props) {
                 overflow: 'hidden',
               },
             ]}>
-            {/* Empêche la propagation du tap au voile (sinon fermeture). */}
             <Pressable onPress={(e) => e.stopPropagation()}>
-              {/* Poignée de glissement : zone de drag pour refermer. */}
               <GestureDetector gesture={pan}>
                 <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 4 }}>
                   <View
@@ -112,8 +92,6 @@ export function ExerciseInfoSheet({ exercise, onClose }: Props) {
                 </View>
               </GestureDetector>
 
-              {/* Héros illustré : photos départ → fin du mouvement, ou icône en
-                  repli si l'exercice n'a pas d'illustration bundlée. */}
               <View style={{ margin: 16 }}>
                 <ExerciseIllustration imageKey={exercise.imageKey} icon={exercise.icon} />
               </View>

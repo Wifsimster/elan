@@ -1,7 +1,3 @@
-// Client S3 minimal (PUT / GET d'un objet) sur OkHttp, signé SigV4 — port de
-// `putObject` / `getObject` de `src/lib/s3.ts`. Le corps est un fichier lu et
-// écrit en flux : une sauvegarde de plusieurs dizaines de Mo ne passe jamais
-// entière en mémoire.
 package ovh.battistella.elan.data.remote
 
 import kotlinx.coroutines.CoroutineDispatcher
@@ -27,17 +23,12 @@ class S3Client @Inject constructor(
     private val clock: Clock,
     private val io: CoroutineDispatcher,
 ) {
-    /**
-     * Délai d'expiration (connexion, lecture, écriture) : un NAS injoignable ne
-     * doit pas laisser la sauvegarde bloquée « en cours » indéfiniment.
-     */
     private val client: OkHttpClient = http.newBuilder()
         .connectTimeout(REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)
         .readTimeout(REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)
         .writeTimeout(REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)
         .build()
 
-    /** Téléverse `file` comme objet JSON dans le bucket. Lève [S3Exception] en cas d'échec. */
     suspend fun putObject(config: S3Config, file: File): Unit = withContext(io) {
         val payloadHash = sha256HexOf(file)
         val signed = S3Signer.sign(config, S3Method.PUT, payloadHash, clock.instant())
@@ -55,11 +46,6 @@ class S3Client @Inject constructor(
         }
     }
 
-    /**
-     * Télécharge l'objet dans `dest` et le renvoie, ou `null` s'il n'existe pas
-     * (404) — sauf si c'est le bucket qui manque, auquel cas l'utilisateur doit
-     * corriger sa config ([S3Exception]).
-     */
     suspend fun getObject(config: S3Config, dest: File): File? = withContext(io) {
         val signed = S3Signer.sign(config, S3Method.GET, S3Signer.EMPTY_SHA256, clock.instant())
         val request = Request.Builder()
@@ -91,7 +77,6 @@ class S3Client @Inject constructor(
         }
     }
 
-    /** Exécute la requête ; un échec réseau (jamais de réponse) devient un [S3Exception] traduit. */
     private fun execute(request: Request): Response = try {
         client.newCall(request).execute()
     } catch (e: IOException) {
@@ -111,7 +96,6 @@ class S3Client @Inject constructor(
         return S3Signer.toHex(md.digest())
     }
 
-    /** Corps de requête lu en flux depuis un fichier (longueur connue, pas de chunked). */
     private class FileBody(private val file: File) : RequestBody() {
         override fun contentType() = JSON
         override fun contentLength(): Long = file.length()

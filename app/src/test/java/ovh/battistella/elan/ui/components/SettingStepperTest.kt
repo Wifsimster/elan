@@ -59,7 +59,6 @@ class SettingStepperTest {
 
         compose.onNodeWithContentDescription("Augmenter Poids").performClick()
         assertEquals(200, last)
-        // Au plafond, le bouton « plus » est inerte.
         compose.onNodeWithContentDescription("Augmenter Poids").assertIsNotEnabled().performClick()
         assertEquals(200, last)
         compose.onNodeWithContentDescription("Poids : 200 kg").assertIsDisplayed()

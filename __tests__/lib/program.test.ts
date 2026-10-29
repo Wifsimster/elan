@@ -1,4 +1,3 @@
-// Tests pour les utilitaires du programme muscu (templates, planning, helpers).
 import {
   DEFAULT_WEEK_PLAN,
   TEMPLATES,
@@ -33,7 +32,6 @@ describe('templateById', () => {
 });
 
 describe('planForDay', () => {
-  // Convention : 0=dimanche (Date.getDay()), index interne 0=lundi.
   it('lundi (1) → vélo', () => {
     expect(planForDay(1).kind).toBe('velo');
   });
@@ -114,8 +112,8 @@ describe('isValidWeekPlan', () => {
   it('rejette autre chose qu’un tableau de 7 entrées', () => {
     expect(isValidWeekPlan(null)).toBe(false);
     expect(isValidWeekPlan('repos')).toBe(false);
-    expect(isValidWeekPlan([{ kind: 'repos' }])).toBe(false); // trop court
-    expect(isValidWeekPlan(Array(8).fill({ kind: 'repos' }))).toBe(false); // trop long
+    expect(isValidWeekPlan([{ kind: 'repos' }])).toBe(false);
+    expect(isValidWeekPlan(Array(8).fill({ kind: 'repos' }))).toBe(false);
   });
 
   it('accepte une muscu pour chacun des templates connus', () => {
@@ -162,7 +160,7 @@ describe('defaultReps', () => {
   });
 
   it('plage symétrique impaire arrondie au plus proche', () => {
-    expect(defaultReps({ ...base, repsMin: 5, repsMax: 8 })).toBe(7); // 6.5 → 7
+    expect(defaultReps({ ...base, repsMin: 5, repsMax: 8 })).toBe(7);
   });
 
   it('min = max → renvoie cette valeur', () => {

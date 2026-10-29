@@ -54,35 +54,23 @@ import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
-/** Ce que l'accueil affiche, chargé au focus comme l'écran d'origine. */
 data class HomeUi(
     val loaded: Boolean = false,
-    /** Instant du chargement (ms epoch) : référence des libellés relatifs. */
     val now: Long = 0L,
     val stats: PeriodStats? = null,
     val lastStats: PeriodStats? = null,
     val bars: List<DayBar> = emptyList(),
     val recent: List<Session> = emptyList(),
-    /** Une séance muscu est en pause : « Reprendre » plutôt que « Muscu ». */
     val resumable: Boolean = false,
-    /** Séance prévue aujourd'hui par le planning effectif. */
     val today: PlannedSession = PlannedSession.Repos,
-    /** `Date.getDay()` JS du jour (0 = dimanche) — pour le nom du jour. */
     val jsDay: Int = 0,
     val goals: List<GoalProgress> = emptyList(),
-    /** Bannière de progression auto à afficher (semaine courante, non masquée, avec changements). */
     val planUpdate: AutoProgressionState? = null,
-    /** Profil pré-rempli de l'onboarding ; `null` = onboarding déjà fait. */
     val onboarding: Profile? = null,
 )
 
-/** Pastille cardio de l'en-tête. */
 data class HeartUi(val bpm: Int? = null, val connected: Boolean = false)
 
-/**
- * Tendance d'une métrique par rapport à la semaine précédente : « stable »
- * neutre, sinon `+`/`−` suivi de la différence formatée.
- */
 internal fun buildTrend(current: Double, previous: Double, stable: String, fmt: (Double) -> String): Trend {
     val delta = current - previous
     if (delta == 0.0) return Trend(stable, Tone.Neutral)
@@ -90,7 +78,6 @@ internal fun buildTrend(current: Double, previous: Double, stable: String, fmt: 
     return Trend("$sign${fmt(abs(delta))}", if (delta > 0) Tone.Positive else Tone.Negative)
 }
 
-/** Noms des jours indexés comme `Date.getDay()` (0 = dimanche). */
 internal val WEEKDAYS_FR = listOf("dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi")
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -105,8 +92,6 @@ class HomeViewModel @Inject constructor(
     private val progression: AutoProgressionRunner,
 ) : ViewModel() {
 
-    // Un tick par (re)prise de l'écran : rejoue les lectures en base, comme le
-    // `useFocusEffect` d'origine. Les réglages, eux, arrivent en flux.
     private val refreshTick = MutableStateFlow(0)
 
     val ui: StateFlow<HomeUi> = combine(settings.settings, refreshTick) { s, _ -> s }
@@ -117,11 +102,6 @@ class HomeViewModel @Inject constructor(
         HeartUi(bpm, connected)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HeartUi())
 
-    /**
-     * À chaque (re)prise de l'écran : évaluation hebdomadaire de la progression
-     * auto (idempotente, best-effort — son écriture éventuelle rejoue le flux de
-     * réglages) puis relecture des séances.
-     */
     fun refresh() {
         viewModelScope.launch {
             try {
@@ -138,8 +118,6 @@ class HomeViewModel @Inject constructor(
     private suspend fun load(s: ElanSettings): HomeUi {
         val now = clock.millis()
         val weekStart = startOfWeekMs(now)
-        // Début de la semaine PRÉCÉDENTE par re-floor local (robuste aux
-        // changements d'heure), plutôt qu'un `weekStart − 168 h` fixe.
         val prevWeekStart = startOfWeekMs(weekStart - 43_200_000L)
         val stats = sessions.statsSince(weekStart)
         val lastStats = sessions.statsBetween(prevWeekStart, weekStart)
@@ -164,13 +142,11 @@ class HomeViewModel @Inject constructor(
         )
     }
 
-    /** Valeur réalisée d'un objectif sur sa période courante (`measureGoal` d'origine). */
     private suspend fun measureGoal(goal: Goal, now: Long): Double {
         val range = periodRange(goal.period, now)
         val type = goalActivityType(goal.activity)
         return when (goal.metric) {
             GoalMetric.SESSIONS -> sessions.statsBetween(range.fromMs, range.toMs, type).sessionCount.toDouble()
-            // km arrondis au dixième, cohérent avec l'affichage des distances.
             GoalMetric.DISTANCE -> {
                 val m = sessions.statsBetween(range.fromMs, range.toMs, type).totalDistanceM
                 (m / 1000 * 10).roundToLong() / 10.0
@@ -187,7 +163,6 @@ class HomeViewModel @Inject constructor(
         GoalActivity.MUSCU -> ActivityType.MUSCU
     }
 
-    /** « C'est parti » : fusionne les valeurs saisies avec le profil courant et marque l'onboarding fait. */
     fun finishOnboarding(weightKg: Int, heightCm: Int, maxHr: Int, goal: TrainingGoal) {
         viewModelScope.launch {
             val base = settings.getProfile()
@@ -205,18 +180,12 @@ class HomeViewModel @Inject constructor(
 
     private val _restoreOpen = MutableStateFlow(false)
 
-    /** Feuille « J'ai déjà une sauvegarde » ouverte par-dessus l'onboarding. */
     val restoreOpen: StateFlow<Boolean> = _restoreOpen.asStateFlow()
 
     fun requestRestore() = _restoreOpen.update { true }
 
     fun closeRestore() = _restoreOpen.update { false }
 
-    /**
-     * Restauration terminée : le snapshot contient le profil et, en général,
-     * `onboarding_done` ; on le force quand même (sauvegarde antérieure à
-     * l'onboarding) pour ne pas redemander un profil qui vient d'être rechargé.
-     */
     fun restoreFinished(count: Int) {
         viewModelScope.launch {
             settings.setOnboardingDone(true)
@@ -226,7 +195,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** `close` sur la bannière de progression : masquée jusqu'à la prochaine évaluation. */
     fun dismissPlanUpdate() {
         viewModelScope.launch {
             val current = settings.snapshot().autoProgressionState

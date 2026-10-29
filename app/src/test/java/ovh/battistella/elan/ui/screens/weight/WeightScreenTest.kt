@@ -98,14 +98,13 @@ class WeightScreenTest {
         compose.setContent { ElanTheme { WeightScreen(contentPadding = PaddingValues(), viewModel = vm()) } }
         compose.waitForIdle()
 
-        compose.onAllNodesWithText("77,2 kg").assertCountEquals(2) // métrique « Actuel » + ligne du journal
-        compose.onNodeWithText("−2,8 kg").assertIsDisplayed() // 30 jours : vs la pesée d'il y a 40 j
-        compose.onNodeWithText("−4,8 kg").assertIsDisplayed() // depuis le début
+        compose.onAllNodesWithText("77,2 kg").assertCountEquals(2)
+        compose.onNodeWithText("−2,8 kg").assertIsDisplayed()
+        compose.onNodeWithText("−4,8 kg").assertIsDisplayed()
         compose.onNodeWithText(text(R.string.weight_since_start)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.weight_evolution)).assertIsDisplayed()
         compose.onNodeWithContentDescription("Poids : minimum 77,2, maximum 82", substring = true).assertExists()
 
-        // Ligne de journal : delta vs la pesée précédente (−0,8) et suppression.
         compose.onNodeWithText("−1,3 kg").assertExists()
         compose.onNodeWithContentDescription(text(R.string.weight_delete_a11y, formatDateTime(now, true))).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.weight_delete_title)).assertIsDisplayed()

@@ -1,4 +1,3 @@
-// Tests de la reconstruction des agrégats d'une sortie depuis ses points.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -26,7 +25,6 @@ class SessionAggregateTest {
 
     @Test
     fun `recalcule durée, distance et vitesse max plausibles`() {
-        // ~15,7 m entre deux points à 0,0002° de longitude sur 1 s → mouvement. On roule 10 s.
         val points = (0..10).map { i ->
             P(ts = i * 1000L, lon = 2.35 + i * 0.0002, speedKmh = 30.0, hr = 140.0 + (i % 3), cadence = 85.0)
         }
@@ -46,7 +44,7 @@ class SessionAggregateTest {
         val agg = aggregateFromPoints(
             listOf(
                 P(ts = 0, speedKmh = 25.0),
-                P(ts = 1000, lon = 2.3502, speedKmh = 500.0), // aberrant
+                P(ts = 1000, lon = 2.3502, speedKmh = 500.0),
                 P(ts = 2000, lon = 2.3504, speedKmh = 28.0),
             ),
         )!!
@@ -55,7 +53,6 @@ class SessionAggregateTest {
 
     @Test
     fun `ne crédite pas la distance à l'arrêt (dérive GPS)`() {
-        // Points quasi immobiles avec vitesse Doppler nulle : pas de distance.
         val agg = aggregateFromPoints(
             listOf(
                 P(ts = 0, speedKmh = 0.0),
@@ -71,7 +68,6 @@ class SessionAggregateTest {
         val avec = aggregateFromPoints(
             listOf(P(ts = 0, altitude = 100.0), P(ts = 1000, altitude = 100.5), P(ts = 2000, altitude = 103.0), P(ts = 3000, altitude = 101.0)),
         )!!
-        // 100 → 100,5 (bruit ignoré), 100,5 → 103 (+2,5), 103 → 101 (descente) : 2,5 arrondi à 3 (Math.round demi-supérieur).
         assertEquals(3.0, avec.elevationGainM!!, 0.0)
         val sans = aggregateFromPoints(listOf(P(ts = 0), P(ts = 1000)))!!
         assertNull(sans.elevationGainM)

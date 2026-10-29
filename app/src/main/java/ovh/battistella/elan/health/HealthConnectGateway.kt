@@ -1,7 +1,3 @@
-// Passerelle vers le SDK Health Connect (androidx.health.connect:connect-client).
-// L'interface isole le SDK pour que `HealthConnectManager` se teste avec une
-// passerelle factice ; `AndroidHealthConnectGateway` traduit les
-// `HealthRecordSpec` purs en `Record` androidx.
 package ovh.battistella.elan.health
 
 import android.content.Context
@@ -25,31 +21,23 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.reflect.KClass
 
-/** Disponibilité du fournisseur Health Connect sur l'appareil. */
 enum class HealthSdkStatus {
-    /** Prêt : les permissions peuvent être demandées et les enregistrements écrits. */
     AVAILABLE,
 
-    /** Le fournisseur (app Health Connect) est absent ou trop ancien : à installer / mettre à jour. */
     UPDATE_REQUIRED,
 
-    /** Aucun fournisseur possible sur cet appareil. */
     UNAVAILABLE,
 }
 
 interface HealthConnectGateway {
     fun sdkStatus(): HealthSdkStatus
 
-    /** Permissions Health Connect accordées à Élan (chaînes `android.permission.health.*`). */
     suspend fun grantedPermissions(): Set<String>
 
-    /** Contrat système de demande de permissions (entrée : permissions voulues, sortie : accordées). */
     fun requestPermissionContract(): ActivityResultContract<Set<String>, Set<String>>
 
-    /** Insère UN enregistrement (le SDK exige un seul type par appel). */
     suspend fun insert(spec: HealthRecordSpec)
 
-    /** Supprime par identifiants client ; inoffensif si aucun n'existe. */
     suspend fun deleteByClientIds(type: HealthRecordType, clientIds: List<String>)
 }
 
@@ -87,12 +75,6 @@ class AndroidHealthConnectGateway @Inject constructor(
         HealthRecordType.HEART_RATE -> HeartRateRecord::class
     }
 
-    /**
-     * Traduction d'un enregistrement pur en `Record` androidx. Métadonnées :
-     * enregistré activement par le téléphone, `clientRecordId` stable et
-     * `clientRecordVersion = 0` — un ré-export réécrit au lieu de dupliquer.
-     * Les décalages horaires sont ceux de l'appareil aux instants concernés.
-     */
     private fun toRecord(spec: HealthRecordSpec): Record {
         val start = Instant.ofEpochMilli(spec.startedAt)
         val end = Instant.ofEpochMilli(spec.endedAt)

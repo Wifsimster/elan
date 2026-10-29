@@ -1,15 +1,3 @@
-// Sauvetage au démarrage des séances laissées « en cours » (endedAt NULL) par
-// un crash / kill mémoire en pleine séance (port de session-recovery.ts).
-//
-// La sortie GPS écrit ses points en base au fil de l'eau (flush incrémental)
-// et crée sa séance dès le `begin()`. Si l'app est tuée avant « Terminer », la
-// séance reste orpheline : au prochain lancement on la finalise à partir de
-// ses points survivants (agrégats recalculés) plutôt que de la perdre. Une
-// séance orpheline sans point exploitable — ou une séance muscu orpheline, qui
-// se reprend via son brouillon — est purgée.
-//
-// À appeler une fois au démarrage à froid, avant qu'une nouvelle séance puisse
-// commencer (aucune séance en cours ne peut donc être balayée par erreur).
 package ovh.battistella.elan.tracking
 
 import android.content.Context
@@ -25,9 +13,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 data class RecoveryOutcome(
-    /** Sorties GPS orphelines finalisées à partir de leurs points. */
     val recovered: Int,
-    /** Séances orphelines purgées (vides, ou muscu non finalisables ici). */
     val purged: Int,
 )
 
@@ -37,17 +23,8 @@ class SessionRecovery @Inject constructor(
     private val controller: TrackingController,
     clock: Clock,
 ) {
-    /**
-     * Instant de création (au lancement du processus, avant tout écran) : une
-     * séance commencée depuis appartient à ce processus, pas à un précédent —
-     * l'interface peut démarrer une sortie avant la fin des tâches de démarrage.
-     */
     private val processStartedAt = clock.millis()
 
-    /**
-     * Récupère les séances orphelines. Best-effort : avale ses erreurs, une
-     * séance récalcitrante ne bloque pas le sauvetage des autres.
-     */
     suspend fun recoverOrphans(): RecoveryOutcome {
         var recovered = 0
         var purged = 0
@@ -81,8 +58,6 @@ class SessionRecovery @Inject constructor(
                             continue
                         }
                     }
-                    // GPS sans point exploitable, ou muscu (reprise via brouillon) :
-                    // on purge pour ne polluer ni l'historique ni les sauvegardes.
                     sessions.deleteSession(s.id)
                     purged++
                 } catch (e: CancellationException) {
@@ -99,12 +74,6 @@ class SessionRecovery @Inject constructor(
         return RecoveryOutcome(recovered, purged)
     }
 
-    /**
-     * Coupe un `TrackingService` orphelin : après un crash, un service
-     * ressuscité sans sortie en cours afficherait « Sortie en cours » sans
-     * qu'aucun écran puisse l'arrêter. No-op si une sortie est réellement en
-     * cours ou si le service ne tourne pas.
-     */
     fun reconcileOrphanService(context: Context) {
         if (controller.state.value.isLive) return
         try {

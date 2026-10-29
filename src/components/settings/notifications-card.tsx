@@ -14,7 +14,6 @@ import {
 } from '@/lib/notifications';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Carte Réglages : rappels locaux de séance (opt-in, jour + heure du planning). */
 export function NotificationsCard() {
   const theme = useTheme();
   const [cfg, setCfg] = useState<NotificationConfig>(DEFAULT_NOTIFICATION_CONFIG);

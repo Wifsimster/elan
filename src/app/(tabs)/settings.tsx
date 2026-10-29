@@ -18,11 +18,6 @@ import { Type } from '@/constants/theme';
 import { useScreenContentStyle } from '@/hooks/use-screen-layout';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Écran Réglages : se contente d'assembler les cartes de réglages, chacune
- * autonome (état + effets + accès `lib/` dans son propre composant, sous
- * `components/settings/`). L'ordre d'affichage est défini ici.
- */
 export default function SettingsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -42,7 +37,6 @@ export default function SettingsScreen() {
       <HeartRateCard />
       <CadenceSensorCard />
       <MapCard />
-      {/* Health Connect : Android uniquement (la carte renvoie null ailleurs). */}
       <HealthConnectCard />
       <ProfileCard />
       <GoalsCard />

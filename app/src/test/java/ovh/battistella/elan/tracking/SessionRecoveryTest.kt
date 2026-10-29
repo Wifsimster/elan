@@ -24,7 +24,6 @@ import ovh.battistella.elan.data.local.ElanDatabase
 import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.testing.TestSupport
 
-/** Transposition de `__tests__/lib/session-recovery.test.ts` sur la vraie base. */
 @RunWith(RobolectricTestRunner::class)
 class SessionRecoveryTest {
 
@@ -47,7 +46,6 @@ class SessionRecoveryTest {
         db.close()
     }
 
-    /** Lancement du processus : toutes les séances des tests sont antérieures. */
     private val processStart = 1_800_000_000_000L
 
     private fun recovery() =
@@ -102,9 +100,7 @@ class SessionRecoveryTest {
     @Test
     fun `la sortie démarrée par ce processus n'est ni purgée ni finalisée`() = runTest {
         val recovery = recovery()
-        // Démarrée depuis l'écran avant la fin des tâches de démarrage.
         val live = repos.sessions.createSession(ActivityType.VELO, processStart + 1_000)
-        // Id déjà connu du contrôleur, horloge système en retard.
         val tracked = repos.sessions.createSession(ActivityType.COURSE, processStart - 5_000)
         controllerState.value = OutingState(phase = OutingPhase.ACTIVE, sessionId = tracked)
 

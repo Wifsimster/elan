@@ -29,7 +29,7 @@ class ProgressionNotifierTest {
     @Test
     fun `le canal progression est d'importance par défaut`() {
         ProgressionNotifier.ensureChannel(context)
-        ProgressionNotifier.ensureChannel(context) // idempotent
+        ProgressionNotifier.ensureChannel(context)
 
         val channel = realManager.getNotificationChannel(ProgressionNotifier.CHANNEL)
         assertNotNull(channel)
@@ -54,7 +54,6 @@ class ProgressionNotifierTest {
         assertEquals("ovh.battistella.elan.MainActivity", target.component?.className)
         assertEquals("progression", target.getStringExtra(LiveNotification.EXTRA_OPEN_ROUTE))
 
-        // Une nouvelle annonce remplace la précédente.
         ProgressionNotifier.notify(context, "On lève le pied cette semaine", "Gainage planche 30 → 25 s.")
         assertEquals(1, manager.size())
     }

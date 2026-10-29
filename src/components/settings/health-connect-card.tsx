@@ -11,11 +11,6 @@ import {
 } from '@/lib/health-connect';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Carte Réglages : export opt-in des séances vers Android Health Connect. Ne
- * s'affiche que sur les plateformes où Health Connect est supporté (Android) —
- * renvoie `null` ailleurs.
- */
 export function HealthConnectCard() {
   const theme = useTheme();
   const [healthEnabled, setHealthEnabled] = useState(false);
@@ -27,8 +22,6 @@ export function HealthConnectCard() {
 
   if (!isHealthConnectSupported()) return null;
 
-  // Health Connect : opt-in. Les permissions système ne sont demandées qu'à
-  // l'activation du toggle — jamais au lancement de l'app.
   const toggleHealthConnect = async (on: boolean) => {
     if (!on) {
       setHealthEnabled(false);

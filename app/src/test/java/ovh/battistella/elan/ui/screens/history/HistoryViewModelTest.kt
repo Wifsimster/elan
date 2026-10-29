@@ -64,7 +64,6 @@ class HistoryViewModelTest {
         assertEquals(60, vm.ui.value.sessions.size)
         assertFalse(vm.ui.value.hasMore)
 
-        // Plus rien à charger : appel sans effet.
         vm.loadMore()
         advanceUntilIdle()
         assertEquals(60, vm.ui.value.sessions.size)
@@ -127,7 +126,6 @@ class HistoryViewModelTest {
 
         vm.setSearchInput("gali")
         advanceTimeBy(100)
-        // Sous les 200 ms : rien ne bouge encore.
         assertEquals(2, vm.ui.value.sessions.size)
         assertEquals("gali", vm.ui.value.searchInput)
 
@@ -137,7 +135,6 @@ class HistoryViewModelTest {
         assertEquals("col du Galibier", vm.ui.value.sessions.single().notes)
         assertTrue(vm.ui.value.filtered)
 
-        // Effacement : retour immédiat à la liste complète.
         vm.setSearchInput("")
         advanceUntilIdle()
         assertEquals(2, vm.ui.value.sessions.size)

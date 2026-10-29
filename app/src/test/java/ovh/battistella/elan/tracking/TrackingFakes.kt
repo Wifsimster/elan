@@ -9,7 +9,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 
-/** Source GPS pilotée par le test : `emit` pousse un fix au contrôleur. */
 class FakeGpsSource : GpsSource {
     val flow = MutableSharedFlow<GpsFix>()
     var enabled = true
@@ -27,10 +26,6 @@ class FakeCadence : CadenceSamples {
     override fun frames(): Flow<CscFrame> = flow
 }
 
-/**
- * Horloge calée sur le temps virtuel de l'ordonnanceur de test : `advanceTimeBy`
- * fait avancer le chrono et les horodatages de la même façon.
- */
 class SchedulerClock(
     private val scheduler: TestCoroutineScheduler,
     private val baseMs: Long,
@@ -41,10 +36,8 @@ class SchedulerClock(
     override fun withZone(zone: ZoneId): Clock = this
 }
 
-/** Degrés de latitude pour un mètre, à l'équateur comme à Paris (nord-sud). */
 const val DEG_PER_METER_LAT = 1.0 / 111_320.0
 
-/** Un fix sur une ligne plein nord depuis (48.8566, 2.3522), à `northM` mètres du départ. */
 fun fixAt(
     ts: Long,
     northM: Double,

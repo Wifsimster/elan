@@ -10,11 +10,6 @@ import { useTheme } from '@/hooks/use-theme';
 
 const DEFAULT_RECO: RecoProfile = { weightKg: 70, heightCm: 175, sex: null, goal: 'hypertrophie' };
 
-/**
- * Magasin d'exercices accessible hors séance (depuis l'accueil) : parcourir,
- * voir le détail et les charges conseillées, puis démarrer une séance avec
- * l'exercice choisi (transmis à l'écran muscu via le paramètre `add`).
- */
 export default function ExercisesScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();

@@ -36,7 +36,6 @@ class ExerciseCatalogTest {
     fun `filterCatalog - texte sur nom et muscles, rayon, matériel`() {
         assertEquals(CATALOG.size, filterCatalog("", null, null).size)
         assertTrue(filterCatalog("goblet", null, null).map { it.id } == listOf("goblet-squat"))
-        // Recherche sur un muscle, insensible à la casse.
         val glutes = filterCatalog("FESSIERS", null, null)
         assertTrue(glutes.isNotEmpty())
         assertTrue(glutes.all { ex -> ex.muscles.any { it.lowercase().contains("fessiers") } })
@@ -66,7 +65,6 @@ class ExerciseCatalogTest {
         compose.waitForIdle()
         compose.onNodeWithText("1 exercice").assertIsDisplayed()
         compose.onNodeWithText("Goblet squat").assertIsDisplayed()
-        // Reco du profil défaut : 4 × 8-12 · 21 kg.
         compose.onNodeWithText("4 × 8-12 ·").assertIsDisplayed()
         compose.onNodeWithText("21 kg").assertIsDisplayed()
 
@@ -87,7 +85,6 @@ class ExerciseCatalogTest {
         compose.onNodeWithText("$gainage exercices").assertIsDisplayed()
         compose.onNodeWithText("JAMBES").assertDoesNotExist()
 
-        // Gainage + machine : aucun résultat → état vide + « Réinitialiser les filtres ».
         compose.onNodeWithText("machine").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Aucun exercice trouvé").assertIsDisplayed()
@@ -122,7 +119,6 @@ class ExerciseCatalogTest {
 
         compose.onNodeWithText("CONSEILLÉ · OBJECTIF PRISE DE MUSCLE").assertIsDisplayed()
         compose.onNodeWithText("Repos conseillé ~90 s entre les séries.").assertIsDisplayed()
-        // Fenêtre de la feuille : l'injection tactile n'atteint pas le bouton sous Robolectric, on passe par l'action sémantique.
         compose.onNodeWithText("Ajouter à la séance").assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
         assertEquals(listOf("goblet-squat"), picked.map { it.id })

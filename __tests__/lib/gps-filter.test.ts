@@ -17,8 +17,6 @@ describe('GpsConsolidator — antiméridien', () => {
     c.process(fix({ ts: 0, lat: 0, lon: 179.9999 }));
     const r = c.process(fix({ ts: 1000, lat: 0, lon: -179.9999 }));
     expect(r.point).not.toBeNull();
-    // L'estimation doit rester au voisinage de l'antiméridien (|lon| ~180),
-    // pas retomber vers 0 (ce que produisait une innovation non enroulée).
     expect(Math.abs(r.point!.lon)).toBeGreaterThan(179);
   });
 });

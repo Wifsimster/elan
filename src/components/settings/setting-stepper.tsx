@@ -3,11 +3,6 @@ import { Pressable, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Incrémenteur numérique d'un réglage (poids, taille, FC max, heure de rappel,
- * circonférence de pneu…), borné par `min`/`max`. Partagé par les cartes de
- * l'écran Réglages.
- */
 export function SettingStepper({
   label,
   value,

@@ -78,17 +78,13 @@ class SettingsRepositoryTest {
         settings.setSetting(Keys.MAP_STYLE_URL, "http://insecure.example/style.json")
         settings.setSetting(Keys.HEALTH_CONNECT, "true")
 
-        // Tout au défaut, sauf `onboarding_done` qui n'est pas posé.
         assertEquals(ElanSettings(), current())
     }
 
     @Test
     fun `lecture tolérante champ par champ`() = runTest {
-        // Profil partiel : les champs absents gardent leur défaut (spread de l'original).
         settings.setSetting(Keys.PROFILE, """{"weightKg":78,"maxHr":188,"goal":"bogus","sex":"f"}""")
-        // Heure hors plage → 12 ; enabled non booléen → false.
         settings.setSetting(Keys.NOTIFICATIONS, """{"enabled":"yes","hour":25}""")
-        // Entrées de capteurs mal formées ignorées.
         settings.setSetting(Keys.CSC_DEVICES, """[{"id":"a","name":"Roue"},{"name":"sans id"},42]""")
         settings.setSetting(Keys.CSC_WHEEL_MM, " 2096 ")
         settings.setSetting(Keys.BACKUP_S3, """{"enabled":true,"endpoint":"https://s3.example","bucket":"b","region":"","objectKey":""}""")
@@ -117,7 +113,7 @@ class SettingsRepositoryTest {
         assertEquals("HTTPS://tiles.example/style.json", s.mapStyleUrl)
         assertTrue(s.healthConnect)
         assertEquals(200.0, s.privacyZoneM, 0.0)
-        assertEquals(15, s.restSeconds) // borné à 15..600
+        assertEquals(15, s.restSeconds)
         assertTrue(s.onboardingDone)
         assertFalse(s.autoProgression.enabled)
         assertEquals(
@@ -195,7 +191,6 @@ class SettingsRepositoryTest {
         assertEquals(90, s.restSeconds)
         assertTrue(s.onboardingDone)
 
-        // Formes stockées = celles de l'app d'origine (échangeables par sauvegarde).
         assertEquals("""{"weightKg":82.5,"heightCm":180,"maxHr":185,"goal":"force","sex":"h"}""", settings.getSetting(Keys.PROFILE))
         assertEquals("2136", settings.getSetting(Keys.CSC_WHEEL_MM))
         assertEquals("500", settings.getSetting(Keys.PRIVACY_ZONE_M))
@@ -203,7 +198,6 @@ class SettingsRepositoryTest {
         assertEquals("1", settings.getSetting(Keys.ONBOARDING_DONE))
         assertEquals("""[{"kind":"repos"},{"kind":"muscu","label":"Dos","templateId":"dos-lombaire"},{"kind":"course","label":"Footing"},{"kind":"repos"},{"kind":"muscu","label":"Full-body B","templateId":"fullbody-b"},{"kind":"marche","label":"Balade"},{"kind":"repos"}]""", settings.getSetting(Keys.WEEK_PLAN))
 
-        // Les « null » effacent la clé.
         settings.setHrDevice(null)
         settings.setCustomWeekPlan(null)
         settings.setMuscuDraft(null)
@@ -222,14 +216,11 @@ class SettingsRepositoryTest {
 
     @Test
     fun `un planning invalide retombe sur le défaut`() = runTest {
-        // Six entrées seulement.
         settings.setSetting(Keys.WEEK_PLAN, """[{"kind":"repos"},{"kind":"repos"},{"kind":"repos"},{"kind":"repos"},{"kind":"repos"},{"kind":"repos"}]""")
         assertNull(current().customWeekPlan)
         assertEquals(DEFAULT_WEEK_PLAN, current().weekPlan)
-        // Template inconnu.
         settings.setSetting(Keys.WEEK_PLAN, """[{"kind":"muscu","label":"X","templateId":"nope"},{"kind":"repos"},{"kind":"repos"},{"kind":"repos"},{"kind":"repos"},{"kind":"repos"},{"kind":"repos"}]""")
         assertEquals(DEFAULT_WEEK_PLAN, current().weekPlan)
-        // Valide : restauré d'une sauvegarde, n'importe quel template connu passe.
         settings.setSetting(Keys.WEEK_PLAN, """[{"kind":"muscu","label":"X","templateId":"cervicales"},{"kind":"velo","label":"V"},{"kind":"repos"},{"kind":"repos"},{"kind":"repos"},{"kind":"repos"},{"kind":"repos"}]""")
         assertEquals(PlannedSession.Muscu("X", TemplateId.CERVICALES), current().weekPlan[0])
         assertEquals(PlannedSession.Outing("velo", "V"), current().weekPlan[1])
@@ -245,7 +236,6 @@ class SettingsRepositoryTest {
         settings.setMapStyleUrl("https://a.example/style.json")
         val snap = settings.snapshot()
 
-        // Un autre appareil, avec sa propre config S3 et sa propre carte.
         val other = TestSupport.inMemoryDb()
         try {
             val target = TestSupport.repositories(other).settings
@@ -262,7 +252,6 @@ class SettingsRepositoryTest {
             assertEquals(BackupConfig(enabled = false, endpoint = "https://b.example", bucket = "b"), restored.backupConfig)
             assertEquals("", restored.mapStyleUrl)
 
-            // Un instantané aux défauts remet aussi les clés optionnelles à zéro.
             target.restore(ElanSettings())
             assertNull(target.settings.first().restSeconds)
             assertEquals(ElanSettings().copy(backupConfig = restored.backupConfig), target.settings.first())

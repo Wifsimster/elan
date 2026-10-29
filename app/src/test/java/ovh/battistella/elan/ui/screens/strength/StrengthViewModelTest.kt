@@ -56,7 +56,6 @@ class StrengthViewModelTest {
     private val now = 1_800_000_000_000L
     private val clock = Clock.fixed(Instant.ofEpochMilli(now), ZoneId.systemDefault())
 
-    /** Miroir Health Connect factice : enregistre ce que le finaliseur lui confie. */
     private class RecordingHealth : HealthExport {
         val exported = mutableListOf<SavedSessionData>()
         override suspend fun export(data: SavedSessionData) { exported += data }
@@ -74,7 +73,6 @@ class StrengthViewModelTest {
         db.close()
     }
 
-    /** ViewModels créés dans le test : leur chrono est arrêté en fin de test (sinon le ticker infini bloque `runTest`). */
     private val created = mutableListOf<StrengthViewModel>()
 
     private fun strengthTest(block: suspend TestScope.() -> Unit) = runTest(mainDispatcher.dispatcher) {
@@ -110,7 +108,6 @@ class StrengthViewModelTest {
         return vm
     }
 
-    /** Une séance muscu terminée avec une série « Goblet squat » notée. */
     private suspend fun seedSession(startedAt: Long, weightKg: Double, reps: Int, difficulty: Difficulty?): Long =
         repos.sessions.saveMuscuSession(
             id = null,
@@ -130,7 +127,6 @@ class StrengthViewModelTest {
         assertEquals(templateById(TemplateId.FULLBODY_A).exercises.map { it.name }, ui.exercises.map { it.name })
 
         val goblet = ui.exercises.first { it.name == "Goblet squat" }
-        // Facile la semaine passée : +2,5 kg, reps au bas de la fourchette (double progression).
         assertEquals(22.5, goblet.sets.first().weightKg, 1e-9)
         assertEquals(8, goblet.sets.first().reps)
         assertEquals(3, goblet.sets.size)
@@ -139,19 +135,16 @@ class StrengthViewModelTest {
         assertEquals(20.0, goblet.lastWeight)
         assertEquals("3 × 8-12", goblet.target)
 
-        // Sans historique : charge de départ, reps au milieu de la fourchette.
         val bench = ui.exercises.first { it.name == "Développé couché haltères" }
         assertEquals(16.0, bench.sets.first().weightKg, 1e-9)
         assertEquals(10, bench.sets.first().reps)
         assertEquals(0.0, bench.bump, 1e-9)
 
-        // Gainage : unité « sec », pas de charge.
         val plank = ui.exercises.first { it.name == "Gainage planche" }
         assertEquals("sec", plank.repUnit)
         assertEquals(0.0, plank.sets.first().weightKg, 1e-9)
         assertNull(plank.lastWeight)
 
-        // Le brouillon est écrit dès le pré-remplissage.
         assertNotNull(repos.settings.snapshot().muscuDraft)
     }
 
@@ -173,7 +166,7 @@ class StrengthViewModelTest {
         assertEquals(1, ui.exercises.size)
         val squat = ui.exercises.single()
         assertEquals("Squat", squat.name)
-        assertTrue(squat.id != "old") // id régénéré
+        assertTrue(squat.id != "old")
         assertTrue(squat.sets[0].done)
         assertFalse(squat.sets[1].done)
         assertEquals(Difficulty.MOYEN, squat.difficulty)
@@ -227,7 +220,6 @@ class StrengthViewModelTest {
         assertFalse(vm.ui.value.exercises.single().sets[0].done)
         assertNull(vm.ui.value.restEndsAt)
 
-        // ±15 : la DURÉE préférée bouge (bornée), et elle est persistée.
         vm.adjustRestPreference(15)
         runCurrent()
         assertEquals(135, vm.restDuration)
@@ -238,10 +230,9 @@ class StrengthViewModelTest {
 
     @Test
     fun `repos par défaut - repos conseillé de l'objectif, préférence hors bornes ignorée`() = strengthTest {
-        // Profil par défaut : hypertrophie → 90 s.
         assertEquals(90, vm().restDuration)
         repos.settings.setRestSeconds(5)
-        assertEquals(15, vm().restDuration) // clampé à 15
+        assertEquals(15, vm().restDuration)
     }
 
     @Test
@@ -304,7 +295,6 @@ class StrengthViewModelTest {
         assertEquals(listOf(1, 2), sets.map { it.setIndex })
         assertEquals(listOf(20.0, 62.5), sets.map { it.weightKg })
         assertEquals(listOf(10, 6), sets.map { it.reps })
-        // Ressenti dénormalisé sur chaque série.
         assertEquals(listOf(Difficulty.MOYEN, Difficulty.MOYEN), sets.map { it.difficulty })
 
         assertNull(repos.settings.snapshot().muscuDraft)
@@ -376,7 +366,6 @@ class StrengthViewModelTest {
         assertNull(repos.settings.snapshot().muscuDraft)
         assertEquals(3, events.size)
 
-        // L'écran qui se ferme rappelle onStop : la séance abandonnée ne doit pas renaître.
         vm.onStop()
         runCurrent()
         assertNull(repos.settings.snapshot().muscuDraft)
@@ -387,7 +376,6 @@ class StrengthViewModelTest {
         val vm = vm(add = "goblet-squat")
         val ex = vm.ui.value.exercises.single()
         assertEquals("Goblet squat", ex.name)
-        // Profil défaut 70 kg, hypertrophie : 0,3 × 70 × 1 = 21 → 21 kg (pas 1 kg), 4 séries de 10.
         assertEquals(4, ex.sets.size)
         assertEquals(21.0, ex.sets.first().weightKg, 1e-9)
         assertEquals(10, ex.sets.first().reps)
@@ -422,7 +410,6 @@ class StrengthViewModelTest {
         runCurrent()
         assertTrue(vm.ui.value.exercises.single().sets.isEmpty())
         runCurrent()
-        // Plus aucune série : le brouillon est effacé.
         assertNull(repos.settings.snapshot().muscuDraft)
     }
 
@@ -436,7 +423,6 @@ class StrengthViewModelTest {
         val back = exercisesFromJson(exercisesToJson(listOf(ex))).single()
         assertEquals(ex.copy(id = back.id), back)
 
-        // Brouillon de l'app d'origine : champs facultatifs absents, `done` omis.
         val legacy = JSONArray("""[{"id":"e0","name":"Tractions","sets":[{"reps":8,"weightKg":0}]}]""")
         val restored = exercisesFromJson(legacy).single()
         assertEquals("Tractions", restored.name)

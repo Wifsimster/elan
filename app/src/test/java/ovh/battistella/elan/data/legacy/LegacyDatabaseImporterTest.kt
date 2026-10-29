@@ -49,7 +49,6 @@ class LegacyDatabaseImporterTest {
     private val now = 1_726_000_000_000L
     private val clock: Clock = Clock.fixed(Instant.ofEpochMilli(now), ZoneOffset.UTC)
 
-    /** Clé AES en mémoire jouant le rôle de l'AndroidKeyStore d'expo-secure-store. */
     private val legacyKey: SecretKey = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
     private val securePrefs = context.getSharedPreferences(LegacyPaths.SECURE_STORE_PREFS, Context.MODE_PRIVATE)
 
@@ -106,8 +105,6 @@ class LegacyDatabaseImporterTest {
         securePrefs.edit().putString(if (prefixed) "${LegacySecretsReader.KEY_PREFIX}$name" else name, json).commit()
     }
 
-    // ---- import complet ------------------------------------------------------
-
     @Test
     fun `le journal WAL de la fixture n'est pas fusionné`() {
         LegacyFixture.create(context)
@@ -133,11 +130,9 @@ class LegacyDatabaseImporterTest {
         )
         assertEquals(ImportOutcome.Imported(expected), outcome)
 
-        // Comptages Room = comptages hérités (les réglages ont en plus les marqueurs).
         val actual = counts()
         assertEquals(expected.copy(settings = actual.settings), actual)
 
-        // Ids et colonnes nullables préservés.
         val velo = db.sessionDao().getById(LegacyFixture.VELO_ID)!!
         assertEquals("velo", velo.type)
         assertEquals(3_402, velo.movingTimeSec)
@@ -169,17 +164,14 @@ class LegacyDatabaseImporterTest {
 
         assertEquals(3, db.bodyMeasurementDao().list(10).size)
 
-        // Réglages copiés tels quels, onboarding forcé.
         for ((key, value) in LegacyFixture.SETTINGS) assertEquals(key, value, settings.getSetting(key))
         assertEquals("1", settings.getSetting(Keys.ONBOARDING_DONE))
         assertTrue(settings.settings.first().onboardingDone)
 
-        // Secrets rapatriés depuis expo-secure-store.
         assertEquals("AKIALEGACY", secrets.get(SecretStore.BACKUP_S3_ACCESS_KEY_ID))
         assertEquals("s3cr3t/legacy+key=", secrets.get(SecretStore.BACKUP_S3_SECRET_ACCESS_KEY))
         assertNull(settings.getSetting(Keys.BACKUP_SECRETS_MISSING))
 
-        // Dossier mis de côté, marqueurs posés.
         assertFalse(paths.sqliteDir.exists())
         assertTrue(File(paths.migratedDir, LegacyPaths.DB_NAME).isFile)
         assertFalse(File(paths.migratedDir, "${LegacyPaths.DB_NAME}-wal").exists())
@@ -188,7 +180,6 @@ class LegacyDatabaseImporterTest {
         assertEquals(expected.toJson(), settings.getSetting(Keys.LEGACY_IMPORT_COUNTS))
         assertNull(settings.getSetting(Keys.LEGACY_IMPORT_ATTEMPTS))
 
-        // Avancement : de 0 au total, en lots.
         assertEquals(0L to LegacyFixture.TOTAL_POINTS, progress.first())
         assertEquals(LegacyFixture.TOTAL_POINTS to LegacyFixture.TOTAL_POINTS, progress.last())
     }
@@ -196,7 +187,6 @@ class LegacyDatabaseImporterTest {
     @Test
     fun `les lignes encore dans le journal WAL sont importées`() = runTest {
         LegacyFixture.create(context)
-        // Le fichier principal seul ignore la dernière transaction (pesées) : on la retrouve après import.
         val walBytes = paths.walFile.length()
         assertTrue(walBytes > 0)
         val outcome = importer().runIfNeeded() as ImportOutcome.Imported
@@ -252,7 +242,6 @@ class LegacyDatabaseImporterTest {
         assertEquals(LegacyFixture.MUSCU_SETS, sets.size)
         assertTrue(sets.all { it.difficulty == null })
         assertEquals(3_402, db.sessionDao().getById(LegacyFixture.VELO_ID)!!.movingTimeSec)
-        // La colonne a bien été ajoutée à la base héritée (mise de côté).
         LegacyFixture.open(File(paths.migratedDir, LegacyPaths.DB_NAME)).use { legacy ->
             legacy.rawQuery("PRAGMA table_info(muscu_sets)", null).use { c ->
                 val names = buildSet { while (c.moveToNext()) add(c.getString(c.getColumnIndexOrThrow("name"))) }
@@ -275,9 +264,6 @@ class LegacyDatabaseImporterTest {
         assertNull(db.trackPointDao().getForSession(LegacyFixture.VELO_ID)[0].cadence)
     }
 
-    // ---- échecs --------------------------------------------------------------
-
-    /** Base Room sur fichier (`elan.db`), comme en production. */
     private fun fileDb(): ElanDatabase = Room.databaseBuilder(context, ElanDatabase::class.java, ElanDatabase.NAME)
         .allowMainThreadQueries()
         .setQueryExecutor(Executor { it.run() })
@@ -301,7 +287,6 @@ class LegacyDatabaseImporterTest {
             assertTrue(outcome.retriable)
             assertTrue(outcome.reason, outcome.reason.contains("FOREIGN KEY", ignoreCase = true))
 
-            // Base héritée intacte, toujours en place (journal fusionné, contenu conservé).
             assertTrue(paths.dbFile.isFile)
             assertFalse(paths.migratedDir.exists())
             LegacyFixture.open(paths.dbFile).use { legacy ->
@@ -311,7 +296,6 @@ class LegacyDatabaseImporterTest {
                 }
             }
 
-            // Transaction annulée : aucune ligne copiée, la ligne témoin est toujours là, l'échec est noté.
             assertEquals("1", fileSettings.getSetting("temoin"))
             assertEquals("1", fileSettings.getSetting(Keys.LEGACY_IMPORT_ATTEMPTS))
             assertNotNull(fileSettings.getSetting(Keys.LEGACY_IMPORT_ERROR))
@@ -323,7 +307,6 @@ class LegacyDatabaseImporterTest {
             assertEquals(0, fileDb.bodyMeasurementDao().getAll().size)
             assertTrue(context.getDatabasePath(ElanDatabase.NAME).isFile)
 
-            // Deuxième tentative sur la même base : le compteur avance, rien d'autre ne change.
             val again = importer(database = fileDb).runIfNeeded() as ImportOutcome.Failed
             assertEquals(2, again.attempt)
             assertEquals("2", fileSettings.getSetting(Keys.LEGACY_IMPORT_ATTEMPTS))
@@ -343,7 +326,6 @@ class LegacyDatabaseImporterTest {
         try {
             assertTrue(importer(database = fileDb).runIfNeeded() is ImportOutcome.Failed)
 
-            // Le Flow des réglages doit encore réagir aux écritures (suivi d'invalidation intact).
             val seen = mutableListOf<Int?>()
             val job = launch(Dispatchers.Unconfined) {
                 fileSettings.settings.collect { seen += it.restSeconds }
@@ -361,7 +343,6 @@ class LegacyDatabaseImporterTest {
     fun `après un échec une base héritée réparée s'importe sur la même base Room`() = runTest {
         LegacyFixture.create(context, orphanTrackPoint = true)
         assertTrue(importer().runIfNeeded() is ImportOutcome.Failed)
-        // L'utilisateur (ou un correctif) répare la base héritée : le point orphelin disparaît.
         LegacyFixture.open(paths.dbFile).use { it.execSQL("DELETE FROM track_points WHERE sessionId = 4242") }
 
         val outcome = importer().runIfNeeded()
@@ -375,7 +356,7 @@ class LegacyDatabaseImporterTest {
     @Test
     fun `sans espace disque suffisant l'import est refusé avant toute lecture`() = runTest {
         LegacyFixture.create(context)
-        freeBytes = paths.legacyBytes // il en faut strictement plus du double
+        freeBytes = paths.legacyBytes
         val outcome = importer().runIfNeeded() as ImportOutcome.Failed
         assertTrue(outcome.reason, outcome.reason.contains("espace disque"))
         assertTrue(outcome.retriable)
@@ -400,12 +381,9 @@ class LegacyDatabaseImporterTest {
         assertEquals(0, db.sessionDao().getAll().size)
     }
 
-    // ---- secrets -------------------------------------------------------------
-
     @Test
     fun `sans secrets lisibles et avec une config S3 le manque est signalé`() = runTest {
         LegacyFixture.create(context)
-        // Entrées présentes mais clé du KeyStore perdue.
         writeSecureStoreEntry(SecretStore.BACKUP_S3_ACCESS_KEY_ID, "AKIALEGACY")
         val outcome = importer(keyStore = KeyStoreAccess { null }).runIfNeeded()
         assertTrue(outcome is ImportOutcome.Imported)
@@ -447,8 +425,6 @@ class LegacyDatabaseImporterTest {
         assertNull(settings.getSetting(Keys.BACKUP_SECRETS_MISSING))
     }
 
-    // ---- abandon et purge ----------------------------------------------------
-
     @Test
     fun `markSkipped met la base de côté sans la lire`() = runTest {
         LegacyFixture.create(context)
@@ -458,7 +434,6 @@ class LegacyDatabaseImporterTest {
         assertNull(settings.getSetting(Keys.ONBOARDING_DONE))
         assertFalse(paths.sqliteDir.exists())
         assertTrue(File(paths.migratedDir, LegacyPaths.DB_NAME).isFile)
-        // Sans lecture, le journal non fusionné part avec le dossier : rien n'est perdu dans le filet.
         assertTrue(File(paths.migratedDir, "${LegacyPaths.DB_NAME}-wal").length() > 0)
         assertEquals(0, db.sessionDao().getAll().size)
         assertEquals(ImportOutcome.NothingToDo, importer().runIfNeeded())

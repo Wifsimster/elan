@@ -12,7 +12,6 @@ import ovh.battistella.elan.data.backup.BackupField.OBJECT_KEY
 import ovh.battistella.elan.data.backup.BackupField.REGION
 import ovh.battistella.elan.data.backup.BackupField.SECRET_ACCESS_KEY
 
-/** Port de `__tests__/lib/backup-qr.test.ts`. Robolectric pour `org.json`. */
 @RunWith(RobolectricTestRunner::class)
 class BackupQrTest {
 
@@ -59,7 +58,6 @@ class BackupQrTest {
             mapOf(ENDPOINT to "https://h:9000", BUCKET to "b", ACCESS_KEY_ID to "AK", OBJECT_KEY to "d/o.json"),
             parseBackupQr("s3://AK@h:9000/b/d/o.json"),
         )
-        // Un pourcentage mal formé est gardé tel quel (repli de decodeURIComponent).
         assertEquals("s%ZZ", parseBackupQr("s3://AK:s%ZZ@h/b")!![SECRET_ACCESS_KEY])
     }
 

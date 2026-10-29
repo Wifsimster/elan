@@ -7,7 +7,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
-/** Port de `__tests__/lib/strava/parse.test.ts`. */
 class GpxTcxParserTest {
 
     private fun ms(iso: String) = Instant.parse(iso).toEpochMilli()
@@ -77,7 +76,6 @@ class GpxTcxParserTest {
         assertEquals(ParsedSport.RUNNING, sport("running"))
         assertEquals(ParsedSport.WALKING, sport("walking"))
         assertEquals(ParsedSport.WALKING, sport("hiking"))
-        // Codes Garmin, sports non couverts, absence : jamais OTHER (importé en vélo, comme l'app d'origine).
         assertEquals(ParsedSport.UNKNOWN, sport("9"))
         assertEquals(ParsedSport.UNKNOWN, sport("swimming"))
         assertEquals(ParsedSport.UNKNOWN, sport(""))

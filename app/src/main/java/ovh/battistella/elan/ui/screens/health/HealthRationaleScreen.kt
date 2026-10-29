@@ -19,12 +19,6 @@ import ovh.battistella.elan.ui.screens.common.SubScreenHeader
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 
-/**
- * Justification des permissions Health Connect, ouverte par le système
- * (`androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE`) depuis l'écran des
- * permissions ou l'alias `ViewPermissionUsageActivity`. Texte seul : ce
- * qu'Élan écrit, pourquoi, et ce qu'il ne lit jamais.
- */
 @Composable
 fun HealthRationaleScreen(contentPadding: PaddingValues, onBack: () -> Unit) {
     val colors = ElanTheme.colors

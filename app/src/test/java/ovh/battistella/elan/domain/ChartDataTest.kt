@@ -1,5 +1,3 @@
-// Tests des séries de graphes : abscisse en km cumulés, points sans donnée
-// ignorés, sous-échantillonnage à 140 points + dernier.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -23,7 +21,6 @@ class ChartDataTest {
         val s = speedProfile(pts)
         assertEquals(3, s.size)
         assertEquals(0.0, s[0].x, 0.0)
-        // 0,001° de latitude ≈ 111 m par pas.
         assertEquals(0.1113, s[1].x, 0.001)
         assertEquals(2 * s[1].x, s[2].x, 1e-9)
         assertEquals(listOf(10.0, 12.0, 14.0), s.map { it.y })
@@ -35,7 +32,7 @@ class ChartDataTest {
         val s = hrProfile(pts)
         assertEquals(2, s.size)
         assertEquals(130.0, s[1].y, 0.0)
-        assertEquals(2 * 0.1113, s[1].x, 0.001) // abscisse du 3e point, pas du 2e
+        assertEquals(2 * 0.1113, s[1].x, 0.001)
     }
 
     @Test
@@ -55,7 +52,6 @@ class ChartDataTest {
         assertEquals(141, s.size)
         assertEquals(0.0, s[0].y, 0.0)
         assertEquals(299.0, s.last().y, 0.0)
-        // pas = 300/140 : i=1 → index 2, i=139 → index 297.
         assertEquals(2.0, s[1].y, 0.0)
         assertEquals(297.0, s[139].y, 0.0)
     }

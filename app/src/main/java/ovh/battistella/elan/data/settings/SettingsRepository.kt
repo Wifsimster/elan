@@ -17,54 +17,33 @@ import ovh.battistella.elan.domain.serializeGoals
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Instantané de tous les réglages utilisateur, décodé depuis la table
- * `settings`. Les défauts sont ceux d'un profil neuf.
- */
 data class ElanSettings(
     val profile: Profile = Profile(),
-    /** Ceinture cardio mémorisée (reconnexion automatique). */
     val hrDevice: BleDevice? = null,
-    /** Capteurs cadence/vitesse mémorisés (0 à 2). */
     val cscDevices: List<BleDevice> = emptyList(),
-    /** Circonférence de roue en mm (700×25c par défaut). */
     val cscWheelMm: Double = SettingsJson.DEFAULT_WHEEL_MM,
     val backupConfig: BackupConfig = BackupConfig(),
     val backupLast: BackupLast? = null,
-    /** URL HTTPS du style MapLibre, ou '' (carte hors ligne). */
     val mapStyleUrl: String = "",
     val healthConnect: Boolean = false,
     val notifications: NotificationConfig = NotificationConfig(),
-    /** Planning personnalisé valide, ou `null` → [DEFAULT_WEEK_PLAN]. */
     val customWeekPlan: List<PlannedSession>? = null,
     val goals: List<Goal> = emptyList(),
     val autoProgression: AutoProgressionConfig = AutoProgressionConfig(),
     val autoProgressionState: AutoProgressionState = AutoProgressionState(),
-    /** Séance muscu en pause, reprenable. */
     val muscuDraft: MuscuDraft? = null,
-    /** Rayon de la zone de confidentialité (m), 0 = désactivée. */
     val privacyZoneM: Double = 0.0,
-    /** Repos préféré entre séries (15..600 s), `null` = repos conseillé pour l'objectif. */
     val restSeconds: Int? = null,
     val onboardingDone: Boolean = false,
 ) {
-    /** Planning effectif : personnalisé s'il est valide, sinon le défaut. */
     val weekPlan: List<PlannedSession> get() = customWeekPlan ?: DEFAULT_WEEK_PLAN
 }
 
-/**
- * Source de vérité des réglages, dans la table `settings` (clé/valeur texte)
- * de la base — pas de DataStore : les réglages voyagent dans la sauvegarde S3
- * avec les séances, comme dans l'app d'origine. Expose le bundle en [Flow] pour
- * que toute couche réagisse aux changements, des setters typés, et l'accès brut
- * clé/valeur pour les écrans qui lisent une clé isolée.
- */
 @Singleton
 class SettingsRepository @Inject constructor(
     private val settingsDao: SettingsDao,
     private val io: CoroutineDispatcher,
 ) {
-    /** Clés de la table `settings` — celles de l'app d'origine, à l'identique. */
     object Keys {
         const val PROFILE = "profile"
         const val HR_DEVICE = "hr_device"
@@ -84,40 +63,24 @@ class SettingsRepository @Inject constructor(
         const val REST_SECONDS = "rest_seconds"
         const val ONBOARDING_DONE = "onboarding_done"
 
-        // ---- clés propres à Élan 2.0 (jamais dans l'app d'origine) ----------
-
-        /**
-         * `"1"` quand les identifiants S3 n'ont pas pu être repris de l'app
-         * d'origine alors qu'une config S3 existait : l'écran de sauvegarde
-         * invite à les ressaisir.
-         */
         const val BACKUP_SECRETS_MISSING = "backup_secrets_missing"
 
-        /** `"1"` une fois l'import de `suivi-sport.db` fait (ou sans objet). */
         const val LEGACY_IMPORT_DONE = "legacy_import_done"
 
-        /** Horodatage (ms) de la fin de l'import ; déclenche la purge à J+30. */
         const val LEGACY_IMPORT_AT = "legacy_import_at"
 
-        /** JSON des lignes importées par table (diagnostic). */
         const val LEGACY_IMPORT_COUNTS = "legacy_import_counts"
 
-        /** Nombre de tentatives d'import échouées. */
         const val LEGACY_IMPORT_ATTEMPTS = "legacy_import_attempts"
 
-        /** Raison du dernier échec d'import. */
         const val LEGACY_IMPORT_ERROR = "legacy_import_error"
 
-        /** `"1"` quand l'utilisateur a choisi de continuer sans ses anciennes données. */
         const val LEGACY_IMPORT_SKIPPED = "legacy_import_skipped"
 
-        /** `"1"` une fois les restes de l'app d'origine supprimés. */
         const val LEGACY_CLEANUP_DONE = "legacy_cleanup_done"
 
-        /** JSON du bilan du dernier import Strava (compteurs + horodatage) — propre à l'appareil. */
         const val STRAVA_LAST_IMPORT = "strava_last_import"
 
-        /** Marqueurs de migration : l'état de CET appareil, jamais d'une sauvegarde. */
         val LEGACY_KEYS: Set<String> = setOf(
             LEGACY_IMPORT_DONE,
             LEGACY_IMPORT_AT,
@@ -128,24 +91,9 @@ class SettingsRepository @Inject constructor(
             LEGACY_CLEANUP_DONE,
         )
 
-        /**
-         * Clés exclues des sauvegardes (secrets, propres à l'appareil) — ni
-         * exportées ni restaurées. `map_style_url` y figure car c'est un puits
-         * réseau sensible : une sauvegarde falsifiée pourrait y injecter un hôte
-         * qui recevrait la zone du parcours + l'IP au prochain affichage de carte.
-         * Les marqueurs de migration décrivent l'appareil, pas les données :
-         * restaurés sur un autre téléphone, ils y sauteraient l'import.
-         */
         val BACKUP_EXCLUDED: Set<String> =
             setOf(BACKUP_S3, BACKUP_LAST, MAP_STYLE_URL, BACKUP_SECRETS_MISSING, STRAVA_LAST_IMPORT) + LEGACY_KEYS
 
-        /**
-         * Clés préservées par une réinitialisation complète : la config de
-         * sauvegarde locale, pour ne pas la casser, et les marqueurs de
-         * migration (un reset ne doit pas rejouer l'import ni oublier la purge
-         * planifiée). `map_style_url` n'en fait pas partie : exclue des
-         * sauvegardes, mais bien effacée par un reset.
-         */
         val RESET_KEEP: Set<String> = setOf(BACKUP_S3, BACKUP_LAST, BACKUP_SECRETS_MISSING) + LEGACY_KEYS
     }
 
@@ -153,11 +101,8 @@ class SettingsRepository @Inject constructor(
         .map { rows -> SettingsJson.decode(rows.associate { it.key to it.value }) }
         .distinctUntilChanged()
 
-    // ---- accès brut clé/valeur ------------------------------------------
-
     suspend fun getSetting(key: String): String? = withContext(io) { settingsDao.get(key) }
 
-    /** Valeur brute d'une clé, réactive (`null` si absente). */
     fun observeSetting(key: String): Flow<String?> = settingsDao.observeAll()
         .map { rows -> rows.firstOrNull { it.key == key }?.value }
         .distinctUntilChanged()
@@ -167,18 +112,13 @@ class SettingsRepository @Inject constructor(
 
     suspend fun deleteSetting(key: String) = withContext(io) { settingsDao.delete(key) }
 
-    // ---- profil ----------------------------------------------------------
-
     suspend fun getProfile(): Profile = SettingsJson.parseProfile(getSetting(Keys.PROFILE))
 
     suspend fun saveProfile(profile: Profile) =
         setSetting(Keys.PROFILE, SettingsJson.serializeProfile(profile))
 
-    // ---- setters typés ---------------------------------------------------
-
     suspend fun setProfile(value: Profile) = saveProfile(value)
 
-    /** `null` = oublier la ceinture. */
     suspend fun setHrDevice(value: BleDevice?) =
         setOrDelete(Keys.HR_DEVICE, value?.let(SettingsJson::serializeDevice))
 
@@ -202,7 +142,6 @@ class SettingsRepository @Inject constructor(
     suspend fun setNotifications(value: NotificationConfig) =
         setSetting(Keys.NOTIFICATIONS, SettingsJson.serializeNotifications(value))
 
-    /** `null` = effacer le plan personnalisé (retour au défaut). */
     suspend fun setCustomWeekPlan(value: List<PlannedSession>?) =
         setOrDelete(Keys.WEEK_PLAN, value?.let(SettingsJson::serializeWeekPlan))
 
@@ -214,7 +153,6 @@ class SettingsRepository @Inject constructor(
     suspend fun setAutoProgressionState(value: AutoProgressionState) =
         setSetting(Keys.AUTO_PROGRESSION_STATE, SettingsJson.serializeAutoProgressionState(value))
 
-    /** `null` = brouillon effacé (séance terminée ou abandonnée). */
     suspend fun setMuscuDraft(value: MuscuDraft?) =
         setOrDelete(Keys.MUSCU_DRAFT, value?.let(SettingsJson::serializeDraft))
 
@@ -226,16 +164,8 @@ class SettingsRepository @Inject constructor(
     suspend fun setOnboardingDone(value: Boolean) =
         setOrDelete(Keys.ONBOARDING_DONE, if (value) "1" else null)
 
-    // ---- sauvegarde ------------------------------------------------------
-
-    /** Instantané ponctuel des réglages courants. */
     suspend fun snapshot(): ElanSettings = settings.first()
 
-    /**
-     * Réécrit chaque réglage depuis un instantané. Les clés exclues des
-     * sauvegardes (S3, dernier statut, fond de carte) ne sont PAS touchées :
-     * elles appartiennent à l'appareil.
-     */
     suspend fun restore(s: ElanSettings) {
         setProfile(s.profile)
         setHrDevice(s.hrDevice)

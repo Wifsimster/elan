@@ -1,7 +1,3 @@
-// Signature AWS Signature V4 (style « path ») pour un PUT / GET d'objet —
-// port de `src/lib/s3.ts`. Compatible MinIO, SeaweedFS, Garage et tout
-// stockage S3-compatible auto-hébergé. Pur : (config, méthode, empreinte du
-// corps, instant) → URL + en-têtes ; aucun accès réseau ni horloge implicite.
 package ovh.battistella.elan.data.remote
 
 import java.security.MessageDigest
@@ -11,30 +7,23 @@ import java.time.format.DateTimeFormatter
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-/** Paramètres d'accès à un objet S3 (secrets compris — jamais persistés tels quels). */
 data class S3Config(
-    /** URL de base du service, ex. https://minio.mon-homelab.tld (style « path »). */
     val endpoint: String,
     val region: String,
     val bucket: String,
     val accessKeyId: String,
     val secretAccessKey: String,
-    /** Clé de l'objet, ex. elan-backup.json. */
     val objectKey: String,
 )
 
-/** Requête signée : URL absolue et en-têtes à joindre tels quels. */
 data class SignedRequest(val url: String, val headers: Map<String, String>)
 
-/** Endpoint décomposé : origine HTTPS, hôte (avec port éventuel) et préfixe de chemin. */
 data class S3Endpoint(val origin: String, val host: String, val basePath: String)
 
-/** Méthodes HTTP signées. */
 enum class S3Method { PUT, GET }
 
 object S3Signer {
 
-    /** Empreinte SHA-256 hexadécimale d'un corps vide (GET). */
     const val EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
     private val AMZ_DATE: DateTimeFormatter =
@@ -42,19 +31,10 @@ object S3Signer {
 
     private val ENDPOINT_RE = Regex("^https://([^/]+)(/[^?#]*)?$", RegexOption.IGNORE_CASE)
 
-    /**
-     * HTTPS obligatoire : une sauvegarde (clé secrète S3 + base entière) ne
-     * doit jamais transiter en clair. Le chemin éventuel de l'endpoint
-     * (ex. https://host/s3) est CONSERVÉ et préfixé à l'URI canonique — le
-     * jeter cassait la signature et la cible derrière un reverse-proxy à
-     * préfixe de chemin.
-     */
     fun parseEndpoint(endpoint: String): S3Endpoint {
         val ep = endpoint.trim().trimEnd('/')
         val m = ENDPOINT_RE.matchEntire(ep)
             ?: throw IllegalArgumentException("Endpoint S3 invalide : HTTPS requis (attendu https://hôte).")
-        // Hôte signé = en-tête `Host` qu'OkHttp enverra : en minuscules, sans
-        // le port HTTPS par défaut. Sinon, 403 SignatureDoesNotMatch.
         val authority = m.groupValues[1]
         require('@' !in authority) { "Endpoint S3 invalide : identifiants dans l'URL non pris en charge." }
         val host = authority.lowercase().removeSuffix(":443")
@@ -62,11 +42,8 @@ object S3Signer {
         return S3Endpoint(origin = "https://$host", host = host, basePath = basePath)
     }
 
-    /** Encodage URI conforme RFC 3986 attendu par AWS (non réservés `A-Za-z0-9_.~-`, `%XX` majuscules UTF-8). */
     fun uriEncode(str: String, encodeSlash: Boolean = true): String {
         val out = StringBuilder(str.length + 16)
-        // Par point de code (comme `for…of` en JS) : un emoji tient sur deux
-        // unités UTF-16 et doit être encodé comme UN caractère UTF-8 de 4 octets.
         var i = 0
         while (i < str.length) {
             val cp = str.codePointAt(i)
@@ -84,14 +61,8 @@ object S3Signer {
         return out.toString()
     }
 
-    /**
-     * Construit l'URL + en-têtes signés SigV4 d'une requête (style path).
-     * `payloadSha256Hex` est l'empreinte du corps (déjà calculée, le corps
-     * pouvant être un fichier lu en flux) ; `nowUtc` l'instant de signature.
-     */
     fun sign(config: S3Config, method: S3Method, payloadSha256Hex: String, nowUtc: Instant): SignedRequest {
         val (origin, host, basePath) = parseEndpoint(config.endpoint)
-        // basePath (déjà sans slash final) encodé en préservant ses slashes ; vide → ''.
         val canonicalUri = uriEncode(basePath, false) + "/" + uriEncode(config.bucket) + "/" +
             uriEncode(config.objectKey, false)
         val amzdate = AMZ_DATE.format(nowUtc)

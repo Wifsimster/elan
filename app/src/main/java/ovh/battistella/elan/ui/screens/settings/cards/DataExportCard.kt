@@ -20,10 +20,6 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.screens.settings.ExportKind
 import ovh.battistella.elan.ui.theme.ElanTheme
 
-/**
- * Carte Réglages : export du bilan (Markdown) / des données brutes (JSON) via
- * la feuille de partage système, et zone de confidentialité des tracés GPX.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DataExportCard(
@@ -40,7 +36,6 @@ fun DataExportCard(
         SettingCardHeader(icon = MdiIcons.ExportVariant, color = colors.accent, title = stringResource(R.string.settings_export_card_title))
         CardText(stringResource(R.string.settings_export_intro))
 
-        // Zone de confidentialité : rogne le départ/arrivée des exports GPS.
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SubTitle(stringResource(R.string.settings_privacy_title))
             CardText(stringResource(R.string.settings_privacy_text))

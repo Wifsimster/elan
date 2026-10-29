@@ -21,10 +21,8 @@ import { useTheme } from '@/hooks/use-theme';
 
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
 
-/** Fiche d'exécution d'un exercice : champs minimaux affichés par l'écran. */
 type Guide = { imageKey?: string; icon?: string; muscles: string[]; howTo: string };
 
-/** Résout la fiche depuis les templates, puis le catalogue, sinon `undefined`. */
 function resolveGuide(name: string): Guide | undefined {
   const tmpl = exerciseByName(name);
   if (tmpl) return tmpl;
@@ -43,8 +41,6 @@ export default function ExerciseScreen() {
   const exercise = typeof name === 'string' ? name : '';
 
   const [points, setPoints] = useState<ExercisePoint[] | null>(null);
-  // Fiche d'exécution si l'exercice est connu : d'abord les templates, sinon le
-  // catalogue (illustration, muscles, comment faire). Absente pour la saisie libre.
   const guide = resolveGuide(exercise);
 
   useEffect(() => {
@@ -56,8 +52,6 @@ export default function ExerciseScreen() {
   const last = points && points.length ? points[points.length - 1].maxWeightKg : 0;
   const delta = last - first;
 
-  // Force estimée (1RM Epley) à partir de la série la plus lourde de chaque séance.
-  // Vaut 0 pour les exercices sans charge (gainage chronométré).
   const best1rm = points && points.length
     ? Math.max(...points.map((p) => epley1RM(p.maxWeightKg, p.topReps)))
     : 0;
@@ -65,15 +59,11 @@ export default function ExerciseScreen() {
     ? epley1RM(points[points.length - 1].maxWeightKg, points[points.length - 1].topReps)
     : 0;
 
-  // Courbe de la charge maximale, 10 dernières séances.
   const bars: Bar[] = (points ?? []).slice(-10).map((p) => {
     const d = new Date(p.startedAt);
     return { label: `${d.getDate()}/${d.getMonth() + 1}`, value: p.maxWeightKg };
   });
 
-  // Conseil de progression d'après le ressenti noté (points triés ancien → récent).
-  // Tant qu'aucune séance n'est notée, on invite à noter plutôt que de conseiller
-  // « maintiens » à l'aveugle.
   const ratings = (points ?? []).map((p) => p.difficulty);
   const hasRating = ratings.some((d) => d != null);
   const advice = suggestProgression(ratings);
@@ -94,7 +84,6 @@ export default function ExerciseScreen() {
       }}>
       <Text style={{ ...Type.title, color: theme.text }}>{exercise}</Text>
 
-      {/* Fiche d'exécution : illustration départ → fin, muscles, comment faire. */}
       {guide ? (
         <Card style={{ gap: 14 }}>
           <ExerciseIllustration imageKey={guide.imageKey} icon={guide.icon} height={156} />
@@ -134,7 +123,6 @@ export default function ExerciseScreen() {
 
       {points && points.length > 0 ? (
         <>
-          {/* Résumé */}
           <Card style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
             <Metric label="Record" value={`${fmtKg(best)} kg`} theme={theme} color={theme.muscu} />
             <Metric label="Actuel" value={`${fmtKg(last)} kg`} theme={theme} />
@@ -146,7 +134,6 @@ export default function ExerciseScreen() {
             />
           </Card>
 
-          {/* Force estimée (1RM) — masquée pour les exercices sans charge */}
           {best1rm > 0 ? (
             <Card style={{ gap: 10 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
@@ -164,7 +151,6 @@ export default function ExerciseScreen() {
             </Card>
           ) : null}
 
-          {/* Conseil de progression d'après le ressenti des dernières séances. */}
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View
               style={{
@@ -203,13 +189,11 @@ export default function ExerciseScreen() {
             </View>
           </Card>
 
-          {/* Courbe des charges */}
           <Card>
             <Text style={{ ...Type.headline, color: theme.text }}>Charge max par séance</Text>
             <BarChart data={bars} gradient="muscu" formatValue={(v) => `${fmtKg(v)} kg`} />
           </Card>
 
-          {/* Détail des séances (récentes d'abord) */}
           <Text style={{ ...Type.headline, color: theme.text }}>Séances</Text>
           <View style={{ gap: 10 }}>
             {[...points].reverse().map((p) => (

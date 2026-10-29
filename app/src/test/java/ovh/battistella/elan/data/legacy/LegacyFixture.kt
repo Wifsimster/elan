@@ -5,25 +5,14 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import java.io.File
 
-/**
- * Fabrique une base `suivi-sport.db` telle que l'app d'origine l'aurait
- * laissée : DDL EXACT de `src/lib/db.ts` pour la version demandée (1, 3, 5
- * ou 7 — les `ALTER` des versions suivantes sont appliqués au-delà de la v1),
- * `user_version` posé, mode WAL, données représentatives, et surtout un
- * journal `-wal` NON fusionné : la base est construite dans un dossier de
- * travail puis ses fichiers `.db` + `-wal` sont copiés vers `files/SQLite/`
- * AVANT la fermeture de la connexion (qui, elle, fusionnerait le journal).
- */
 object LegacyFixture {
 
-    /** Ids volontairement non contigus : l'import doit les conserver tels quels. */
     const val VELO_ID = 1L
     const val MUSCU_ID = 2L
     const val STRAVA_ID = 3L
     const val IN_PROGRESS_ID = 7L
     const val ORPHAN_MUSCU_ID = 9L
 
-    /** Séance créée puis supprimée : `sqlite_sequence` reste à 12 (> plus grand id). */
     const val DELETED_ID = 12L
 
     const val VELO_POINTS = 3_000
@@ -55,16 +44,8 @@ object LegacyFixture {
         "onboarding_done" to "1",
     )
 
-    /** Points GPS attendus au total (les points orphelins éventuels en plus). */
     val TOTAL_POINTS: Long = (VELO_POINTS + STRAVA_POINTS + IN_PROGRESS_POINTS).toLong()
 
-    /**
-     * @param version `user_version` final (1, 3, 5 ou 7).
-     * @param orphanTrackPoint ajoute un point dont la séance n'existe pas
-     *   (l'app d'origine n'activait pas toujours `foreign_keys`) : la
-     *   contrainte Room le refuse en pleine copie des points.
-     * @param settings réglages à écrire (par défaut [SETTINGS]).
-     */
     fun create(
         context: Context,
         version: Int = 7,
@@ -83,7 +64,6 @@ object LegacyFixture {
             pragma(db, "PRAGMA user_version = $version")
             seed(db, version, orphanTrackPoint, settings)
 
-            // Copie « à chaud » : le journal contient encore les dernières écritures.
             paths.sqliteDir.mkdirs()
             stagingDb.copyTo(paths.dbFile, overwrite = true)
             File(staging, "${LegacyPaths.DB_NAME}-wal").copyTo(paths.walFile, overwrite = true)
@@ -94,7 +74,6 @@ object LegacyFixture {
         return paths
     }
 
-    /** Ouvre (lecture seule logique) une base héritée pour l'inspecter dans un test. */
     fun open(file: File): SQLiteDatabase =
         SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE)
 
@@ -102,10 +81,7 @@ object LegacyFixture {
         db.rawQuery(sql, null).use { it.moveToFirst() }
     }
 
-    // ---- DDL de db.ts, bloc par bloc ---------------------------------------
-
     private fun createSchema(db: SQLiteDatabase, version: Int) {
-        // version < 1
         db.execSQL(
             """
             CREATE TABLE IF NOT EXISTS sessions (
@@ -191,8 +167,6 @@ object LegacyFixture {
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_sets_exercise ON muscu_sets (exercise)")
     }
 
-    // ---- données ------------------------------------------------------------
-
     private fun seed(db: SQLiteDatabase, version: Int, orphanTrackPoint: Boolean, settings: Map<String, String>) {
         val columns = listOf("sessions", "track_points", "muscu_sets").associateWith { columnsOf(db, it) }
 
@@ -266,7 +240,6 @@ object LegacyFixture {
             db.endTransaction()
         }
 
-        // Dernière transaction à part : au moins celle-ci n'est que dans le journal.
         if (version >= 4) {
             db.beginTransaction()
             try {
@@ -304,7 +277,6 @@ object LegacyFixture {
             stmt.bindLong(2, startedAt + i * 1_000L)
             stmt.bindDouble(3, 48.8566 + i * 1e-5)
             stmt.bindDouble(4, 2.3522 + i * 1e-5)
-            // Un point sur dix sans altitude ni vitesse : les NULL doivent survivre.
             if (i % 10 == 9) stmt.bindNull(5) else stmt.bindDouble(5, 35.0 + i % 50)
             if (i % 10 == 9) stmt.bindNull(6) else stmt.bindDouble(6, 25.0 + (i % 20) * 0.5)
             if (withSensors) stmt.bindDouble(7, 120.0 + i % 40) else stmt.bindNull(7)
@@ -322,7 +294,6 @@ object LegacyFixture {
             buildSet { while (c.moveToNext()) add(c.getString(idx)) }
         }
 
-    /** Insertion tolérante : les colonnes absentes de cette version du schéma sont ignorées. */
     private fun insert(
         db: SQLiteDatabase,
         table: String,

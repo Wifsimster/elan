@@ -7,7 +7,6 @@ import { SettingCardHeader } from '@/components/setting-card-header';
 import { useStravaImport } from '@/hooks/use-strava-import';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Carte Réglages : import de séances depuis un fichier Strava (GPX/TCX/FIT). */
 export function StravaImportCard() {
   const theme = useTheme();
   const strava = useStravaImport();

@@ -63,7 +63,6 @@ class StrengthScreenTest {
 
     @Before
     fun setUp() {
-        // Pas de demande de permission par-dessus l'écran dans ces tests.
         shadowOf(context as Application).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         db = TestSupport.inMemoryDb()
         repos = TestSupport.repositories(db)
@@ -122,7 +121,6 @@ class StrengthScreenTest {
         compose.onAllNodesWithText(text(R.string.muscu_target, "3 × 8-12"))[0].assertIsDisplayed()
         compose.onNodeWithText("0/15").assertIsDisplayed()
 
-        // Cocher la première série démarre le repos (90 s par défaut) et met à jour le résumé.
         compose.onAllNodesWithContentDescription(text(R.string.muscu_set_toggle_a11y, 1))[0].performClick()
         compose.waitForIdle()
         compose.onNodeWithText("1/15").assertIsDisplayed()
@@ -130,11 +128,9 @@ class StrengthScreenTest {
         compose.onNodeWithText("1:30").assertIsDisplayed()
         assertEquals(now + 90_000, vm.ui.value.restEndsAt)
 
-        // Ressenti sur le premier exercice.
         compose.onAllNodesWithText(text(R.string.muscu_feeling))[0].assertIsDisplayed()
         compose.onNodeWithContentDescription(text(R.string.muscu_how_to_a11y, "Goblet squat")).assertIsDisplayed()
 
-        // Brouillon en base.
         assertNotNull(runBlocking { repos.settings.snapshot().muscuDraft })
     }
 
@@ -144,14 +140,12 @@ class StrengthScreenTest {
         val vm = vm()
         show(vm, onExit = { exits++ })
 
-        // Défilement jusqu'en bas : la carte d'ajout passe au-dessus de la barre de contrôle flottante.
         compose.onNodeWithText("Squat").performScrollTo()
         compose.onNode(hasScrollAction()).performTouchInput { swipeUp() }
         compose.waitForIdle()
         compose.onNodeWithText("Squat").performClick()
         compose.waitForIdle()
         assertEquals(1, vm.ui.value.exercises.size)
-        // La croix est remontée hors écran par le défilement : on la ramène d'abord.
         compose.onNodeWithContentDescription(text(R.string.muscu_quit)).performScrollTo().assertIsDisplayed().performClick()
         compose.waitForIdle()
         assertEquals(StrengthDialog.Exit, vm.ui.value.dialog)
@@ -193,7 +187,6 @@ class StrengthScreenTest {
         show(vm())
         compose.onNodeWithText(text(R.string.muscu_resume)).assertIsDisplayed()
         compose.onNodeWithText("2:05").assertIsDisplayed()
-        // Carte d'exercice + chip rapide du même nom.
         compose.onAllNodesWithText("Tractions").assertCountEquals(2)
         compose.onNodeWithText(text(R.string.muscu_load_program)).assertDoesNotExist()
     }

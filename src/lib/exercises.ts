@@ -1,23 +1,7 @@
-// Catalogue d'exercices (« magasin ») + moteur de recommandation.
-//
-// Objectif : rendre la musculation libre et adaptée à tous. Plutôt qu'un
-// programme figé, l'utilisateur pioche dans une bibliothèque d'exercices, en
-// voit le détail (muscles, matériel, exécution) et reçoit un nombre de
-// répétitions et une charge conseillés, calculés à partir de son profil (poids,
-// taille, sexe) et de ce qu'il cherche à faire (objectif). Tout est ensuite
-// personnalisable à la main dans la séance.
-//
-// 100 % local, sans dépendance UI : ce module ne contient que des données et de
-// l'arithmétique, comme `program.ts`. Les charges conseillées sont un POINT DE
-// DÉPART pour un pratiquant intermédiaire ; le moteur de progression (dernière
-// charge enregistrée) prend ensuite le relais.
-
 import type { Profile, TrainingGoal } from '@/lib/types';
 
-/** Grand groupe musculaire — sert de rayon dans le magasin (filtre/section). */
 export type ExerciseCategory = 'Jambes' | 'Pectoraux' | 'Dos' | 'Épaules' | 'Bras' | 'Gainage';
 
-/** Matériel nécessaire — sert de second filtre (« je n'ai que des haltères »). */
 export type Equipment =
   | 'poids du corps'
   | 'haltères'
@@ -26,38 +10,23 @@ export type Equipment =
   | 'élastique'
   | 'machine';
 
-/** Une fiche d'exercice du catalogue. */
 export type CatalogExercise = {
   id: string;
   name: string;
   category: ExerciseCategory;
-  /** Muscles sollicités (affichés en pastilles), libellés alignés sur `program.ts`. */
   muscles: string[];
   equipment: Equipment[];
-  /** Glyphe MaterialCommunityIcons illustrant le mouvement. */
   icon: string;
-  /** Clé d'illustration photo (paire départ → fin), résolue dans `exercise-images.ts`. */
   imageKey?: string;
-  /** « bras » / « jambe » / « côté » — travail unilatéral. */
   perSideLabel?: 'bras' | 'jambe' | 'côté';
-  /** Exercice chronométré (gainage) : les « reps » sont des secondes. */
   timed?: boolean;
-  /** Polyarticulaire (gros mouvement) vs isolation. */
   compound: boolean;
-  /**
-   * Base de la charge conseillée : charge de travail d'un pratiquant
-   * intermédiaire en hypertrophie, exprimée en fraction du poids de corps.
-   * 0 = au poids du corps / non chargeable.
-   */
   loadFactor: number;
-  /** Vrai si `loadFactor` s'entend PAR haltère (mouvements aux haltères). */
   loadPerSide?: boolean;
 };
 
-/** Ordre d'affichage des rayons. */
 export const CATEGORIES: ExerciseCategory[] = ['Jambes', 'Pectoraux', 'Dos', 'Épaules', 'Bras', 'Gainage'];
 
-/** Matériels filtrables (ordre d'affichage). */
 export const EQUIPMENTS: Equipment[] = [
   'poids du corps',
   'haltères',
@@ -68,7 +37,6 @@ export const EQUIPMENTS: Equipment[] = [
 ];
 
 export const CATALOG: CatalogExercise[] = [
-  // ---------- JAMBES ----------
   {
     id: 'goblet-squat',
     name: 'Goblet squat',
@@ -200,7 +168,6 @@ export const CATALOG: CatalogExercise[] = [
     loadPerSide: true,
   },
 
-  // ---------- PECTORAUX ----------
   {
     id: 'dumbbell-bench-press',
     name: 'Développé couché haltères',
@@ -266,7 +233,6 @@ export const CATALOG: CatalogExercise[] = [
     loadFactor: 0,
   },
 
-  // ---------- DOS ----------
   {
     id: 'one-arm-dumbbell-row',
     name: 'Rowing haltère un bras',
@@ -353,7 +319,6 @@ export const CATALOG: CatalogExercise[] = [
     loadFactor: 0,
   },
 
-  // ---------- ÉPAULES ----------
   {
     id: 'standing-dumbbell-press',
     name: 'Développé épaules debout haltères',
@@ -409,7 +374,6 @@ export const CATALOG: CatalogExercise[] = [
     loadFactor: 0,
   },
 
-  // ---------- BRAS ----------
   {
     id: 'dumbbell-biceps-curl',
     name: 'Curl biceps haltères',
@@ -463,7 +427,6 @@ export const CATALOG: CatalogExercise[] = [
     loadFactor: 0,
   },
 
-  // ---------- GAINAGE ----------
   {
     id: 'plank',
     name: 'Gainage planche',
@@ -533,29 +496,19 @@ export const CATALOG: CatalogExercise[] = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Objectifs d'entraînement
-// ---------------------------------------------------------------------------
-
-/** Paramètres d'un objectif : schéma de séries/reps/repos + intensité (charge). */
 export type GoalSpec = {
   id: TrainingGoal;
   label: string;
-  /** Phrase courte décrivant l'objectif (affichée à la sélection). */
   blurb: string;
   sets: number;
   repsMin: number;
   repsMax: number;
   restSec: number;
-  /** Multiplie `loadFactor` pour obtenir la charge conseillée. */
   intensityFactor: number;
-  /** Fourchette en secondes pour les exercices chronométrés (gainage). */
   timedMinSec: number;
   timedMaxSec: number;
 };
 
-// Fourchettes standard (NSCA / ACSM) : force = lourd/peu de reps/repos long,
-// hypertrophie = modéré, endurance = léger/beaucoup de reps/repos court.
 export const GOALS: GoalSpec[] = [
   {
     id: 'force',
@@ -619,68 +572,43 @@ export const GOALS: GoalSpec[] = [
   },
 ];
 
-/** Spécification d'un objectif (repli sur l'hypertrophie si inconnu). */
 export function goalSpec(goal: TrainingGoal): GoalSpec {
   return GOALS.find((g) => g.id === goal) ?? GOALS[1];
 }
 
-/** Libellé court d'un objectif, pour l'affichage. */
 export function goalLabel(goal: TrainingGoal): string {
   return goalSpec(goal).label;
 }
 
-// ---------------------------------------------------------------------------
-// Moteur de recommandation
-// ---------------------------------------------------------------------------
-
-// Femmes : charges absolues plus basses, écart plus marqué sur le haut du corps.
 const SEX_FACTOR: Record<'h' | 'f' | 'null', { upper: number; lower: number }> = {
   f: { upper: 0.65, lower: 0.8 },
   h: { upper: 1.0, lower: 1.0 },
   null: { upper: 1.0, lower: 1.0 },
 };
 
-/** Catégories considérées « haut du corps » pour le facteur sexe. */
 const UPPER_BODY = new Set<ExerciseCategory>(['Pectoraux', 'Dos', 'Épaules', 'Bras']);
 
-/**
- * Arrondit une charge à un pas réaliste : barre / charges lourdes au pas de
- * 2,5 kg, travail léger à l'haltère au kg, très léger au demi-kilo.
- */
 function roundWeight(kg: number, ex: CatalogExercise): number {
   if (kg <= 0) return 0;
   const step = !ex.loadPerSide && ex.loadFactor >= 0.5 ? 2.5 : kg < 6 ? 0.5 : 1;
   return Math.max(0, Math.round(kg / step) * step);
 }
 
-/** Recommandation calculée pour un exercice donné et un profil donné. */
 export type Recommendation = {
   sets: number;
   repsMin: number;
   repsMax: number;
   restSec: number;
-  /** Charge conseillée en kg. Si `perDumbbell`, c'est la charge PAR haltère. */
   weightKg: number;
-  /** Vrai ⇒ `weightKg` s'entend par haltère (afficher « / main »). */
   perDumbbell: boolean;
-  /** Vrai ⇒ `repsMin`/`repsMax` sont des SECONDES (gainage chronométré). */
   timed: boolean;
 };
 
-/** Sous-ensemble de profil dont dépend la recommandation. */
 export type RecoProfile = Pick<Profile, 'weightKg' | 'heightCm' | 'sex' | 'goal'>;
 
-/**
- * Calcule reps, séries, repos et charge conseillés pour un exercice à partir du
- * profil (poids, taille, sexe) et de l'objectif. La taille n'entre pas dans le
- * calcul de charge : le poids de corps capture déjà l'essentiel du gabarit, et
- * des bras de levier plus longs auraient un effet inverse non fiable — on évite
- * de compter deux fois la morphologie.
- */
 export function recommend(profile: RecoProfile, ex: CatalogExercise): Recommendation {
   const goal = goalSpec(profile.goal);
 
-  // 1) Exercices chronométrés (gainage) → pas de charge, reps = secondes.
   if (ex.timed) {
     return {
       sets: goal.sets,
@@ -693,7 +621,6 @@ export function recommend(profile: RecoProfile, ex: CatalogExercise): Recommenda
     };
   }
 
-  // 2) Mouvements au poids du corps / non chargeables.
   if (ex.loadFactor === 0) {
     return {
       sets: goal.sets,
@@ -706,10 +633,8 @@ export function recommend(profile: RecoProfile, ex: CatalogExercise): Recommenda
     };
   }
 
-  // 3) Charge de base = loadFactor × poids de corps × intensité de l'objectif.
   let w = ex.loadFactor * profile.weightKg * goal.intensityFactor;
 
-  // 4) Facteur sexe (haut vs bas du corps).
   const sexKey: 'h' | 'f' | 'null' = profile.sex === 'h' || profile.sex === 'f' ? profile.sex : 'null';
   const region = UPPER_BODY.has(ex.category) ? 'upper' : 'lower';
   w *= SEX_FACTOR[sexKey][region];
@@ -725,26 +650,16 @@ export function recommend(profile: RecoProfile, ex: CatalogExercise): Recommenda
   };
 }
 
-// ---------------------------------------------------------------------------
-// Recherche / formatage
-// ---------------------------------------------------------------------------
-
-/** Retrouve une fiche du catalogue par son id. */
 export function catalogById(id: string | undefined): CatalogExercise | undefined {
   if (!id) return undefined;
   return CATALOG.find((e) => e.id === id);
 }
 
-/** Retrouve une fiche par son nom exact (enrichit un exercice enregistré). */
 export function catalogByName(name: string | undefined): CatalogExercise | undefined {
   if (!name) return undefined;
   return CATALOG.find((e) => e.name === name);
 }
 
-/**
- * Indice de cible lisible à partir d'une recommandation, ex.
- * « 4 × 8-12 » ou « 3 × 30-45 s / côté ».
- */
 export function recoHint(ex: CatalogExercise, rec: Recommendation): string {
   const reps = rec.repsMin === rec.repsMax ? `${rec.repsMin}` : `${rec.repsMin}-${rec.repsMax}`;
   const unit = rec.timed ? ' s' : '';
@@ -754,20 +669,12 @@ export function recoHint(ex: CatalogExercise, rec: Recommendation): string {
 
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
 
-/** Libellé de charge conseillée, ex. « 16 kg / main » ou « au poids du corps ». */
 export function recoWeightLabel(rec: Recommendation): string {
   if (rec.timed) return 'gainage chronométré';
   if (rec.weightKg <= 0) return 'au poids du corps';
   return `${fmtKg(rec.weightKg)} kg${rec.perDumbbell ? ' / main' : ''}`;
 }
 
-// ---------------------------------------------------------------------------
-// Exécution (« comment faire ») par exercice
-// ---------------------------------------------------------------------------
-
-// Texte d'exécution simple et sûr pour chaque mouvement. Repris à l'identique de
-// `program.ts` pour les exercices communs, rédigé dans le même esprit pour les
-// autres. Séparé du tableau `CATALOG` pour garder ce dernier lisible.
 const HOWTO: Record<string, string> = {
   'goblet-squat':
     'Tiens un haltère verticalement contre la poitrine, à deux mains. Pieds largeur d’épaules. Descends en pliant les genoux, dos droit et talons au sol, jusqu’à ce que les cuisses soient parallèles au sol, puis remonte.',
@@ -855,7 +762,6 @@ const HOWTO: Record<string, string> = {
     'Allongé sur le ventre, bras tendus devant. Décolle légèrement bras, poitrine et jambes du sol en gardant le regard vers le bas et la nuque longue, sur une amplitude réduite. Tiens brièvement puis relâche. À n’introduire que sans aucune douleur.',
 };
 
-/** Texte d'exécution (« comment faire ») d'un exercice, ou `undefined`. */
 export function exerciseHowTo(id: string): string | undefined {
   return HOWTO[id];
 }

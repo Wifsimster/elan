@@ -116,7 +116,7 @@ class HomeScreenTest {
             ElanTheme {
                 HomeScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(),
-                    viewModel = vm(now = monday), // lundi : « Vélo 1h » au planning par défaut
+                    viewModel = vm(now = monday),
                     onStartOuting = { startedOuting = it },
                 )
             }
@@ -126,13 +126,11 @@ class HomeScreenTest {
         compose.onNodeWithText("Vélo 1h").assertIsDisplayed()
         compose.onNodeWithText(text(R.string.home_active_recovery)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.home_last_session, "hier")).assertIsDisplayed()
-        // Le brouillon muscu transforme « Muscu » en « Reprendre » dans la grille.
         compose.onNodeWithText(text(R.string.home_resume)).assertIsDisplayed()
         compose.onNodeWithText("Muscu").assertDoesNotExist()
 
         compose.onNodeWithText(text(R.string.home_start_session)).performClick()
         assertEquals(ActivityType.VELO, startedOuting)
-        // Séance récente listée.
         compose.onNodeWithText("12,0 km").performScrollTo().assertIsDisplayed()
     }
 

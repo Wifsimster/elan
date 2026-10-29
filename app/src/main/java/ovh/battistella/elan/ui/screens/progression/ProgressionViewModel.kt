@@ -16,13 +16,10 @@ import java.time.Clock
 import javax.inject.Inject
 
 data class ProgressionUi(
-    /** `null` = chargement en cours (évite un flash d'état vide). */
     val items: List<ExerciseSummary>? = null,
-    /** Changements de la progression auto pour la semaine en cours. */
     val changes: List<ProgressionChange> = emptyList(),
 )
 
-/** Écran Progression (port de `progression.tsx`) : index des exercices et revue de la semaine. */
 @HiltViewModel
 class ProgressionViewModel @Inject constructor(
     private val sessions: SessionRepository,
@@ -37,7 +34,6 @@ class ProgressionViewModel @Inject constructor(
         refresh()
     }
 
-    /** Au focus : `listMuscuExercises()` + état de la progression auto. */
     fun refresh() {
         viewModelScope.launch {
             val items = sessions.listMuscuExercises()

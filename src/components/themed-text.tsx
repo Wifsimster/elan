@@ -14,8 +14,6 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
   return (
     <Text
       style={[
-        // `linkPrimary` prend la couleur de lien du thème (sauf override explicite
-        // via `themeColor`) : plus de bleu en dur, et la teinte suit clair/sombre.
         { color: theme[themeColor ?? (type === 'linkPrimary' ? 'link' : 'text')] },
         type === 'default' && styles.default,
         type === 'title' && styles.title,

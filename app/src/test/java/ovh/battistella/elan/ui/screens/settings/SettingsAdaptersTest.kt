@@ -1,5 +1,3 @@
-// Adaptateurs des ports Réglages : traduction des types et, pour Health
-// Connect, pilotage de la demande de permissions du gestionnaire.
 package ovh.battistella.elan.ui.screens.settings
 
 import androidx.activity.result.contract.ActivityResultContract

@@ -1,4 +1,3 @@
-// Tests pour l'estimation calories (méthode MET) et les zones cardio.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -19,7 +18,6 @@ class CaloriesTest {
 
     @Test
     fun `vélo à vitesse par défaut (18 km par h, interpolé entre 16 et 19), 70 kg, 1 h`() {
-        // Interpolation linéaire : 4,0 + (18-16)/(19-16) * (6,8-4,0) = 5,866…
         assertEquals(5.8667 * 70, estimateCalories(velo, 70.0, 3600), 0.05)
     }
 
@@ -60,7 +58,6 @@ class CaloriesTest {
     fun `bonus dénivelé positif sur le vélo (~0,77 kcal par m pour 70 kg)`() {
         val sans = estimateCalories(velo, 70.0, 3600, avgSpeedKmh = 22.5)
         val avec = estimateCalories(velo, 70.0, 3600, avgSpeedKmh = 22.5, elevationGainM = 200.0)
-        // 70 * 0,011 * 200 = 154 kcal de bonus
         assertEquals(154.0, avec - sans, 1e-5)
     }
 
@@ -75,7 +72,6 @@ class CaloriesTest {
     fun `FC moyenne fournie → mélange MET et cardio (60 % cardio)`() {
         val sansHr = estimateCalories(velo, 70.0, 3600, avgSpeedKmh = 22.0)
         val avecHr = estimateCalories(velo, 70.0, 3600, avgSpeedKmh = 22.0, avgHr = 145.0, maxHr = 190.0)
-        // Valeurs différentes (cardio à 76 % FCmax tire vers le bas).
         assertTrue(kotlin.math.abs(avecHr - sansHr) > 0.5)
     }
 
@@ -100,34 +96,34 @@ class CaloriesTest {
 
     @Test
     fun `zone 1 sous 60 % FCmax`() {
-        assertEquals(1, heartRateZone(100.0, max)) // ~56 %
+        assertEquals(1, heartRateZone(100.0, max))
     }
 
     @Test
     fun `zone 2 entre 60 et 70 %`() {
-        assertEquals(2, heartRateZone(120.0, max)) // ~67 %
+        assertEquals(2, heartRateZone(120.0, max))
     }
 
     @Test
     fun `zone 3 entre 70 et 80 %`() {
-        assertEquals(3, heartRateZone(135.0, max)) // 75 %
+        assertEquals(3, heartRateZone(135.0, max))
     }
 
     @Test
     fun `zone 4 entre 80 et 90 %`() {
-        assertEquals(4, heartRateZone(155.0, max)) // ~86 %
+        assertEquals(4, heartRateZone(155.0, max))
     }
 
     @Test
     fun `zone 5 à 90 % et plus`() {
-        assertEquals(5, heartRateZone(170.0, max)) // ~94 %
+        assertEquals(5, heartRateZone(170.0, max))
         assertEquals(5, heartRateZone(180.0, max))
-        assertEquals(5, heartRateZone(200.0, max)) // dépassement FCmax théorique
+        assertEquals(5, heartRateZone(200.0, max))
     }
 
     @Test
     fun `frontière 60 % pile → zone 2`() {
-        assertEquals(2, heartRateZone(108.0, max)) // 0,6 exact
+        assertEquals(2, heartRateZone(108.0, max))
     }
 
     @Test

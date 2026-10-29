@@ -81,12 +81,6 @@ import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.Spacing
 import ovh.battistella.elan.ui.theme.forKey
 
-/**
- * Accueil : en-tête + pastille cardio, bannière de progression, séance du
- * jour, grille de démarrage, lien catalogue, résumé de la semaine, objectifs,
- * activité sur 7 jours et séances récentes. L'onboarding se superpose tant que
- * le profil n'a pas été confirmé.
- */
 @Composable
 fun HomeScreen(
     contentPadding: PaddingValues,
@@ -98,10 +92,6 @@ fun HomeScreen(
     onOpenHistory: () -> Unit = {},
     onOpenSession: (Long) -> Unit = {},
     onOpenSettings: () -> Unit = {},
-    /**
-     * Feuille de restauration (premier lancement) : emplacement injectable pour
-     * que les tests fournissent leur propre `BackupViewModel`.
-     */
     restoreSheet: @Composable (onCancel: () -> Unit, onRestored: (Int) -> Unit) -> Unit = { onCancel, onRestored ->
         RestoreSheet(onCancel = onCancel, onRestored = onRestored)
     },
@@ -111,7 +101,6 @@ fun HomeScreen(
     val restoreOpen by viewModel.restoreOpen.collectAsStateWithLifecycle()
     val colors = ElanTheme.colors
 
-    // Recharge à chaque retour sur l'écran (séance fraîchement enregistrée).
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
 
     if (restoreOpen) {
@@ -218,7 +207,6 @@ fun HomeScreen(
     }
 }
 
-/** Séance prévue aujourd'hui (planning), ou repos. */
 @Composable
 internal fun TodayCard(
     plan: PlannedSession,
@@ -290,7 +278,6 @@ internal fun TodayCard(
     }
 }
 
-/** « Démarrer une séance » : grille 2×2 de tuiles Vélo / Muscu (ou Reprendre) / Course / Marche. */
 @Composable
 private fun StartGrid(
     resumable: Boolean,
@@ -335,10 +322,6 @@ private fun StartGrid(
     }
 }
 
-/**
- * Tuile de démarrage : aplat de la teinte d'activité, icône en haut, libellé
- * en bas et flèche d'élan — un seul appui lance la séance.
- */
 @Composable
 private fun StartTile(
     label: String,
@@ -368,7 +351,6 @@ private fun StartTile(
     }
 }
 
-/** Résumé de la semaine : 4 tuiles compactes avec tendance vs semaine dernière. */
 @Composable
 private fun WeekCard(stats: PeriodStats?, lastStats: PeriodStats?) {
     val colors = ElanTheme.colors
@@ -434,7 +416,6 @@ private fun WeekCard(stats: PeriodStats?, lastStats: PeriodStats?) {
     }
 }
 
-/** Avancement des objectifs sur la période courante (masquée sans objectif). */
 @Composable
 internal fun GoalsProgressCard(items: List<GoalProgress>) {
     val colors = ElanTheme.colors
@@ -496,10 +477,6 @@ internal fun GoalsProgressCard(items: List<GoalProgress>) {
     }
 }
 
-/**
- * Bannière : programme muscu relevé cette semaine (progression auto). Toucher
- * mène à la revue sur la page Progression ; la croix la masque.
- */
 @Composable
 internal fun PlanUpdateBanner(state: AutoProgressionState, onOpen: () -> Unit, onDismiss: () -> Unit) {
     val colors = ElanTheme.colors

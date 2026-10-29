@@ -61,7 +61,6 @@ class BackupManagerTest {
         db.close()
     }
 
-    /** Le faux S3 renvoie `json` au GET (ou rien si `null`). */
     private fun serverHolds(json: String?) {
         coEvery { s3.getObject(any(), any()) } answers {
             val dest = secondArg<File>()
@@ -77,8 +76,6 @@ class BackupManagerTest {
         }
         throw AssertionError("BackupException attendue")
     }
-
-    // ---- config ----------------------------------------------------------
 
     @Test
     fun `effectiveConfig nettoie et complète, isConfigComplete exige les quatre champs`() {
@@ -103,7 +100,6 @@ class BackupManagerTest {
         assertEquals(complete, manager.currentConfig())
         assertEquals(complete, manager.config.first())
 
-        // Un secret vidé est retiré du stockage sécurisé.
         manager.updateConfig(BackupConfigPatch(secretAccessKey = ""))
         assertNull(secrets.get(SecretStore.BACKUP_S3_SECRET_ACCESS_KEY))
         assertEquals("AK", secrets.get(SecretStore.BACKUP_S3_ACCESS_KEY_ID))
@@ -142,8 +138,6 @@ class BackupManagerTest {
         assertEquals("https://s3.x.tld", patch.endpoint)
         assertEquals("AK", patch.accessKeyId)
     }
-
-    // ---- sauvegarde ------------------------------------------------------
 
     @Test
     fun `runBackup refuse une config incomplète sans rien consigner`() = runTest {
@@ -198,12 +192,10 @@ class BackupManagerTest {
 
         manager.updateConfig(BackupConfigPatch(enabled = true))
         coEvery { s3.putObject(any(), any()) } throws S3Exception("boom")
-        manager.autoBackup() // ne lève pas
+        manager.autoBackup()
         coVerify(exactly = 1) { s3.putObject(any(), any()) }
         assertEquals("boom", repos.settings.snapshot().backupLast!!.error)
     }
-
-    // ---- restauration ----------------------------------------------------
 
     @Test
     fun `restoreBackup applique les contrôles dans l'ordre`() = runTest {

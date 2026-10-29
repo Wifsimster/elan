@@ -1,15 +1,9 @@
-// Tests des fonctions pures des rappels de séance : contenu de la notification
-// (describeToday) et conversion d'index de planning vers le `weekday`
-// d'expo-notifications. On mocke expo-notifications : le module est importé pour
-// ses helpers purs, on ne veut pas charger le module natif sous Jest.
 jest.mock('expo-notifications', () => ({}));
 
 import { describeToday, planIndexToWeekday } from '@/lib/notifications';
 import { templateById, type PlannedSession } from '@/lib/program';
 
 describe('planIndexToWeekday', () => {
-  // Planning : 0 = lundi … 6 = dimanche.
-  // expo-notifications : 1 = dimanche, 2 = lundi … 7 = samedi.
   it('lundi (0) → 2', () => {
     expect(planIndexToWeekday(0)).toBe(2);
   });
@@ -55,7 +49,6 @@ describe('describeToday', () => {
     expect(content?.title).toBe("Aujourd'hui : Full-body A");
     expect(content?.body.startsWith('Au programme : ')).toBe(true);
 
-    // Tous les exercices du template doivent figurer dans le rappel.
     const names = templateById('fullbody-a')!.exercises.map((e) => e.name);
     expect(names.length).toBeGreaterThan(0);
     for (const name of names) {
@@ -64,7 +57,6 @@ describe('describeToday', () => {
   });
 
   it('muscu : repli sur le message générique si le template est introuvable', () => {
-    // Plan corrompu : templateId inexistant (cast volontaire pour le test).
     const plan = {
       kind: 'muscu',
       label: 'Séance',

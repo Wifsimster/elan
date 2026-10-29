@@ -90,7 +90,7 @@ class GpxExporterTest {
 
     @Test
     fun `buildRideGpx émet un GPX 1 1 fidèle à l'app d'origine`() {
-        val s = session(1_749_479_400_000L) // 2025-06-09T14:30:00Z
+        val s = session(1_749_479_400_000L)
         val gpx = buildRideGpx(s, points(s.startedAt))
         val expectedHead = """<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Élan" xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">
@@ -156,7 +156,6 @@ class GpxExporterTest {
         assertNull(exporter.exportSession(context, 999, 0.0))
 
         val t0 = 1_700_000_000_000L
-        // Départ / arrivée au « domicile », deux points loin au milieu.
         repos.sessions.insertTrackPoints(
             id,
             listOf(

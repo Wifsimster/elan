@@ -16,12 +16,6 @@ import {
 import { nowMs } from '@/lib/time';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Bannière d'accueil annonçant que le programme muscu a été relevé pour la
- * semaine (progression auto). Canal garanti, sans permission notification :
- * s'affiche tant que l'utilisateur ne l'a pas masquée et qu'on est bien dans la
- * semaine des changements. Touche la bannière -> revue sur la page Progression.
- */
 export function PlanUpdateBanner() {
   const theme = useTheme();
   const router = useRouter();

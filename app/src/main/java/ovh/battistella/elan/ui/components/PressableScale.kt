@@ -16,15 +16,6 @@ import ovh.battistella.elan.ui.haptics.rememberHaptics
 import ovh.battistella.elan.ui.theme.LocalReducedMotion
 import ovh.battistella.elan.ui.theme.Motion
 
-/**
- * Surface tactile « ressort », brique de base de toutes les interactions
- * Sillage : se comprime sous le doigt (`Motion.snappy` vers [scaleTo]) et
- * rebondit au relâchement (`Motion.bouncy` vers 1), avec un retour haptique
- * [haptic] au clic (`null` pour aucun). Rôle bouton pour l'accessibilité.
- *
- * Respecte « Réduire les animations » ([LocalReducedMotion]) : l'haptique est
- * conservée, l'échelle supprimée.
- */
 @Composable
 fun Modifier.pressableScale(
     enabled: Boolean = true,

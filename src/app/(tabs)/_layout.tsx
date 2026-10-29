@@ -20,7 +20,6 @@ export default function TabsLayout() {
           height: 80 + insets.bottom,
           paddingTop: 8,
           paddingBottom: insets.bottom + 12,
-          // En paysage, l'encoche passe sur le côté : on rentre la barre d'onglets.
           paddingLeft: insets.left,
           paddingRight: insets.right,
         },

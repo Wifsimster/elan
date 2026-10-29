@@ -72,7 +72,6 @@ class SessionRowTest {
         }
 
         compose.onNodeWithText("Vélo").assertIsDisplayed()
-        // Le temps en mouvement prime sur la durée brute.
         compose.onNodeWithText("1 h 02").assertIsDisplayed()
         compose.onNodeWithText("24,3 km").assertIsDisplayed()
     }

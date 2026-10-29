@@ -32,28 +32,11 @@ import ovh.battistella.elan.ui.theme.bestInk
 enum class ButtonVariant { Primary, Secondary, Danger, Ghost }
 enum class ButtonSize { Md, Lg }
 
-/**
- * Aplat d'une action de teinte [color] : l'accent (ou rien) devient le Volt de
- * marque — l'accent « en trait » est trop sombre en clair pour un aplat —,
- * une teinte d'activité reste elle-même.
- */
 fun fillFor(color: Color?, colors: ElanColors): Color =
     if (color == null || color == colors.accent || color == colors.link) colors.brand else color
 
-/** Encre la plus lisible sur un aplat [fill] : l'encre de marque ou le blanc. */
 fun inkOn(fill: Color, colors: ElanColors): Color = bestInk(fill, listOf(colors.onBrand, Color.White))
 
-/**
- * Bouton Sillage, en pilule pleine largeur de doigt (52 / 60 dp) :
- * - [ButtonVariant.Primary] : aplat Volt (ou teinte d'activité), encre choisie
- *   pour le contraste — pas de dégradé ni d'ombre, la couleur suffit ;
- * - [ButtonVariant.Secondary] : aplat tonal (teinte à 14 %), texte teinté ;
- * - [ButtonVariant.Danger] : aplat `danger` ;
- * - [ButtonVariant.Ghost] : texte seul.
- * Appui « ressort » et haptique inclus (light pour primary, selection sinon).
- * En [loading], l'étiquette laisse place à un indicateur ; le bouton est alors
- * inactif comme s'il était désactivé.
- */
 @Composable
 fun ElanButton(
     title: String,
@@ -61,7 +44,6 @@ fun ElanButton(
     modifier: Modifier = Modifier,
     variant: ButtonVariant = ButtonVariant.Primary,
     size: ButtonSize = ButtonSize.Md,
-    /** Teinte de l'action (défaut : marque). */
     color: Color? = null,
     @DrawableRes icon: Int? = null,
     loading: Boolean = false,

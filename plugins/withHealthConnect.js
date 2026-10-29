@@ -1,21 +1,3 @@
-// Config plugin Expo — intégration Android Health Connect, ré-appliquée à
-// chaque `expo prebuild` (android/ est régénéré et gitignoré).
-//
-// Trois responsabilités :
-//   1. MainActivity.kt : enregistrer le HealthConnectPermissionDelegate dans
-//      onCreate — sans lui, requestPermission() crashe avec « lateinit property
-//      requestPermission has not been initialized » (le launcher de contrat de
-//      permissions doit être créé avant le démarrage de l'activité).
-//   2. Manifeste, Android 14+ : <activity-alias> ViewPermissionUsageActivity
-//      pointant vers la MainActivity pour l'écran système « utilisation des
-//      permissions » (Health Connect fait partie du framework à partir de 14).
-//
-// Le plugin de react-native-health-connect (app.plugin.js, déclaré dans
-// app.json) ajoute déjà l'intent-filter ACTION_SHOW_PERMISSIONS_RATIONALE sur
-// la MainActivity (écran « pourquoi ces permissions », exigé jusqu'à Android 13).
-// Les <uses-permission> android.permission.health.WRITE_* sont déclarées via
-// android.permissions dans app.json (mécanisme Expo standard).
-
 const { withAndroidManifest, withMainActivity } = require('@expo/config-plugins');
 const { mergeContents } = require('@expo/config-plugins/build/utils/generateCode');
 
@@ -27,7 +9,6 @@ const withPermissionDelegate = (config) =>
       throw new Error('withHealthConnect : MainActivity Java non gérée (Kotlin attendu).');
     }
     let src = cfg.modResults.contents;
-    // mergeContents pose des marqueurs @generated → idempotent au re-prebuild.
     src = mergeContents({
       src,
       newSrc: 'import dev.matinzd.healthconnect.permissions.HealthConnectPermissionDelegate',
@@ -53,7 +34,6 @@ const withPermissionUsageAlias = (config) =>
     const application = cfg.modResults.manifest.application?.[0];
     if (!application) return cfg;
 
-    // Idempotent : prebuild peut relire un manifeste déjà modifié.
     const aliases = application['activity-alias'] || [];
     if (!aliases.some((a) => a.$ && a.$['android:name'] === ALIAS_NAME)) {
       aliases.push({

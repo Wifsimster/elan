@@ -26,7 +26,6 @@ import ovh.battistella.elan.ui.screens.settings.BackupStatus
 import ovh.battistella.elan.ui.screens.settings.BackupUi
 import ovh.battistella.elan.ui.theme.ElanTheme
 
-/** Carte Réglages : sauvegarde/restauration vers un stockage S3 auto-hébergé (opt-in). */
 @Composable
 fun BackupCard(
     ui: BackupUi,
@@ -75,7 +74,6 @@ fun BackupCard(
     }
 }
 
-/** Ligne d'état de la dernière sauvegarde : pastille colorée + libellé daté. */
 @Composable
 private fun BackupStatusLine(ui: BackupUi) {
     val colors = ElanTheme.colors
@@ -93,10 +91,6 @@ private fun BackupStatusLine(ui: BackupUi) {
     }
 }
 
-/**
- * Dialogues de la sauvegarde (confirmation de restauration, résultat, QR),
- * partagés par la carte Réglages et la feuille de restauration.
- */
 @Composable
 fun BackupDialogs(dialog: BackupDialog, onConfirmRestore: () -> Unit, onDismiss: () -> Unit) {
     val colors = ElanTheme.colors
@@ -129,7 +123,6 @@ fun BackupDialogs(dialog: BackupDialog, onConfirmRestore: () -> Unit, onDismiss:
     }
 }
 
-/** Alerte à un seul bouton « OK » (les `Alert.alert(titre, texte)` d'origine). */
 @Composable
 fun InfoDialog(title: String, text: String, onDismiss: () -> Unit) {
     AlertDialog(

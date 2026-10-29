@@ -23,7 +23,6 @@ import ovh.battistella.elan.domain.LatLon
 import ovh.battistella.elan.maps.OPENFREEMAP_STYLE_URL
 import ovh.battistella.elan.ui.theme.ElanTheme
 
-/** Rendu factice : n'instancie jamais MapLibre, trace les appels. */
 private class FakeRenderer(style: String) : MapRenderer {
     val style = MutableStateFlow(style)
     override val styleUrl: StateFlow<String> get() = style
@@ -107,7 +106,6 @@ class RouteMapTest {
 
     @Test
     fun `sans graphe Hilt ni substitut - rendu hors-ligne`() {
-        // L'application de test n'est pas Hilt : repli `OfflineMapRenderer`, jamais MapLibre.
         compose.setContent { ElanTheme { RouteMap(points = route) } }
         compose.onNodeWithContentDescription("Tracé GPS de la sortie").assertIsDisplayed()
     }

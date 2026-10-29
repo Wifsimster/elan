@@ -1,8 +1,3 @@
-// Export d'une sortie vélo en fichier GPX partageable (format Strava).
-// Construit le GPX depuis la séance + ses points GPS, l'écrit dans le cache,
-// puis ouvre la feuille de partage du système — l'utilisateur choisit la
-// destination (upload Strava, Drive, mail…). Aucun appel réseau : le partage
-// est délégué à l'OS, fidèle à la promesse 100 % hors-ligne de l'app.
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useState } from 'react';
@@ -26,8 +21,6 @@ export function useGpxExport() {
         setError('Aucun tracé GPS à exporter pour cette sortie.');
         return;
       }
-      // Zone de confidentialité : retire les points de départ / d'arrivée
-      // (souvent le domicile) avant d'écrire le fichier partagé.
       const points = trimPrivacyZone(all, await getPrivacyZoneM());
       const gpx = buildRideGpx(session, points);
 
@@ -48,8 +41,6 @@ export function useGpxExport() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Export GPX impossible.');
     } finally {
-      // Le GPX contient le tracé GPS complet : on ne le laisse pas traîner dans
-      // le cache après le partage.
       if (file?.exists) file.delete();
       setExporting(false);
     }

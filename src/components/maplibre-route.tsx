@@ -10,27 +10,16 @@ import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
   points: GeoPoint[];
-  /** URL du style MapLibre auto-hébergé. */
   styleUrl: string;
   height: number;
   color: string;
-  /** Suivi temps réel : recadre sur la position courante, gestes désactivés. */
   live?: boolean;
-  /** Carte explorable (pinch/pan) — réservé à l'historique, à l'arrêt. */
   interactive?: boolean;
-  /** Plein écran : remplit le parent (flex), sans bordure ni coins arrondis. */
   fill?: boolean;
 };
 
 const lonLat = (p: GeoPoint): [number, number] => [p.lon, p.lat];
 
-/**
- * Fond de carte MapLibre avec le tracé en surimpression. Le style provient du
- * serveur configuré par l'utilisateur (OpenFreeMap par défaut, ou son propre
- * serveur de tuiles). N'est rendu que si un fond de carte est activé ; sinon,
- * `RouteMap` retombe sur le tracé SVG hors-ligne. L'attribution OSM est affichée
- * en surimpression, comme l'exige l'usage des données OpenStreetMap.
- */
 export function MapLibreRoute({ points, styleUrl, height, color, live, interactive, fill }: Props) {
   const theme = useTheme();
 
@@ -38,7 +27,6 @@ export function MapLibreRoute({ points, styleUrl, height, color, live, interacti
   const first = coords[0];
   const last = coords[coords.length - 1];
 
-  // Attribution obligatoire dès qu'un fond de carte (données OSM) est affiché.
   const attribution = mapAttribution(styleUrl);
 
   const bounds = useMemo(() => {
@@ -83,7 +71,6 @@ export function MapLibreRoute({ points, styleUrl, height, color, live, interacti
               borderColor: theme.border,
             }
       }
-      // Mode live : lecture passive, on bloque les gestes (sécurité à vélo).
       pointerEvents={interactive ? 'auto' : 'none'}>
       <MapView
         style={{ flex: 1 }}
@@ -145,7 +132,6 @@ export function MapLibreRoute({ points, styleUrl, height, color, live, interacti
         ) : null}
       </MapView>
 
-      {/* Attribution OSM — obligatoire dès qu'un fond de carte est affiché. */}
       <Text
         style={{
           position: 'absolute',

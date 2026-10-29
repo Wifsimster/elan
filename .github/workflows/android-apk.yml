@@ -1,24 +1,5 @@
-# Build APK Android téléchargeable depuis GitHub.
-#
-# Trois usages :
-#   • push d'un tag `v*` (créé par `npm run release`) → build + publication de
-#     l'APK en pièce jointe de la Release GitHub correspondante (créée si absente) ;
-#   • déclenchement manuel (workflow_dispatch) → build + artefact téléchargeable
-#     depuis l'exécution, et publication sur une release existante si un tag est
-#     fourni en entrée ;
-#   • PR modifiant ce workflow → build de vérification (artefact seulement), pour
-#     ne jamais découvrir une chaîne de build cassée le jour d'une release.
-#
-# Le build est 100 % local au runner (expo prebuild + Gradle) : pas d'EAS, pas de
-# compte requis. La signature suit `plugins/withReleaseSigning.js` : si les secrets
-# ANDROID_KEYSTORE_* sont définis, l'APK est signé avec la clé d'upload ; sinon il
-# retombe sur la clé debug publique d'Android (installable, mais non vérifiable —
-# cf. docs/PUBLISHING.md).
 name: APK Android
 
-# OBSOLÈTE depuis Élan 2.0 (app native) : l'APK des releases est produit par
-# release-native.yml. Recette Expo 1.x conservée pour legacy/expo-1.x,
-# déclenchement manuel seulement. À supprimer.
 on:
   workflow_dispatch:
     inputs:
@@ -27,7 +8,6 @@ on:
         required: false
         default: ''
 
-# Nécessaire pour créer/mettre à jour la Release et y attacher l'APK.
 permissions:
   contents: write
 
@@ -76,8 +56,6 @@ jobs:
           echo "apk=elan-$version.apk" >> "$GITHUB_OUTPUT"
           echo "Version app.json : $version"
 
-      # Signature : clé d'upload si les secrets existent, sinon repli clé debug.
-      # Les propriétés ELAN_UPLOAD_* sont celles attendues par withReleaseSigning.js.
       - name: Clé de signature (optionnelle)
         id: signing
         env:
@@ -110,18 +88,9 @@ jobs:
           } >> ~/.gradle/gradle.properties
           echo "mode=upload" >> "$GITHUB_OUTPUT"
 
-      # android/ est gitignoré : on le régénère (les config plugins s'appliquent ici).
       - name: Prebuild Android
         run: npx expo prebuild --platform android --no-install
 
-      # Le template Expo plafonne la heap du démon à 2 Go, insuffisant pour R8
-      # (minification release) sur ce projet : OutOfMemoryError en fin de build.
-      # Le runner ubuntu-latest a 16 Go — on lui en donne 8. La dernière valeur
-      # d'une clé gagne dans un .properties, d'où l'append… mais le fichier
-      # généré par prebuild ne se termine PAS par un saut de ligne : sans le \n
-      # de tête, la propriété se colle à la précédente et n'est jamais lue (elle
-      # corrompt même la ligne d'accueil). Le grep final échoue le job si la
-      # valeur n'est pas relue proprement — une OOM silencieuse coûte 40 min.
       - name: Ajuste la heap Gradle du runner
         run: |
           printf '\norg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m\n' >> android/gradle.properties
@@ -133,11 +102,6 @@ jobs:
           sdkmanager="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
           [ -x "$sdkmanager" ] && yes | "$sdkmanager" --licenses > /dev/null || true
 
-      # ABI limitées aux deux architectures des téléphones réels : l'APK universel
-      # des 4 ABI du template pèse ~149 Mo, contre ~85 Mo ici, pour un build plus
-      # court. x86/x86_64 ne concernent que les émulateurs — qui se construisent
-      # en local. L'AAB Play Store (`bundleRelease`) n'est pas touché : il garde
-      # les 4 ABI de gradle.properties et split par architecture de son côté.
       - name: Gradle assembleRelease
         working-directory: android
         run: >-
@@ -161,7 +125,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      # Publication : tag poussé, ou tag fourni au déclenchement manuel.
       - name: Publie l'APK sur la Release
         if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
         env:

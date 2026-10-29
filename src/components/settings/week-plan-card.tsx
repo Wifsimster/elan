@@ -19,10 +19,8 @@ import {
 } from '@/lib/program';
 import { useTheme } from '@/hooks/use-theme';
 
-// Libellés courts pour chaque jour de la semaine, lundi en tête (index 0 = lundi).
 const WEEK_DAY_LABELS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
-/** Option proposée pour un jour : repos, vélo, ou muscu avec un template précis. */
 type WeekPlanOption =
   | { kind: 'repos'; label: string }
   | { kind: 'velo' | 'course' | 'marche'; label: string }
@@ -39,7 +37,6 @@ const WEEK_PLAN_OPTIONS: WeekPlanOption[] = [
   { kind: 'muscu', label: 'Cervicales', templateId: 'cervicales' },
 ];
 
-/** Convertit une option d'UI en `PlannedSession` à persister. */
 function optionToPlanned(opt: WeekPlanOption): PlannedSession {
   if (opt.kind === 'repos') return { kind: 'repos' };
   if (opt.kind !== 'muscu') return { kind: opt.kind, label: ACTIVITY_META[opt.kind].label };
@@ -50,7 +47,6 @@ function optionToPlanned(opt: WeekPlanOption): PlannedSession {
   };
 }
 
-/** Détermine si une option correspond à la séance planifiée pour ce jour. */
 function isOptionActive(opt: WeekPlanOption, entry: PlannedSession): boolean {
   if (opt.kind !== entry.kind) return false;
   if (opt.kind === 'muscu' && entry.kind === 'muscu') {
@@ -59,7 +55,6 @@ function isOptionActive(opt: WeekPlanOption, entry: PlannedSession): boolean {
   return true;
 }
 
-/** Carte Réglages : planning hebdomadaire personnalisable (séance prévue par jour). */
 export function WeekPlanCard() {
   const theme = useTheme();
   const [plan, setPlan] = useState<PlannedSession[]>(DEFAULT_WEEK_PLAN);

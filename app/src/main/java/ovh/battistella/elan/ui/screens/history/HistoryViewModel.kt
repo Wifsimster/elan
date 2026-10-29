@@ -21,7 +21,6 @@ import ovh.battistella.elan.domain.Session
 import java.time.Clock
 import javax.inject.Inject
 
-/** Plage de dates de l'historique (`7|30|90|all` dans l'app d'origine). */
 enum class HistoryRange(val days: Int?) {
     DAYS_7(7),
     DAYS_30(30),
@@ -30,28 +29,21 @@ enum class HistoryRange(val days: Int?) {
 }
 
 data class HistoryUi(
-    /** `null` = toutes les activités. */
     val typeFilter: ActivityType? = null,
     val range: HistoryRange = HistoryRange.ALL,
-    /** Texte tapé (avant debounce). */
     val searchInput: String = "",
     val sessions: List<Session> = emptyList(),
     val hasMore: Boolean = true,
     val loading: Boolean = false,
-    /** Au moins une première page reçue : les états vides peuvent s'afficher. */
     val loaded: Boolean = false,
 ) {
-    /** Un filtre masque des résultats : l'état vide ne propose pas l'import. */
     val filtered: Boolean get() = typeFilter != null || range != HistoryRange.ALL || searchInput.trim().isNotEmpty()
 }
 
-/** Délai entre la dernière frappe et la requête. */
 const val SEARCH_DEBOUNCE_MS = 200L
 
-/** Taille de page de la liste (`PAGE_SIZE` d'origine). */
 const val PAGE_SIZE = 50
 
-/** Critères effectifs d'une requête (après debounce de la recherche). */
 private data class Query(val type: ActivityType?, val range: HistoryRange, val search: String)
 
 @OptIn(FlowPreview::class)
@@ -69,14 +61,10 @@ class HistoryViewModel @Inject constructor(
     private val searchInput = MutableStateFlow("")
     private val refreshTick = MutableStateFlow(0)
 
-    // Compteur de « run » : tout résultat d'un run obsolète (filtre changé
-    // entre temps) est ignoré, ce qui évite les courses de réponses.
     private var run = 0
     private var current = Query(null, HistoryRange.ALL, "")
 
     init {
-        // La saisie vide s'applique tout de suite (premier chargement, effacement) ;
-        // une frappe attend 200 ms de silence.
         val search = searchInput
             .debounce { if (it.isEmpty()) 0L else SEARCH_DEBOUNCE_MS }
             .map { it.trim() }
@@ -105,10 +93,8 @@ class HistoryViewModel @Inject constructor(
         _ui.update { it.copy(searchInput = text) }
     }
 
-    /** Au retour sur l'onglet : reflète une séance fraîchement enregistrée. */
     fun refresh() = refreshTick.update { it + 1 }
 
-    /** Page suivante quand on approche du bas de la liste. */
     fun loadMore() {
         val state = _ui.value
         if (state.loading || !state.hasMore) return

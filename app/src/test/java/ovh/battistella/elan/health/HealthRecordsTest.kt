@@ -1,5 +1,3 @@
-// Port de __tests__/lib/health-connect.test.ts : construction pure des
-// enregistrements Health Connect.
 package ovh.battistella.elan.health
 
 import org.junit.Assert.assertEquals
@@ -12,7 +10,7 @@ import ovh.battistella.elan.domain.HrSample
 
 class HealthRecordsTest {
 
-    private val t0 = 1_780_308_000_000L // 2026-06-01T10:00:00Z
+    private val t0 = 1_780_308_000_000L
     private val t1 = t0 + 3_600_000L
 
     private fun types(records: List<HealthRecordSpec>) = records.map { it.type }
@@ -43,7 +41,6 @@ class HealthRecordsTest {
         assertEquals(25_000.0, (records[1] as HealthRecordSpec.Distance).meters, 0.0)
         assertEquals(600.0, (records[2] as HealthRecordSpec.ActiveCalories).kilocalories, 0.0)
 
-        // Les BPM sont arrondis (Health Connect attend des entiers).
         val hr = records[3] as HealthRecordSpec.HeartRate
         assertEquals(listOf(HealthHrPoint(t0 + 60_000, 120), HealthHrPoint(t0 + 120_000, 146)), hr.samples)
     }
@@ -69,11 +66,11 @@ class HealthRecordsTest {
                 startedAt = t0,
                 endedAt = t1,
                 hrSamples = listOf(
-                    HrSample(t0 - 1000, 110.0), // avant le départ
-                    HrSample(t0 + 1000, 0.0), // bpm nul
-                    HrSample(t0 + 2000, 320.0), // bpm aberrant
-                    HrSample(t1 + 1000, 130.0), // après l'arrivée
-                    HrSample(t0 + 3000, 142.0), // seul valide
+                    HrSample(t0 - 1000, 110.0),
+                    HrSample(t0 + 1000, 0.0),
+                    HrSample(t0 + 2000, 320.0),
+                    HrSample(t1 + 1000, 130.0),
+                    HrSample(t0 + 3000, 142.0),
                 ),
             ),
         )
@@ -123,7 +120,6 @@ class HealthRecordsTest {
     fun `healthClientRecordId porte le type, l'instant de début et le rôle`() {
         assertEquals("elan-course-$t0-session", healthClientRecordId(ActivityType.COURSE, t0, "session"))
         assertEquals("elan-velo-$t0-distance", healthClientRecordId(ActivityType.VELO, t0, "distance"))
-        // Change avec le type — c'est pourquoi un retype doit supprimer l'ancien miroir.
         assertNotEquals(healthClientRecordId(ActivityType.VELO, t0, "session"), healthClientRecordId(ActivityType.MARCHE, t0, "session"))
 
         val records = buildHealthRecords(HealthSessionData(ActivityType.MARCHE, t0, t1, distanceM = 5000.0, calories = 200.0))

@@ -15,18 +15,8 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.Spacing
 
-/**
- * - [Elevated] (défaut) : surface tonale posée sur le fond — la profondeur
- *   vient du palier de ton, pas de l'ombre.
- * - [Inset] : creux discret (champs, sous-blocs), bordure fine.
- * - [Plain] : surface simple (identique à Elevated, gardée pour l'intention).
- */
 enum class CardVariant { Elevated, Inset, Plain }
 
-/**
- * Surface de contenu Sillage : coins `Radius.lg` (24), padding 16 (+ 2 en
- * haut et en bas pour l'air), contenu en colonne espacée de 12.
- */
 @Composable
 fun ElanCard(
     modifier: Modifier = Modifier,

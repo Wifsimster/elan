@@ -8,11 +8,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import ovh.battistella.elan.R
 
-/**
- * Dialogue de confirmation à deux boutons — l'`Alert.alert` à deux choix de
- * l'app d'origine. Le bouton d'action est teinté (danger pour les actions
- * destructrices) ; le second ferme sans rien faire.
- */
 @Composable
 fun ConfirmDialog(
     title: String,

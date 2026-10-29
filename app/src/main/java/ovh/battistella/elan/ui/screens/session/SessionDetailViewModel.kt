@@ -40,53 +40,40 @@ import ovh.battistella.elan.tracking.SavedSessionData
 import ovh.battistella.elan.tracking.SessionFinalizer
 import javax.inject.Inject
 
-/** Dialogue ouvert sur le détail de séance. */
 sealed interface SessionDialog {
     data object None : SessionDialog
     data object Delete : SessionDialog
 
-    /** Confirmation de changement de type vers [to]. */
     data class Retype(val to: ActivityType) : SessionDialog
 }
 
 data class SessionDetailUi(
     val loading: Boolean = true,
-    /** `null` une fois chargé = séance introuvable. */
     val session: Session? = null,
     val points: List<TrackPoint> = emptyList(),
     val sets: List<MuscuSet> = emptyList(),
     val records: List<SessionRecord> = emptyList(),
-    /** FC max du profil (zones, effort). */
     val maxHr: Double = 0.0,
     val dialog: SessionDialog = SessionDialog.None,
-    /** Changement de type en cours d'écriture. */
     val busy: Boolean = false,
-    /** Message d'échec du changement de type (alerte « Changement impossible »). */
     val retypeError: Boolean = false,
-    /** Export GPX en cours (anti-double-appui). */
     val exporting: Boolean = false,
-    /** Aperçu de la carte de partage ouvert. */
     val sharePreview: Boolean = false,
-    /** Capture + partage de l'image en cours. */
     val sharing: Boolean = false,
 )
 
-/** Événements ponctuels (navigation, haptique). */
 sealed interface SessionEvent {
     data object Deleted : SessionEvent
     data object RetypeSucceeded : SessionEvent
     data object RetypeFailed : SessionEvent
 }
 
-/** Un exercice d'une séance muscu et ses séries, dans l'ordre d'apparition. */
 data class ExerciseGroup(val name: String, val rows: List<MuscuSet>) {
     val volume: Double get() = rows.sumOf { it.reps * it.weightKg }
 
-    /** Ressenti uniforme sur les séries de l'exercice : on lit la 1re ligne. */
     val difficulty: Difficulty? get() = rows.firstOrNull()?.difficulty
 }
 
-/** Argument `id` de la route (`Long` navigué, ou texte en test) ; -1 si absent. */
 internal fun sessionIdArg(handle: SavedStateHandle): Long = when (val raw = handle.get<Any>("id")) {
     is Long -> raw
     is Int -> raw.toLong()
@@ -94,14 +81,9 @@ internal fun sessionIdArg(handle: SavedStateHandle): Long = when (val raw = hand
     else -> -1L
 }
 
-/** Regroupe les séries par exercice en conservant l'ordre d'apparition. */
 internal fun groupSets(sets: List<MuscuSet>): List<ExerciseGroup> =
     sets.groupBy { it.exercise }.map { (name, rows) -> ExerciseGroup(name, rows) }
 
-/**
- * Records à mettre en avant, façon « PR » Strava : les records absolus
- * d'abord, puis ceux de l'année, trois au plus pour éviter la surcharge.
- */
 internal fun topRecords(records: List<SessionRecord>): List<SessionRecord> =
     records.sortedBy { if (it.scope == RecordScope.ALL) 0 else 1 }.take(3)
 
@@ -124,15 +106,12 @@ class SessionDetailViewModel @Inject constructor(
     private val _events = MutableSharedFlow<SessionEvent>(extraBufferCapacity = 4)
     val events: SharedFlow<SessionEvent> = _events.asSharedFlow()
 
-    // Garde de réentrance armée dès la CONFIRMATION de retype : un double appui
-    // n'ouvre pas deux dialogues.
     private var retypePending = false
 
     init {
         load()
     }
 
-    /** (Re)lit la séance, ses points / séries, ses records et la FC max du profil. */
     fun load() {
         viewModelScope.launch {
             val s = sessions.getSession(sessionId)
@@ -149,7 +128,6 @@ class SessionDetailViewModel @Inject constructor(
     fun requestDelete() = _ui.update { it.copy(dialog = SessionDialog.Delete) }
 
     fun confirmDelete() {
-        // Double appui sur « Supprimer » : une seule suppression, un seul retour.
         if (_ui.value.dialog != SessionDialog.Delete) return
         _ui.update { it.copy(dialog = SessionDialog.None) }
         viewModelScope.launch {
@@ -158,7 +136,6 @@ class SessionDetailViewModel @Inject constructor(
         }
     }
 
-    /** Ouvre la confirmation de changement de type — refusée hors activités GPS ou vers le type courant. */
     fun requestRetype(to: ActivityType) {
         val current = _ui.value.session ?: return
         if (retypePending || !canRetype(current.type, to)) return
@@ -178,8 +155,6 @@ class SessionDetailViewModel @Inject constructor(
                 _events.emit(SessionEvent.RetypeFailed)
                 return@launch
             }
-            // Miroirs externes (`retypeSavedSession`) : sauvegarde, puis Health
-            // Connect — l'ancien type est retiré avant réécriture.
             if (previousType != null && updated.endedAt != null) {
                 finalizer.onRetyped(
                     previousType,
@@ -195,7 +170,6 @@ class SessionDetailViewModel @Inject constructor(
             }
             _ui.update { it.copy(busy = false) }
             _events.emit(SessionEvent.RetypeSucceeded)
-            // Les records se comparent par type : on relit tout.
             load()
         }
     }
@@ -207,11 +181,6 @@ class SessionDetailViewModel @Inject constructor(
 
     fun dismissRetypeError() = _ui.update { it.copy(retypeError = false) }
 
-    /**
-     * Export GPX (format Strava) : fichier dans le cache, zone de
-     * confidentialité appliquée par l'exporteur, puis feuille de partage. Sans
-     * tracé exploitable (< 2 points), rien n'est écrit.
-     */
     fun exportGpx() {
         if (_ui.value.exporting) return
         if (_ui.value.points.size < 2) {
@@ -238,12 +207,10 @@ class SessionDetailViewModel @Inject constructor(
         }
     }
 
-    /** Ouvre l'aperçu de la carte de partage. */
     fun share() = _ui.update { it.copy(sharePreview = true) }
 
     fun dismissSharePreview() = _ui.update { it.copy(sharePreview = false) }
 
-    /** Carte capturée en bitmap par l'aperçu : PNG dans le cache puis feuille de partage. */
     fun shareImage(bitmap: ImageBitmap) {
         if (_ui.value.sharing) return
         _ui.update { it.copy(sharing = true) }

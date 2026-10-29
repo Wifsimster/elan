@@ -19,21 +19,15 @@ import kotlin.math.roundToLong
 
 private const val DAY_MS = 86_400_000L
 
-/** 76.4 -> « 76,4 » ; 76 -> « 76 ». */
 fun fmtWeight(v: Double): String =
     if (v == Math.floor(v)) v.toLong().toString() else String.format(Locale.ROOT, "%.1f", v).replace('.', ',')
 
-/** Variation signée : +0,4 / −1,2 / 0. */
 fun fmtWeightDelta(v: Double): String = when {
     v > 0 -> "+${fmtWeight(v)}"
     v < 0 -> "−${fmtWeight(abs(v))}"
     else -> "0"
 }
 
-/**
- * Saisie utilisateur (« 76,4 », « 76.4 », « 76 ») -> poids en kg arrondi au
- * dixième, ou `null` si invalide / hors plage plausible (20–300 kg).
- */
 fun parseWeightInput(text: String): Double? {
     val v = text.trim().replace(',', '.').toDoubleOrNull() ?: return null
     if (!v.isFinite()) return null
@@ -42,28 +36,22 @@ fun parseWeightInput(text: String): Double? {
     return rounded
 }
 
-/** Pesée la plus récente antérieure ou égale à [beforeMs] (liste triée de la plus récente à la plus ancienne). */
 internal fun findBefore(items: List<BodyMeasurement>, beforeMs: Long): BodyMeasurement? =
     items.firstOrNull { it.measuredAt <= beforeMs }
 
 data class WeightUi(
-    /** `null` = chargement (évite un flash d'état vide). */
     val items: List<BodyMeasurement>? = null,
     val input: String = "",
     val error: Boolean = false,
-    /** Pesée dont la suppression attend confirmation. */
     val pendingDelete: BodyMeasurement? = null,
 ) {
     val latest: BodyMeasurement? get() = items?.firstOrNull()
     val oldest: BodyMeasurement? get() = items?.lastOrNull()
 
-    /** Pesée de référence d'il y a 30 jours (ou la plus récente avant). */
     val monthAgo: BodyMeasurement? get() = latest?.let { l -> findBefore(items.orEmpty(), l.measuredAt - 30 * DAY_MS) }
 
-    /** Delta sur 30 jours, `null` sans référence. */
     val deltaMonth: Double? get() = latest?.let { l -> monthAgo?.let { l.weightKg - it.weightKg } }
 
-    /** Delta depuis la première pesée. */
     val deltaSinceStart: Double? get() = latest?.let { l -> oldest?.let { l.weightKg - it.weightKg } }
 }
 
@@ -81,7 +69,6 @@ class WeightViewModel @Inject constructor(
         load()
     }
 
-    /** Relit le journal et pré-remplit la saisie avec le dernier poids connu (journal, sinon profil). */
     fun load() {
         viewModelScope.launch {
             val list = bodyWeight.listBodyMeasurements()
@@ -92,9 +79,7 @@ class WeightViewModel @Inject constructor(
 
     fun setInput(text: String) = _ui.update { it.copy(input = text.take(6)) }
 
-    /** « Enregistrer » : valide, journalise (le profil suit) et recharge. */
     fun save() {
-        // Double appui : une seule pesée journalisée.
         if (saving) return
         val weightKg = parseWeightInput(_ui.value.input)
         if (weightKg == null) {

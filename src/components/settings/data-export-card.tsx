@@ -9,11 +9,6 @@ import { getPrivacyZoneM, PRIVACY_ZONE_OPTIONS, setPrivacyZoneM } from '@/lib/pr
 import { useDataExport } from '@/hooks/use-data-export';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Carte Réglages : export du bilan (Markdown) / des données brutes (JSON) via la
- * feuille de partage système, et réglage de la zone de confidentialité des
- * tracés GPX exportés.
- */
 export function DataExportCard() {
   const theme = useTheme();
   const dataExport = useDataExport();
@@ -35,7 +30,6 @@ export function DataExportCard() {
         {"Génère un bilan lisible de ton programme, de ta progression et de ton historique, ou un export brut complet. À déposer dans l'outil de ton choix : coach IA, tableur, sauvegarde personnelle… Tout est généré sur l'appareil, le partage se fait via la feuille système (Drive, mail, fichier…)."}
       </Text>
 
-      {/* Zone de confidentialité : rogne le départ/arrivée des exports GPS. */}
       <View style={{ gap: 8 }}>
         <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600' }}>
           Zone de confidentialité

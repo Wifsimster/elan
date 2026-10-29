@@ -1,26 +1,12 @@
-// Projection géographique d'un tracé GPS vers des coordonnées écran.
-// Fonction pure, sans état ni React : réutilisable par le rendu statique,
-// live et interactif. Aucune donnée n'est envoyée à un serveur.
-
 export type GeoPoint = { lat: number; lon: number };
 
 export type Projection = {
   width: number;
   height: number;
-  /** Projette un point géographique vers les coordonnées du viewBox SVG. */
   project: (p: GeoPoint) => readonly [number, number];
-  /**
-   * Mètres réels couverts par une unité du viewBox (isotrope : la projection
-   * conserve le ratio géographique). Sert à dessiner une échelle de distance.
-   */
   metersPerUnit: number;
 };
 
-/**
- * Construit une projection cadrant l'ensemble des points dans un viewBox
- * `width × height`, en conservant le ratio géographique réel (à cette latitude,
- * 1° de longitude couvre moins de distance que 1° de latitude).
- */
 export function createProjection(
   points: GeoPoint[],
   opts: { width: number; height: number; pad?: number },
@@ -46,13 +32,10 @@ export function createProjection(
 
   const project = (p: GeoPoint) => {
     const x = offsetX + (p.lon - minLon) * lonScale * scale;
-    const y = offsetY + (maxLat - p.lat) * scale; // y inversé (nord en haut)
+    const y = offsetY + (maxLat - p.lat) * scale;
     return [x, y] as const;
   };
 
-  // `scale` est en unités viewBox par degré de latitude ; 1° de latitude ≈
-  // 111 320 m. La projection étant isotrope, le ratio vaut aussi pour la
-  // longitude. Garde-fou si `scale` dégénère (tracé quasi ponctuel).
   const metersPerUnit = Number.isFinite(scale) && scale > 0 ? 111320 / scale : 0;
 
   return { width, height, project, metersPerUnit };

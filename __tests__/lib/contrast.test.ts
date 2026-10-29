@@ -1,9 +1,8 @@
-// Tests du choix d'encre lisible (lib/contrast.ts).
 import { bestInk, contrastRatio, relativeLuminance } from '@/lib/contrast';
 
 const BLANC = '#FFFFFF';
-const ENCRE_SOMBRE = '#0B0E13'; // `OnBright` du thème
-const MARCHE = '#A3E635'; // teinte lime — la plus claire du thème
+const ENCRE_SOMBRE = '#0B0E13';
+const MARCHE = '#A3E635';
 const VELO = '#22D3C5';
 const MUSCU = '#A78BFA';
 const ACCENT = '#5B7CFF';
@@ -46,12 +45,10 @@ describe('bestInk', () => {
 
   it('garde le blanc sur un fond sombre', () => {
     expect(bestInk('#000000', encres)).toBe(BLANC);
-    expect(bestInk('#14181F', encres)).toBe(BLANC); // surface de carte
+    expect(bestInk('#14181F', encres)).toBe(BLANC);
   });
 
   it('retient l’encre sombre sur TOUTES les teintes d’activité du thème', () => {
-    // Résultat mesuré, pas choisi : même sur le violet muscu ou le bleu accent,
-    // que l'app peignait en blanc, le sombre contraste deux fois mieux.
     for (const teinte of [MARCHE, VELO, MUSCU, ACCENT]) {
       expect(bestInk(teinte, encres)).toBe(ENCRE_SOMBRE);
       expect(contrastRatio(teinte, ENCRE_SOMBRE)).toBeGreaterThan(contrastRatio(teinte, BLANC));
@@ -65,7 +62,6 @@ describe('bestInk', () => {
   });
 
   it('choisit toujours la meilleure des candidates, même sans seuil atteint', () => {
-    // Un gris moyen : aucune encre ne passe AA, on prend quand même la meilleure.
     const gris = '#767676';
     const choisie = bestInk(gris, encres);
     const autre = choisie === BLANC ? ENCRE_SOMBRE : BLANC;

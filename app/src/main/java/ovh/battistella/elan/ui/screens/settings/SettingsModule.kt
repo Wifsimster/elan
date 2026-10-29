@@ -1,7 +1,3 @@
-// Liaisons Hilt des ports de l'écran Réglages vers leurs adaptateurs
-// (`SettingsAdapters.kt`), eux-mêmes branchés sur les services réels :
-// `data/backup`, `data/export`, `health`, `sync/ReminderScheduler` et `maps`.
-// Une liaison par port ; les écrans ne voient jamais les services.
 package ovh.battistella.elan.ui.screens.settings
 
 import dagger.Binds

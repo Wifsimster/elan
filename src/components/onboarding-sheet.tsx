@@ -16,23 +16,15 @@ type Props = {
   initialHeightCm: number;
   initialMaxHr: number;
   initialGoal: TrainingGoal;
-  /** Renvoie le profil saisi ; l'appelant le persiste et marque l'onboarding fait. */
   onDone: (profile: {
     weightKg: number;
     heightCm: number;
     maxHr: number;
     goal: TrainingGoal;
   }) => void;
-  /** « J'ai déjà une sauvegarde » : ouvre la restauration depuis un S3 perso. */
   onRestore: () => void;
 };
 
-/**
- * Accueil premier lancement (100 % local). Capture poids, taille, FC max et
- * objectif — sans eux, les calories, les zones cardio et les charges conseillées
- * tournent sur des valeurs par défaut silencieusement approximatives dès la
- * première séance. Rassure aussi sur le fait que rien ne quitte l'appareil.
- */
 export function OnboardingSheet({
   visible,
   initialWeightKg,
@@ -51,8 +43,6 @@ export function OnboardingSheet({
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
-      {/* ScrollView : centré quand le contenu tient, défilable sinon (paysage
-          court). Marges latérales de sécurité pour l'encoche en paysage. */}
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.scrim }}
         contentContainerStyle={{
@@ -139,8 +129,6 @@ export function OnboardingSheet({
             icon="arrow-right"
             onPress={() => onDone({ weightKg, heightCm, maxHr, goal })}
           />
-          {/* Réinstallation : la base (config S3 comprise) est vide, on propose
-              de tout recharger depuis le serveur plutôt que de repartir de zéro. */}
           <Button
             title="J'ai déjà une sauvegarde — restaurer"
             icon="cloud-download-outline"

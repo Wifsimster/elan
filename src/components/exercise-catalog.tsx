@@ -27,26 +27,15 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
-  /** Profil servant à calculer les recommandations (poids, taille, sexe, objectif). */
   profile: RecoProfile;
-  /** Appelé quand l'utilisateur ajoute un exercice depuis le détail. */
   onPick: (ex: CatalogExercise) => void;
-  /** Noms d'exercices déjà dans la séance (affiche une pastille « ajouté »). */
   addedNames?: string[];
-  /** Libellé du bouton d'ajout (défaut « Ajouter à la séance »). */
   addLabel?: string;
 };
 
 const fmtCm = (v: number) => `${Math.round(v)} cm`;
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
 
-/**
- * Magasin d'exercices : recherche, filtres (groupe musculaire + matériel) et
- * liste, chaque entrée ouvrant une fiche détaillée (illustration, muscles,
- * exécution) avec un nombre de répétitions et une charge CONSEILLÉS pour le
- * profil de l'utilisateur. Présentationnel : occupe le `flex` que lui donne son
- * parent (feuille modale dans la séance, ou écran plein « Catalogue »).
- */
 export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props) {
   const theme = useTheme();
   const [category, setCategory] = useState<ExerciseCategory | null>(null);
@@ -68,7 +57,6 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
     );
   }, [category, equipment, query]);
 
-  // Regroupe par rayon pour des en-têtes de section quand aucun groupe n'est filtré.
   const sections = useMemo(() => {
     const order = category ? [category] : CATEGORIES;
     return order
@@ -85,7 +73,6 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
 
   return (
     <View style={{ flex: 1, gap: Spacing.three }}>
-      {/* Recherche */}
       <View
         style={{
           flexDirection: 'row',
@@ -114,9 +101,6 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
         ) : null}
       </View>
 
-      {/* Filtres : groupe musculaire. Enveloppe sur plusieurs lignes plutôt que
-          de défiler horizontalement : sinon les derniers libellés (Épaules,
-          Bras, Gainage…) sortent de l'écran et restent illisibles. */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
         <Chip label="Tous" selected={category === null} color={theme.muscu} onPress={() => setCategory(null)} />
         {CATEGORIES.map((c) => (
@@ -130,7 +114,6 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
         ))}
       </View>
 
-      {/* Filtres : matériel (même logique d'enveloppe que ci-dessus). */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
         <Chip
           label="Tout matériel"
@@ -149,7 +132,6 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
         ))}
       </View>
 
-      {/* Barre de statut : nombre de résultats + raccourci pour tout réinitialiser. */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={{ ...Type.caption, color: theme.textMuted }}>
           {`${filtered.length} exercice${filtered.length > 1 ? 's' : ''}`}
@@ -161,7 +143,6 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
         ) : null}
       </View>
 
-      {/* Liste */}
       <ScrollView
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
@@ -223,7 +204,6 @@ export function ExerciseCatalog({ profile, onPick, addedNames, addLabel }: Props
   );
 }
 
-/** Une ligne du catalogue : icône, nom, muscles, et la cible/charge conseillées. */
 function ExerciseRow({
   ex,
   profile,
@@ -238,8 +218,6 @@ function ExerciseRow({
   theme: ReturnType<typeof useTheme>;
 }) {
   const rec = recommend(profile, ex);
-  // Charge mise en avant en pastille seulement quand c'est un vrai poids ; pour
-  // le gainage (chrono) ou le poids du corps, le libellé reste sur la ligne reco.
   const weighted = !rec.timed && rec.weightKg > 0;
   return (
     <PressableScale
@@ -273,13 +251,9 @@ function ExerciseRow({
         />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        {/* Nom sur 2 lignes max : les variantes longues (« … roumain haltères »
-            vs « … roumain barre ») doivent rester distinguables. */}
         <Text style={{ ...Type.subtitle, color: theme.text }} numberOfLines={2}>
           {ex.name}
         </Text>
-        {/* Reco + charge sur une ligne ; la charge est teintée pour ressortir
-            sans voler de largeur au nom (pas de pastille concurrente). */}
         <Text style={{ ...Type.caption, color: theme.textSecondary }} numberOfLines={1}>
           {recoHint(ex, rec)} ·{' '}
           <Text style={{ color: weighted ? theme.muscu : theme.textSecondary, fontWeight: '700' }}>
@@ -301,7 +275,6 @@ function ExerciseRow({
   );
 }
 
-/** Fiche détaillée d'un exercice, en feuille modale, avec la recommandation. */
 function ExerciseDetail({
   ex,
   profile,
@@ -322,8 +295,6 @@ function ExerciseDetail({
   const rec = ex ? recommend(profile, ex) : null;
   const howTo = ex ? exerciseHowTo(ex.id) : undefined;
 
-  // Dégradé « il reste du contenu » : affiché seulement quand le contenu dépasse
-  // la zone visible (sinon il masquerait inutilement la dernière ligne).
   const [showFade, setShowFade] = useState(false);
   const viewportRef = useRef(0);
   const contentRef = useRef(0);
@@ -332,8 +303,6 @@ function ExerciseDetail({
   return (
     <Modal visible={ex != null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable onPress={onClose} style={{ flex: 1, justifyContent: 'flex-end' }}>
-        {/* Voile dégradé (sombre vers le haut) plutôt qu'une couleur en dur ;
-            non interactif pour laisser le tap-pour-fermer au Pressable. */}
         <Gradient
           colors={Gradients.scrim}
           start={{ x: 0.5, y: 1 }}
@@ -351,17 +320,12 @@ function ExerciseDetail({
               maxHeight: '92%',
               overflow: 'hidden',
             }}>
-            {/* Poignée + fermeture */}
             <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 4 }}>
               <View
                 style={{ width: 40, height: 5, borderRadius: Radius.pill, backgroundColor: theme.border }}
               />
             </View>
 
-            {/* Zone défilante : flexShrink la laisse rétrécir sous la hauteur max
-                de la feuille (sinon le contenu déborde et se fait rogner derrière le
-                bouton). persistentScrollbar = barre toujours visible (Android) ; le
-                dégradé en bas signale visuellement qu'il reste du contenu à dérouler. */}
             <View style={{ flexShrink: 1 }}>
               <ScrollView
                 style={{ flex: 1 }}
@@ -380,7 +344,6 @@ function ExerciseDetail({
 
               <Text style={{ ...Type.headline, color: theme.text }}>{ex.name}</Text>
 
-              {/* Matériel */}
               <View style={{ gap: 8 }}>
                 <Text style={{ ...Type.overline, color: theme.textMuted }}>Matériel</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -399,7 +362,6 @@ function ExerciseDetail({
                 </View>
               </View>
 
-              {/* Recommandation personnalisée */}
               <View
                 style={{
                   gap: 8,
@@ -430,7 +392,6 @@ function ExerciseDetail({
                 </Text>
               </View>
 
-              {/* Muscles ciblés */}
               <View style={{ gap: 8 }}>
                 <Text style={{ ...Type.overline, color: theme.textMuted }}>Muscles ciblés</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -449,7 +410,6 @@ function ExerciseDetail({
                 </View>
               </View>
 
-              {/* Exécution */}
               {howTo ? (
                 <View style={{ gap: 8 }}>
                   <Text style={{ ...Type.overline, color: theme.textMuted }}>Exécution</Text>
@@ -457,8 +417,6 @@ function ExerciseDetail({
                 </View>
               ) : null}
               </ScrollView>
-              {/* Dégradé de bas : indice « il reste du contenu », visible seulement
-                  quand ça déborde. Couleur dérivée du fond de la feuille (PULSE). */}
               {showFade ? (
                 <Gradient
                   colors={[theme.backgroundElement + '00', theme.backgroundElement]}
@@ -470,7 +428,6 @@ function ExerciseDetail({
               ) : null}
             </View>
 
-            {/* Action */}
             <View
               style={{
                 padding: 16,

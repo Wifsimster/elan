@@ -1,10 +1,9 @@
-// Chronomètre simple : temps actif écoulé en secondes, avec pause.
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useStopwatch() {
   const [elapsedSec, setElapsedSec] = useState(0);
   const [running, setRunning] = useState(false);
-  const accumulatedRef = useRef(0); // secondes figées avant la pause en cours
+  const accumulatedRef = useRef(0);
   const startedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -17,10 +16,6 @@ export function useStopwatch() {
     return () => clearInterval(id);
   }, [running]);
 
-  // Temps écoulé LIVE, lu à l'appel depuis les refs (pas le state `elapsedSec`,
-  // qui n'est rafraîchi qu'à ~4 Hz et se fige dans une closure d'Alert). À
-  // utiliser au moment de l'enregistrement pour que la durée corresponde bien à
-  // l'instant du « Terminer », pas à l'ouverture de la boîte de confirmation.
   const getElapsedSec = useCallback(() => {
     const base = accumulatedRef.current;
     const since = startedAtRef.current ? (Date.now() - startedAtRef.current) / 1000 : 0;
@@ -47,8 +42,6 @@ export function useStopwatch() {
     setRunning(false);
   }, []);
 
-  // Pré-charge un temps écoulé (reprise d'une séance en pause) sans démarrer :
-  // le prochain `start()` enchaînera à partir de cette base.
   const seed = useCallback((sec: number) => {
     const base = Math.max(0, sec);
     accumulatedRef.current = base;
