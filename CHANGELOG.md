@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.1](https://github.com/Wifsimster/elan/compare/v2.1.0...v2.1.1) (2026-10-29)
+
+### 🐛 Corrections
+
+* restaure ce que le retrait des commentaires ne devait pas toucher ([#80](https://github.com/Wifsimster/elan/issues/80)) ([1b577f8](https://github.com/Wifsimster/elan/commit/1b577f884359a6e651b67a372a2f6afaa7d46259)), closes [Wifsimster/elan#79](https://github.com/Wifsimster/elan/issues/79)
+
 ## [2.1.0](https://github.com/Wifsimster/elan/compare/v2.0.1...v2.1.0) (2026-09-23)
 
 ### ✨ Fonctionnalités
