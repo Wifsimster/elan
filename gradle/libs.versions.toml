@@ -8,11 +8,6 @@ coreKtx = "1.15.0"
 lifecycle = "2.8.7"
 activityCompose = "1.9.3"
 composeBom = "2025.10.01"
-# Material 3 Expressive APIs (MaterialExpressiveTheme, wavy progress, loading
-# indicators) are only public in the 1.5.0-alpha line; stable 1.4.0 keeps them
-# internal. alpha14 is the last alpha on the Compose 1.8/1.9 train — alpha15+
-# pull Compose 1.11/1.12 which require AGP 9.1+. Pinned explicitly to override
-# the BOM (which resolves Compose UI up to 1.9.4, compatible with AGP 8.9.3).
 material3 = "1.5.0-alpha14"
 navigationCompose = "2.8.5"
 room = "2.6.1"
@@ -24,8 +19,6 @@ junit = "4.13.2"
 robolectric = "4.14.1"
 mockk = "1.13.13"
 androidxTestExtJunit = "1.2.1"
-# Élan-specific (map, Health Connect, QR scanner). Declared now, wired into
-# app/build.gradle.kts by the milestones that need them.
 maplibre = "11.8.0"
 healthConnect = "1.1.0"
 playCodeScanner = "16.1.0"
@@ -43,7 +36,6 @@ androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graph
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
-# material3 ≥ 1.2 ne ré-exporte plus icons-core : requis pour Icons.Default.*
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
@@ -63,7 +55,6 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-guava", version.ref = "coroutines" }
 
-# Élan-specific
 maplibre = { group = "org.maplibre.gl", name = "android-sdk", version.ref = "maplibre" }
 androidx-health-connect = { group = "androidx.health.connect", name = "connect-client", version.ref = "healthConnect" }
 play-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "playCodeScanner" }

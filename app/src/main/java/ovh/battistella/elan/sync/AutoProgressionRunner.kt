@@ -1,7 +1,3 @@
-// Orchestration IMPURE de la progression automatique (port de la partie
-// « impure » de `lib/auto-progression.ts`) : lecture de l'historique et de la
-// config, persistance de l'état hebdomadaire, notification. La logique pure
-// (cibles, pas, plafonds, textes) vit dans `domain/AutoProgression.kt`.
 package ovh.battistella.elan.sync
 
 import android.content.Context
@@ -35,11 +31,6 @@ class AutoProgressionRunner internal constructor(
         sessions: SessionRepository,
     ) : this(settings, sessions, ProgressionNotify { title, body -> ProgressionNotifier.notify(context, title, body) })
 
-    /**
-     * Cibles de pré-remplissage des exercices d'un programme (clé = nom) :
-     * dernière charge/durée enregistrée, éventuellement relevée d'un cran par
-     * la progression auto. L'unique endroit où la montée est appliquée.
-     */
     suspend fun targetsForExercises(exercises: List<TemplateExercise>): Map<String, ExerciseTarget> {
         val enabled = settings.snapshot().autoProgression.enabled
         val out = LinkedHashMap<String, ExerciseTarget>(exercises.size)
@@ -49,10 +40,6 @@ class AutoProgressionRunner internal constructor(
         return out
     }
 
-    /**
-     * Exercices auto-progressables du planning effectif, dédupliqués par nom
-     * (un même mouvement présent plusieurs jours ne compte qu'une fois).
-     */
     private suspend fun planAutoExercises(): List<TemplateExercise> {
         val plan = settings.snapshot().weekPlan
         val seen = HashSet<String>()
@@ -66,11 +53,6 @@ class AutoProgressionRunner internal constructor(
         return out
     }
 
-    /**
-     * Changements de la nouvelle semaine : pour chaque exercice auto du
-     * planning, compare la dernière valeur enregistrée à la cible. Ne renvoie
-     * que les exercices qui bougent réellement.
-     */
     suspend fun computeWeeklyChanges(): List<ProgressionChange> {
         val changes = ArrayList<ProgressionChange>()
         for (ex in planAutoExercises()) {
@@ -93,25 +75,15 @@ class AutoProgressionRunner internal constructor(
         return changes
     }
 
-    /**
-     * Évalue la progression si une nouvelle semaine ISO a commencé (idempotent).
-     * À appeler au lancement et au retour sur l'accueil. Renvoie les changements
-     * de la semaine (vide si rien, désactivé, ou déjà évalué).
-     *
-     * Sécurités : l'état est persisté AVANT la notification (un échec de notif
-     * ne rejoue pas l'annonce) ; premier passage silencieux (amorçage) pour
-     * qu'activer la fonctionnalité ne déclenche pas une fausse annonce.
-     */
     suspend fun runWeeklyProgressionIfDue(now: Long): List<ProgressionChange> {
         val snapshot = settings.snapshot()
         if (!snapshot.autoProgression.enabled) return emptyList()
 
         val week = isoWeekKey(now)
         val state = snapshot.autoProgressionState
-        if (state.week == week) return state.changes // déjà évalué cette semaine
+        if (state.week == week) return state.changes
 
         if (state.week.isEmpty()) {
-            // Amorçage silencieux : on mémorise la semaine sans annoncer.
             settings.setAutoProgressionState(AutoProgressionState(week = week, changes = emptyList(), dismissed = true))
             return emptyList()
         }
@@ -123,7 +95,6 @@ class AutoProgressionRunner internal constructor(
             try {
                 notifier.notify(content.title, content.body)
             } catch (_: Exception) {
-                // Notification best-effort : l'état est déjà persisté.
             }
         }
         return changes

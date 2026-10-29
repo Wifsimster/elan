@@ -1,4 +1,3 @@
-// Tests pour les calculs géographiques (haversine + décimation).
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -16,8 +15,8 @@ class GeoTest {
 
     @Test
     fun `symétrique entre A et B`() {
-        val a = LatLon(48.8566, 2.3522) // Paris
-        val b = LatLon(45.7640, 4.8357) // Lyon
+        val a = LatLon(48.8566, 2.3522)
+        val b = LatLon(45.7640, 4.8357)
         assertEquals(haversineMeters(b, a), haversineMeters(a, b), 1e-6)
     }
 
@@ -58,14 +57,12 @@ class GeoTest {
 
     @Test
     fun `élimine les points trop proches selon le seuil`() {
-        // Quatre points à 1 mètre d'écart : on garde le 1er et le dernier.
         val pts = listOf(LatLon(0.0, 0.0), LatLon(0.000_009, 0.0), LatLon(0.000_018, 0.0), LatLon(0.000_027, 0.0))
         assertEquals(2, decimateByDistance(pts, 100.0).size)
     }
 
     @Test
     fun `conserve les points suffisamment éloignés`() {
-        // Trois points séparés de ~111 m : avec un seuil de 50 m, tous sont gardés.
         val pts = listOf(LatLon(0.0, 0.0), LatLon(0.001, 0.0), LatLon(0.002, 0.0))
         assertEquals(3, decimateByDistance(pts, 50.0).size)
     }

@@ -65,13 +65,8 @@ import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.roundToInt
 
-/** Une section du catalogue : un rayon et ses exercices filtrés. */
 data class CatalogSection(val category: ExerciseCategory, val items: List<CatalogExercise>)
 
-/**
- * Filtre le catalogue par rayon, matériel et texte (nom ou muscle, sans
- * casse). Pur, extrait de l'écran pour être testable.
- */
 fun filterCatalog(query: String, category: ExerciseCategory?, equipment: Equipment?): List<CatalogExercise> {
     val q = query.trim().lowercase()
     return CATALOG.filter { ex ->
@@ -81,7 +76,6 @@ fun filterCatalog(query: String, category: ExerciseCategory?, equipment: Equipme
     }
 }
 
-/** Regroupe par rayon (dans l'ordre des rayons), sans section vide. */
 fun catalogSections(filtered: List<CatalogExercise>, category: ExerciseCategory?): List<CatalogSection> {
     val order = if (category != null) listOf(category) else CATEGORIES
     return order
@@ -89,16 +83,6 @@ fun catalogSections(filtered: List<CatalogExercise>, category: ExerciseCategory?
         .filter { it.items.isNotEmpty() }
 }
 
-/**
- * Magasin d'exercices (port de `exercise-catalog.tsx`) : recherche, filtres
- * rayon (teinte muscu) et matériel (accent) sur plusieurs lignes, compteur +
- * « Tout effacer », sections par rayon ; chaque ligne ouvre une fiche avec la
- * recommandation calculée pour [profile]. Occupe l'espace que lui donne son
- * parent (modale plein écran dans la séance, ou écran « Catalogue »).
- *
- * @param addedNames noms déjà dans la séance (pastille `check-circle`)
- * @param addLabel libellé du bouton d'ajout (défaut « Ajouter à la séance »)
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ExerciseCatalog(
@@ -126,8 +110,6 @@ fun ExerciseCatalog(
     Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = modifier.fillMaxSize()) {
         SearchField(query = query, onQueryChange = { query = it })
 
-        // Filtres : rayon. Enveloppe sur plusieurs lignes plutôt que de défiler
-        // horizontalement, sinon les derniers libellés sortent de l'écran.
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ElanChip(label = "Tous", selected = category == null, color = colors.muscu, onClick = { category = null })
             CATEGORIES.forEach { c ->
@@ -139,7 +121,6 @@ fun ExerciseCatalog(
                 )
             }
         }
-        // Filtres : matériel.
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ElanChip(label = "Tout matériel", selected = equipment == null, color = colors.accent, onClick = { equipment = null })
             EQUIPMENTS.forEach { e ->
@@ -223,7 +204,6 @@ fun ExerciseCatalog(
     }
 }
 
-/** Champ de recherche : loupe, texte, croix d'effacement. */
 @Composable
 private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     val colors = ElanTheme.colors
@@ -271,13 +251,10 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     }
 }
 
-/** Une ligne du catalogue : pastille icône, nom (2 lignes), reco + charge teintée, 3 muscles, état ajouté. */
 @Composable
 private fun ExerciseRow(ex: CatalogExercise, profile: RecoProfile, added: Boolean, onClick: () -> Unit) {
     val colors = ElanTheme.colors
     val rec = remember(ex, profile) { recommend(profile, ex) }
-    // Charge teintée seulement quand c'est un vrai poids ; gainage / poids du
-    // corps restent en couleur secondaire.
     val weighted = !rec.timed && rec.weightKg > 0
     val shape = RoundedCornerShape(Radius.md)
     Row(
@@ -327,11 +304,6 @@ private fun ExerciseRow(ex: CatalogExercise, profile: RecoProfile, added: Boolea
     }
 }
 
-/**
- * Fiche détaillée d'un exercice en feuille basse : illustration, nom,
- * matériel, bloc de recommandation (cible + charge, repos conseillé, phrase
- * poids/taille), muscles, exécution, et pied « Ajouter ».
- */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExerciseDetailSheet(
@@ -346,7 +318,6 @@ fun ExerciseDetailSheet(
     val rec = remember(ex, profile) { recommend(profile, ex) }
     val howTo = exerciseHowTo(ex.id)
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    // Zone défilante bornée pour que le pied « Ajouter » reste toujours visible.
     val maxScroll = (LocalConfiguration.current.screenHeightDp * 0.66f).dp
     ModalBottomSheet(
         onDismissRequest = onClose,
@@ -374,7 +345,6 @@ fun ExerciseDetailSheet(
                     }
                 }
 
-                // Recommandation personnalisée.
                 val recoShape = RoundedCornerShape(Radius.md)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),

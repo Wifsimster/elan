@@ -20,19 +20,6 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Secrets chiffrés sur disque avec une clé AES-256 qui ne quitte jamais
- * l'AndroidKeyStore (alias `elan.secrets.v1`, GCM, sans authentification
- * utilisateur pour que la sauvegarde automatique marche en arrière-plan).
- *
- * Un secret = un fichier `files/secrets/<nom>.bin` contenant `iv || chiffré`
- * en Base64, écrit atomiquement ([AtomicFile]) : une coupure en pleine écriture
- * laisse l'ancienne valeur intacte plutôt qu'un blob tronqué illisible.
- *
- * Un blob illisible (clé perdue après restauration système, fichier corrompu)
- * vaut « pas de secret » : l'utilisateur ressaisit ses identifiants, l'app ne
- * plante pas au démarrage.
- */
 @Singleton
 class KeystoreSecretStore internal constructor(
     private val dir: File,
@@ -60,13 +47,10 @@ class KeystoreSecretStore internal constructor(
         } catch (e: GeneralSecurityException) {
             null
         } catch (e: IllegalArgumentException) {
-            // Base64 invalide
             null
         } catch (e: IOException) {
-            // Fichier illisible
             null
         } catch (e: ProviderException) {
-            // KeyStore en défaut (clé invalidée, TEE indisponible)
             null
         }
     }
@@ -74,8 +58,6 @@ class KeystoreSecretStore internal constructor(
     override suspend fun put(name: String, value: String) = withContext(io) {
         dir.mkdirs()
         val cipher = Cipher.getInstance(TRANSFORMATION)
-        // Pas d'IV fourni : le KeyStore en tire un aléatoire (obligatoire avec
-        // `setRandomizedEncryptionRequired`), qu'on stocke en tête du blob.
         cipher.init(Cipher.ENCRYPT_MODE, keyProvider())
         val iv = cipher.iv
         check(iv.size == IV_BYTES) { "IV GCM inattendu : ${iv.size} octets" }
@@ -98,8 +80,6 @@ class KeystoreSecretStore internal constructor(
     }
 
     private fun fileFor(name: String): File {
-        // Le nom devient un nom de fichier : on refuse tout ce qui pourrait
-        // sortir du dossier (séparateurs, `..`).
         require(SAFE_NAME.matches(name)) { "nom de secret invalide : $name" }
         return File(dir, "$name.bin")
     }
@@ -112,7 +92,6 @@ class KeystoreSecretStore internal constructor(
         private const val TAG_BITS = 128
         private val SAFE_NAME = Regex("[A-Za-z0-9_.-]+")
 
-        /** Clé AES-256 du KeyStore Android, générée au premier appel. */
         fun keystoreKey(): SecretKey {
             val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
             (keyStore.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }

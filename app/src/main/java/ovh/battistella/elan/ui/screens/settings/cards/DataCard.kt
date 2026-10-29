@@ -19,7 +19,6 @@ import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 
-/** Carte Réglages : gestion des données locales (effacement, réinitialisation), confirmées par l'écran. */
 @Composable
 fun DataCard(onClearSessions: () -> Unit, onResetAll: () -> Unit, modifier: Modifier = Modifier) {
     val colors = ElanTheme.colors

@@ -82,7 +82,6 @@ class WeightViewModelTest {
         assertEquals(1, vm.ui.value.items?.size)
         assertEquals(76.4, vm.ui.value.latest?.weightKg)
         assertEquals("76,4", vm.ui.value.input)
-        // Le profil suit la dernière pesée.
         assertEquals(76.4, repos.settings.getProfile().weightKg, 0.0)
     }
 

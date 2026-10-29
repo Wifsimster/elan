@@ -1,13 +1,3 @@
-/**
- * Tokens du design system **PULSE** (voir DESIGN.md).
- *
- * Tout le style de l'app dérive de ce fichier : couleurs (clair/sombre),
- * dégradés d'activité, rayons, élévation, échelle typographique et ressorts
- * d'animation. Les écrans ne codent jamais une valeur en dur — ils piochent ici
- * via `useTheme()` (couleurs dépendantes du thème) ou via les exports statiques
- * ci-dessous (Radius / Elevation / Type / Motion / Gradients, indépendants du thème).
- */
-
 import '@/global.css';
 
 import { Platform, type TextStyle } from 'react-native';
@@ -16,8 +6,6 @@ export const Colors = {
   light: {
     text: '#0B0E13',
     textSecondary: '#5A6472',
-    // Texte tertiaire : assombri pour passer le contraste AA (≈4.6:1 sur blanc)
-    // — porte des libellés d'axes et du contenu secondaire réel.
     textMuted: '#6B7280',
     background: '#F3F5FA',
     backgroundElement: '#FFFFFF',
@@ -27,9 +15,7 @@ export const Colors = {
     hairline: '#EDF0F6',
     accent: '#3B5BFF',
     accentSoft: '#E5EAFF',
-    // Couleur de lien (texte cliquable) — dérivée de l'accent de marque.
     link: '#2F6BFF',
-    // Voile des surfaces modales (fond assombri derrière une feuille/pop-up).
     scrim: 'rgba(0,0,0,0.6)',
     velo: '#0BA59B',
     muscu: '#7C3AED',
@@ -43,8 +29,6 @@ export const Colors = {
   dark: {
     text: '#F4F7FB',
     textSecondary: '#9AA3B0',
-    // Texte tertiaire : éclairci pour passer le contraste AA sur les surfaces
-    // sombres (l'ancien #6B7484 tombait sous 3:1 sur backgroundElement).
     textMuted: '#868FA0',
     background: '#0A0C10',
     backgroundElement: '#14181F',
@@ -54,9 +38,7 @@ export const Colors = {
     hairline: '#1A1F28',
     accent: '#5B7CFF',
     accentSoft: '#1B2236',
-    // Couleur de lien (texte cliquable) — dérivée de l'accent de marque.
     link: '#6E8BFF',
-    // Voile des surfaces modales (un peu plus dense sur fond sombre).
     scrim: 'rgba(0,0,0,0.66)',
     velo: '#22D3C5',
     muscu: '#A78BFA',
@@ -71,11 +53,6 @@ export const Colors = {
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-/**
- * Dégradés d'activité — volontairement vifs et identiques en clair/sombre car
- * ils se posent toujours sur une surface colorée (boutons, héros, jauges).
- * Ordre : [début, fin], dégradé en diagonale par défaut.
- */
 export const Gradients = {
   accent: ['#6478FF', '#7A3BFF'],
   velo: ['#2DE0C0', '#0BA9B5'],
@@ -86,35 +63,20 @@ export const Gradients = {
   danger: ['#FF5A5A', '#D61F2E'],
   fire: ['#FFB020', '#FF6B35'],
   success: ['#4ADE80', '#10B981'],
-  /** Voile sombre posé en bas d'une image/héros pour asseoir le texte. */
   scrim: ['rgba(10,12,16,0)', 'rgba(10,12,16,0.85)'],
 } as const;
 
 export type GradientName = keyof typeof Gradients;
 
-/**
- * Dégradés assez clairs pour qu'un texte ou une icône blanche y tombe sous le
- * seuil WCAG (même la barre « grand texte » à 3:1) : on y pose `OnBright`.
- */
 export const BRIGHT_GRADIENTS = new Set<GradientName>(['velo', 'success', 'fire', 'marche']);
 
-/** Encre posée sur un dégradé clair. */
 export const OnBright = '#0B0E13';
 
-/**
- * Rampe des zones cardiaques (1 → 5). Les zones sont **ordonnées** : on n'utilise
- * donc pas cinq teintes catégorielles mais cinq paliers d'une seule teinte — la
- * teinte cardio — du plus sourd au plus vif, la zone 5 tombant exactement sur
- * `heart`. Sur fond sombre la rampe monte en luminosité, sur fond clair elle
- * descend, pour que « plus d'effort » se lise toujours « plus d'encre ».
- * Indexée par 0 (l'entrée 0 est la zone 1).
- */
 export const HrZoneColors = {
   light: ['#FBC7D3', '#F59BB0', '#EE7091', '#E85C82', '#F43F5E'],
   dark: ['#5C2A38', '#8A3A50', '#B84765', '#DC5170', '#FF5C7A'],
 } as const;
 
-/** Rayons — coins « continus » (squircle iOS) appliqués partout. */
 export const Radius = {
   sm: 12,
   md: 16,
@@ -123,7 +85,6 @@ export const Radius = {
   pill: 999,
 } as const;
 
-/** Grille d'espacement 4 pt. */
 export const Spacing = {
   half: 2,
   one: 4,
@@ -134,10 +95,6 @@ export const Spacing = {
   six: 64,
 } as const;
 
-/**
- * Élévation par ombres douces et diffuses (jamais de bordure dure pour signifier
- * la profondeur). `elevation` couvre Android, les `shadow*` couvrent iOS.
- */
 export const Elevation = {
   none: {},
   sm: {
@@ -163,11 +120,6 @@ export const Elevation = {
   },
 } as const;
 
-/**
- * Échelle typographique. `display`/`metric` portent le poids visuel des chiffres
- * d'effort ; le reste cadence titres et corps. Les métriques sont en
- * `tabular-nums` pour ne pas « danser » quand elles changent en direct.
- */
 export type TypeToken =
   | 'display'
   | 'metric'
@@ -187,8 +139,6 @@ export const Type: Record<TypeToken, TextStyle> = {
   metricLg: { fontSize: 64, fontWeight: '800', letterSpacing: -2, fontVariant: ['tabular-nums'] },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.6, lineHeight: 32 },
   headline: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3, lineHeight: 26 },
-  // Titre de section (en-têtes de cartes Réglages, etc.) : un cran sous `headline`,
-  // standardise les anciens `17/800` codés en dur et leur rend le letterSpacing.
   sectionTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3, lineHeight: 24 },
   subtitle: { fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
   body: { fontSize: 15, fontWeight: '500', lineHeight: 22 },
@@ -197,11 +147,6 @@ export const Type: Record<TypeToken, TextStyle> = {
   overline: { fontSize: 12, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase' },
 };
 
-/**
- * Mouvement — ressorts (react-native-reanimated `withSpring`) et facteur d'échelle
- * d'appui. Le mouvement est physique, jamais linéaire : tout ce qui réagit au
- * doigt « ressort ».
- */
 export const Motion = {
   spring: {
     snappy: { damping: 20, stiffness: 320, mass: 0.7 },
@@ -213,13 +158,9 @@ export const Motion = {
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {

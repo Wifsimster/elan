@@ -14,18 +14,12 @@ import { GOALS, goalSpec } from '@/lib/exercises';
 import type { Profile, Sex } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Options de sexe pour la personnalisation des charges (null = non précisé). */
 const SEX_OPTIONS: { value: Sex; label: string }[] = [
   { value: null, label: 'Non précisé' },
   { value: 'h', label: 'Homme' },
   { value: 'f', label: 'Femme' },
 ];
 
-/**
- * Carte Réglages : profil utilisateur (poids, taille, FC max, objectif, sexe).
- * Pilote calories, zones cardio et reps/charge conseillées. Le poids met aussi
- * à jour le journal via la page dédiée.
- */
 export function ProfileCard() {
   const theme = useTheme();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -60,7 +54,6 @@ export function ProfileCard() {
         onChange={(v) => patchProfile({ weightKg: v })}
       />
 
-      {/* Journal de poids : historique des pesées + courbe (page dédiée). */}
       <Link href="/poids" asChild>
         <PressableScale
           haptic="light"
@@ -106,7 +99,6 @@ export function ProfileCard() {
         onChange={(v) => patchProfile({ maxHr: v })}
       />
 
-      {/* Objectif d'entraînement : pilote reps/charge conseillées */}
       <View style={{ gap: 8, paddingTop: 4 }}>
         <Text style={{ ...Type.label, color: theme.textSecondary }}>
           Objectif (ce que tu cherches à faire)
@@ -127,7 +119,6 @@ export function ProfileCard() {
         </Text>
       </View>
 
-      {/* Sexe : affine les charges conseillées (optionnel) */}
       <View style={{ gap: 8 }}>
         <Text style={{ ...Type.label, color: theme.textSecondary }}>
           Sexe (affine les charges conseillées)

@@ -1,7 +1,3 @@
-// Tests de la logique pure des objectifs d'entraînement (lib/goals.ts) :
-// bornes de période, calcul d'avancement, libellés, parsing robuste et
-// opérations de liste. Pur (aucun accès base/React). Dates en heure locale
-// pour rester indépendant du fuseau de la CI.
 import {
   computeProgress,
   describeGoal,
@@ -26,32 +22,32 @@ const goal = (over: Partial<Goal> = {}): Goal => ({
 
 describe('periodRange', () => {
   it('semaine : lundi 00:00 → lundi suivant (7 jours)', () => {
-    const now = new Date(2025, 5, 11, 14, 30).getTime(); // mercredi 11 juin
+    const now = new Date(2025, 5, 11, 14, 30).getTime();
     const { fromMs, toMs } = periodRange('week', now);
     const from = new Date(fromMs);
-    expect(from.getDay()).toBe(1); // lundi
+    expect(from.getDay()).toBe(1);
     expect(from.getDate()).toBe(9);
     expect(from.getHours()).toBe(0);
     expect(toMs - fromMs).toBe(7 * 86_400_000);
   });
 
   it('mois : 1er du mois → 1er du mois suivant', () => {
-    const now = new Date(2025, 5, 11, 14, 30).getTime(); // juin
+    const now = new Date(2025, 5, 11, 14, 30).getTime();
     const { fromMs, toMs } = periodRange('month', now);
     const from = new Date(fromMs);
     const to = new Date(toMs);
     expect(from.getDate()).toBe(1);
-    expect(from.getMonth()).toBe(5); // juin
+    expect(from.getMonth()).toBe(5);
     expect(to.getDate()).toBe(1);
-    expect(to.getMonth()).toBe(6); // juillet
+    expect(to.getMonth()).toBe(6);
   });
 
   it('mois : décembre déborde sur janvier de l’année suivante', () => {
-    const now = new Date(2025, 11, 20).getTime(); // décembre 2025
+    const now = new Date(2025, 11, 20).getTime();
     const { toMs } = periodRange('month', now);
     const to = new Date(toMs);
     expect(to.getFullYear()).toBe(2026);
-    expect(to.getMonth()).toBe(0); // janvier
+    expect(to.getMonth()).toBe(0);
   });
 });
 
@@ -115,11 +111,11 @@ describe('parseGoals (robuste) / serializeGoals', () => {
 
   it('ignore les entrées invalides et conserve les valides', () => {
     const raw = JSON.stringify([
-      { id: 'a', metric: 'sessions', period: 'week', target: 3, activity: 'velo' }, // ok
-      { id: 'b', metric: 'bogus', period: 'week', target: 3, activity: 'all' }, // métrique invalide
-      { id: 'c', metric: 'distance', period: 'year', target: 50, activity: 'all' }, // période invalide
-      { id: 'd', metric: 'tonnage', period: 'month', target: 0, activity: 'all' }, // cible <= 0
-      { id: 'e', metric: 'distance', period: 'month', target: 100 }, // activity manquante → 'all'
+      { id: 'a', metric: 'sessions', period: 'week', target: 3, activity: 'velo' },
+      { id: 'b', metric: 'bogus', period: 'week', target: 3, activity: 'all' },
+      { id: 'c', metric: 'distance', period: 'year', target: 50, activity: 'all' },
+      { id: 'd', metric: 'tonnage', period: 'month', target: 0, activity: 'all' },
+      { id: 'e', metric: 'distance', period: 'month', target: 100 },
     ]);
     const goals = parseGoals(raw);
     expect(goals.map((g) => g.id)).toEqual(['a', 'e']);
@@ -177,8 +173,6 @@ describe('libellés des nouvelles activités', () => {
   });
 
   it('ramène une activité inconnue sur « toutes » sans perdre l’objectif', () => {
-    // Lecture défensive : un réglage restauré d'une autre version ne doit pas
-    // disparaître silencieusement — il retombe sur le comptage le plus large.
     const raw = JSON.stringify([
       { id: 'c', metric: 'sessions', period: 'week', target: 2, activity: 'natation' },
     ]);

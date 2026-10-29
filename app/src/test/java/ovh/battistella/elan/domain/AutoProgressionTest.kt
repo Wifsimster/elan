@@ -1,7 +1,3 @@
-// Tests de la progression automatique (AutoProgression.kt) : cœur pur
-// (nextTarget, targetForExercise, isoWeekKey, descriptions, validation).
-// L'orchestration impure (lecture historique / persistance / notif) n'est pas
-// portée dans le domaine.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -13,8 +9,6 @@ import org.junit.Test
 import java.time.LocalDate
 
 class AutoProgressionTest {
-    // --- Fabriques de test -------------------------------------------------
-
     private fun point(
         maxWeightKg: Double = 20.0,
         topReps: Int = 10,
@@ -54,7 +48,6 @@ class AutoProgressionTest {
         howTo = "",
     )
 
-    // pas d'autoProgress -> jamais progressé
     private val rehabEx = TemplateExercise(
         name = "Bird-dog",
         sets = 3,
@@ -65,8 +58,6 @@ class AutoProgressionTest {
         muscles = emptyList(),
         howTo = "",
     )
-
-    // --- nextTarget --------------------------------------------------------
 
     @Test
     fun `nextTarget monte d'un pas (2,5 kg) quand le ressenti conseille d'augmenter`() {
@@ -126,8 +117,6 @@ class AutoProgressionTest {
         assertEquals(25.0, r.value, 0.0)
     }
 
-    // --- targetForExercise -------------------------------------------------
-
     @Test
     fun `sans historique - charge de départ, aucun bump`() {
         val t = targetForExercise(loadEx, emptyList(), true)
@@ -141,7 +130,7 @@ class AutoProgressionTest {
     fun `progression désactivée - continuité sur la dernière charge, aucun bump`() {
         val hist = listOf(point(maxWeightKg = 24.0, difficulty = Difficulty.FACILE))
         val t = targetForExercise(loadEx, hist, false)
-        assertEquals(24.0, t.weightKg, 0.0) // dernière charge, pas de montée
+        assertEquals(24.0, t.weightKg, 0.0)
         assertEquals(0.0, t.bump, 0.0)
         assertEquals(24.0, t.lastWeightKg!!, 0.0)
     }
@@ -158,7 +147,7 @@ class AutoProgressionTest {
         val hist = listOf(point(maxWeightKg = 20.0, topReps = 12, difficulty = Difficulty.FACILE))
         val t = targetForExercise(loadEx, hist, true)
         assertEquals(22.5, t.weightKg, 0.0)
-        assertEquals(loadEx.repsMin, t.reps) // double progression : reset au bas de la fourchette
+        assertEquals(loadEx.repsMin, t.reps)
         assertEquals(2.5, t.bump, 0.0)
         assertEquals(ProgressKind.LOAD, t.bumpKind)
         assertEquals(20.0, t.lastWeightKg!!, 0.0)
@@ -166,7 +155,6 @@ class AutoProgressionTest {
 
     @Test
     fun `dernière séance non notée - aucune montée (silence différent de feu vert)`() {
-        // Dernière séance sans ressenti, malgré un « facile » plus ancien.
         val hist = listOf(
             point(maxWeightKg = 20.0, topReps = 12, difficulty = Difficulty.FACILE),
             point(maxWeightKg = 20.0, topReps = 12, difficulty = null),
@@ -194,7 +182,7 @@ class AutoProgressionTest {
         assertEquals(22.5, t.weightKg, 0.0)
         assertEquals(-2.5, t.bump, 0.0)
         assertEquals(ProgressKind.LOAD, t.bumpKind)
-        assertEquals(10, t.reps) // pas de montée : milieu de fourchette
+        assertEquals(10, t.reps)
     }
 
     @Test
@@ -210,16 +198,13 @@ class AutoProgressionTest {
     @Test
     fun `gainage - plafonné à repsMax × 1,5`() {
         val hist = listOf(point(maxWeightKg = 0.0, topReps = 60, difficulty = Difficulty.FACILE))
-        val t = targetForExercise(timedEx, hist, true) // repsMax 40 -> plafond 60
+        val t = targetForExercise(timedEx, hist, true)
         assertEquals(60, t.reps)
         assertEquals(0.0, t.bump, 0.0)
     }
 
-    // --- isoWeekKey --------------------------------------------------------
-
     @Test
     fun `deux jours d'une même semaine ISO donnent la même clé`() {
-        // 2026-06-29 (lundi) et 2026-07-03 (vendredi) : même semaine ISO.
         assertEquals(isoWeekKey(LocalDate.of(2026, 6, 29)), isoWeekKey(LocalDate.of(2026, 7, 3)))
     }
 
@@ -236,13 +221,9 @@ class AutoProgressionTest {
 
     @Test
     fun `la semaine ISO chevauchant le nouvel an appartient à l'année du jeudi`() {
-        // 2027-01-01 est un vendredi : semaine 53 de 2026.
         assertEquals("2026-W53", isoWeekKey(LocalDate.of(2027, 1, 1)))
-        // 2024-12-30 (lundi) : semaine 1 de 2025.
         assertEquals("2025-W01", isoWeekKey(LocalDate.of(2024, 12, 30)))
     }
-
-    // --- Descriptions ------------------------------------------------------
 
     private val up = ProgressionChange("Goblet squat", ProgressKind.LOAD, from = 20.0, to = 22.5, direction = Direction.UP)
     private val down = ProgressionChange("Rowing", ProgressKind.LOAD, from = 20.0, to = 17.5, direction = Direction.DOWN)
@@ -282,8 +263,6 @@ class AutoProgressionTest {
         val body = notificationContent(listOf(up, timed, down, up, up)).body
         assertEquals("Goblet squat 20 → 22,5 kg, Gainage planche 30 → 35 s, Rowing 20 → 17,5 kg, +2.", body)
     }
-
-    // --- isChange ----------------------------------------------------------
 
     @Test
     fun `isChange accepte une entrée bien formée et rejette le reste`() {

@@ -45,28 +45,10 @@ import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.ceil
 import kotlin.math.max
 
-/** Auto-fermeture de la barre une fois le repos terminé (ms). */
 const val REST_LINGER_MS = 5_000L
 
-/** Cadence de rafraîchissement du décompte (ms). */
 const val REST_TICK_MS = 250L
 
-/**
- * Minuteur de repos inter-séries (port de `rest-timer.tsx`) : barre flottante
- * qui décompte le temps de récupération, démarrée quand une série est cochée.
- * À zéro : haptique « succès » + carillon, l'icône passe au `check-circle`,
- * « Repos » devient « Repos terminé », puis fermeture automatique après
- * [REST_LINGER_MS]. Les pilules −15/+15 décalent la fin ET signalent le delta
- * pour que l'appelant mémorise la DURÉE préférée (pas le temps restant).
- *
- * L'appelant remonte le composant à chaque (re)programmation (`key(endsAt)`)
- * pour que l'état interne reparte à neuf. 100 % local.
- *
- * @param endsAt horodatage (ms epoch) de fin du repos, `null` = aucun repos
- * @param onChange nouvel horodatage de fin, ou `null` pour fermer
- * @param onAdjustPreference ajustement ±Δs de la durée souhaitée (−15 / +15)
- * @param now horloge (injectable en test)
- */
 @Composable
 fun RestTimerBar(
     endsAt: Long?,
@@ -81,11 +63,8 @@ fun RestTimerBar(
     val haptics = rememberHaptics()
 
     var current by remember(endsAt) { mutableLongStateOf(now()) }
-    // Un seul retour haptique + carillon par repos.
     val fired = remember(endsAt) { arrayOf(false) }
 
-    // Tic d'horloge tant que la barre est affichée ; à zéro, retour + son ;
-    // fermeture automatique après le délai de présence.
     LaunchedEffect(endsAt) {
         while (isActive) {
             current = now()
@@ -105,8 +84,6 @@ fun RestTimerBar(
     val remainingSec = max(0L, ceil((endsAt - current) / 1000.0).toLong()).toInt()
     val done = remainingSec == 0
 
-    // Décale la fin à partir du temps restant courant (ou de maintenant si
-    // terminé), et remonte le delta pour la préférence.
     val adjust = { deltaSec: Int ->
         val base = max(endsAt, current)
         onChange(max(current + 1_000, base + deltaSec * 1_000L))

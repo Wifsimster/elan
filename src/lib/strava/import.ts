@@ -1,6 +1,3 @@
-// Normalisation des activités Strava parsées vers le modèle du domaine.
-// Pur (aucun accès base/IO) : parse → normalise → dédup-clé. L'insertion est
-// faite par `insertImportedSession` (db.ts) et l'orchestration IO par le hook.
 import { sha256 } from 'js-sha256';
 
 import { estimateCalories } from '@/lib/calories';
@@ -36,9 +33,7 @@ export type ImportedDraft = { session: ImportedSession; points: ImportedPoint[] 
 
 export type BuildResult = { drafts: ImportedDraft[]; skipped: string[] };
 
-/** Garde-fou contre les pics GPS (un saut de point produit une vitesse absurde). */
 const MAX_PLAUSIBLE_SPEED_KMH = 160;
-/** Seuil anti-bruit pour le dénivelé positif (m). */
 const ELEVATION_NOISE_M = 0.5;
 
 function isValidLatLon(lat: number | null, lon: number | null): boolean {
@@ -58,10 +53,6 @@ function avgMax(values: (number | null)[]): { avg: number | null; max: number | 
   let count = 0;
   let max: number | null = null;
   for (const v of values) {
-    // Exclut les valeurs nulles ET les zéros de dropout capteur (FC/cadence 0
-    // lors d'une perte de signal) de la moyenne — sinon ils la tirent vers le
-    // bas. Le max n'est pas affecté. Cohérent avec le tracker live (vélo : la
-    // cadence 0 = roue libre est déjà exclue de la moyenne).
     if (v == null || v <= 0) continue;
     sum += v;
     count++;
@@ -86,11 +77,7 @@ function computeGain(points: ParsedPoint[]): number | null {
   return any ? Math.round(gain) : null;
 }
 
-/** Normalise une activité ; renvoie un motif (string) si elle doit être ignorée. */
 function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | string {
-  // Sport identifié mais non couvert par l'app (natation, rameur…) : on ignore
-  // plutôt que de l'importer sous une mauvaise activité. Un sport non déclaré
-  // (GPX Strava) reste importé en vélo, comme avant.
   if (act.sport === 'other') return 'activité non supportée ignorée';
   const type: ActivityType =
     act.sport === 'running' ? 'course' : act.sport === 'walking' ? 'marche' : 'velo';
@@ -106,12 +93,8 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
     if (t > endedAt) endedAt = t;
   }
   const durationSec = Math.max(0, Math.round((endedAt - startedAt) / 1000));
-  // Activité dégénérée (un seul horodatage / durée nulle) : on l'ignore plutôt
-  // que de persister une séance fantôme à 0 métrique. On garde les imports sans
-  // GPS (home-trainer TCX avec FC/cadence) : on ne filtre que sur la durée.
   if (durationSec <= 0) return 'séance trop courte ou incomplète';
 
-  // Points GPS valides → seuls ceux-là sont insérés (lat/lon NOT NULL en base).
   const gps = timed.filter((p) => isValidLatLon(p.lat, p.lon));
 
   let distanceM = act.distanceM;
@@ -131,9 +114,6 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
       if (dtSec > 0) {
         const s = (dM / dtSec) * 3.6;
         if (s <= MAX_PLAUSIBLE_SPEED_KMH) {
-          // Segment plausible : on crédite sa distance et sa vitesse. Un saut
-          // (téléportation GPS) est ÉCARTÉ de la distance aussi — plafonner la
-          // seule vitesse laissait la distance (et donc l'externalId) gonflée.
           accDist += dM;
           speedKmh = s;
           if (maxSpeedKmh == null || s > maxSpeedKmh) maxSpeedKmh = s;
@@ -153,18 +133,11 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
   }
   if (distanceM == null && gps.length >= 2) distanceM = accDist;
 
-  // Temps en mouvement (hors arrêts) déduit du tracé : base de la vitesse
-  // moyenne et des calories, plus juste que le temps total quand la sortie
-  // comporte de longues pauses. À défaut de tracé, on retombe sur la durée.
   const moving = movingTimeSec(outPoints);
   const movingTimeSec_ = moving > 0 ? moving : null;
   const effectiveSec = moving > 0 ? moving : durationSec;
   const avgSpeedKmh =
     distanceM != null && effectiveSec > 0 ? (distanceM / effectiveSec) * 3.6 : null;
-  // Dénivelé calculé sur `timed` (superset dont `gps` est filtré) : computeGain
-  // ignore déjà les points sans altitude, donc une vraie sortie GPS est
-  // inchangée, mais le dénivelé est récupéré pour les fichiers altitude-seule /
-  // à trous GPS (home-trainer, perte de signal). Cohérent avec avgHr/avgCadence.
   const elevationGainM = computeGain(timed);
   const { avg: avgHr, max: maxHr } = avgMax(timed.map((p) => p.hr));
   const { avg: avgCadence, max: maxCadence } = avgMax(timed.map((p) => p.cad));
@@ -209,7 +182,6 @@ function normalize(act: ParsedActivity, weightKg: number): ImportedDraft | strin
   };
 }
 
-/** Décode un fichier (octets : GPX/TCX/FIT, éventuellement gzip) et construit les séances importables. */
 export function buildDrafts(bytes: Uint8Array, weightKg: number): BuildResult {
   const parsed = decodeStravaBytes(bytes);
   const drafts: ImportedDraft[] = [];

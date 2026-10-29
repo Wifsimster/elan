@@ -24,12 +24,6 @@ import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.Spacing
 
-/**
- * Encart d'erreur intégré à une carte (fond teinté, icône, texte lisible) —
- * pour les échecs qui demandent une action de l'utilisateur (identifiants S3
- * refusés, serveur injoignable…), à la place d'une ligne rouge brute. Annoncé
- * immédiatement par les lecteurs d'écran (région live assertive = rôle alert).
- */
 @Composable
 fun ErrorNotice(message: String, modifier: Modifier = Modifier) {
     val colors = ElanTheme.colors

@@ -4,13 +4,6 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Champ texte étiqueté d'un réglage (endpoint S3, bucket, URL de carte…).
- * Désactive auto-capitalisation et correction (saisie d'identifiants/URLs).
- * Un champ secret propose « Afficher » : une clé tapée à la main masquée
- * cache ses fautes de frappe, et l'erreur serveur qui en découle
- * (SignatureDoesNotMatch) n'oriente pas vers la saisie.
- */
 export function SettingField({
   label,
   value,

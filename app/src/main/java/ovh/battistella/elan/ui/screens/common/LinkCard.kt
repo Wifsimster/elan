@@ -26,11 +26,6 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
-/**
- * Pastille d'icône carrée teintée (`color + '22'` dans l'app d'origine) :
- * motif partagé par les cartes de lien, la séance du jour et l'en-tête de
- * détail.
- */
 @Composable
 fun TintedIconBox(
     @DrawableRes icon: Int,
@@ -50,10 +45,6 @@ fun TintedIconBox(
     }
 }
 
-/**
- * Carte-lien : pastille d'icône, titre + sous-titre et chevron, pressable en
- * entier (vers le catalogue, la progression…).
- */
 @Composable
 fun LinkCard(
     @DrawableRes icon: Int,

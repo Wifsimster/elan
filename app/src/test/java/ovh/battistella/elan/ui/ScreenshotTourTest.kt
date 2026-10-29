@@ -53,16 +53,6 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-/**
- * Visite guidée en images : rend l'application entière ([ElanRoot], vraie
- * base Room en mémoire peuplée d'une semaine type) écran par écran, en sombre
- * et en clair, et écrit un PNG par écran dans `app/build/screenshots/`.
- *
- * Désactivée par défaut (rendu natif lent) ; à lancer à la main pour
- * régénérer `docs/screenshots/` ou revoir le design system :
- *
- *     ELAN_SCREENSHOTS=1 ./gradlew testDebugUnitTest --tests '*ScreenshotTourTest*'
- */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-xxhdpi")
@@ -78,7 +68,6 @@ class ScreenshotTourTest(private val dark: Boolean) {
 
     private val app = ApplicationProvider.getApplicationContext<Application>()
     private val zone: ZoneId = ZoneId.systemDefault()
-    /** Mercredi 16 septembre 2026, 18 h. */
     private val now = LocalDate.of(2026, 9, 16).atStartOfDay(zone).plusHours(18).toInstant().toEpochMilli()
     private val day = 86_400_000L
     private lateinit var db: ElanDatabase
@@ -99,7 +88,6 @@ class ScreenshotTourTest(private val dark: Boolean) {
         if (::db.isInitialized) db.close()
     }
 
-    /** Boucle de ~24 km autour d'un point, légèrement irrégulière. */
     private fun loop(n: Int = 160): List<LatLon> = List(n) { i ->
         val t = 2 * PI * i / n
         val r = 1 + 0.18 * sin(3 * t) + 0.07 * cos(7 * t)
@@ -116,7 +104,6 @@ class ScreenshotTourTest(private val dark: Boolean) {
             ),
         )
         val dao = db.sessionDao()
-        // Semaine passée (tendances) et semaine en cours.
         dao.insert(TestSupport.session(type = ActivityType.VELO, startedAt = now - 8 * day, durationSec = 3900, movingTimeSec = 3700, distanceM = 26_400.0, avgSpeedKmh = 25.7, elevationGainM = 310.0, calories = 640.0))
         dao.insert(TestSupport.session(type = ActivityType.COURSE, startedAt = now - 9 * day, durationSec = 1900, movingTimeSec = 1850, distanceM = 5_300.0, avgSpeedKmh = 10.3, elevationGainM = 40.0, calories = 380.0))
         dao.insert(TestSupport.session(type = ActivityType.MARCHE, startedAt = now - 2 * day - 5 * 3_600_000L, durationSec = 2700, movingTimeSec = 2500, distanceM = 3_900.0, avgSpeedKmh = 5.6, elevationGainM = 60.0, calories = 190.0))
@@ -157,7 +144,6 @@ class ScreenshotTourTest(private val dark: Boolean) {
         route: String? = null,
         outing: FakeOutingPort = FakeOutingPort(),
         bpm: Int? = 132,
-        /** Texte amené à l'écran avant la capture (bas d'un écran défilant). */
         scrollTo: String? = null,
     ) {
         val factory = TestViewModelFactory(
@@ -166,7 +152,6 @@ class ScreenshotTourTest(private val dark: Boolean) {
             outing = outing,
             heart = FakeHeartRatePort(bpm = bpm, connected = bpm != null),
         )
-        // La route n'est posée qu'une fois le graphe de navigation construit.
         var pending by mutableStateOf<String?>(null)
         compose.setContent {
             ElanTheme(darkTheme = dark) {
@@ -182,12 +167,8 @@ class ScreenshotTourTest(private val dark: Boolean) {
             compose.onNodeWithText(scrollTo).performScrollTo()
             compose.waitForIdle()
         }
-        // Les animations infinies (halo GPS, pulsation) empêcheraient l'attente
-        // d'inactivité : l'horloge est avancée à la main puis figée.
         compose.mainClock.autoAdvance = false
         compose.mainClock.advanceTimeBy(2_000)
-        // Dessin logiciel de la fenêtre entière (captureToImage attend un
-        // rendu matériel que Robolectric ne signale pas).
         val view = compose.activity.window.decorView
         val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
         compose.runOnUiThread { view.draw(Canvas(bitmap)) }

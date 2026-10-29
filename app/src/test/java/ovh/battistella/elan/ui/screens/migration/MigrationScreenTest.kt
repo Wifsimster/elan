@@ -67,7 +67,6 @@ class MigrationScreenTest {
         }
         compose.onNodeWithText(text(R.string.migration_skip)).performClick()
         compose.onNodeWithText(text(R.string.migration_skip_confirm_title)).assertIsDisplayed()
-        // Annuler au premier dialogue : rien ne se passe.
         compose.onNodeWithText(text(R.string.migration_cancel)).performClick()
         compose.onNodeWithText(text(R.string.migration_skip_confirm_title)).assertDoesNotExist()
         assertEquals(0, skips)

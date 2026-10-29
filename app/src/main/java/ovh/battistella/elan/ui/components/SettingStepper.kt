@@ -24,11 +24,6 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 
-/**
- * Incrémenteur numérique d'un réglage (poids, taille, FC max, heure de rappel,
- * circonférence de pneu…), borné par [min]/[max]. Partagé par les cartes de
- * l'écran Réglages. Haptique « selection » à chaque pas.
- */
 @Composable
 fun SettingStepper(
     label: String,
@@ -90,7 +85,6 @@ private fun StepperButton(
         tint = ElanTheme.colors.accent,
         modifier = Modifier
             .alpha(if (enabled) 1f else 0.35f)
-            // Zone tactile élargie (hitSlop 12 dans l'app d'origine).
             .pressableScale(enabled = enabled, scaleTo = 0.88f, onClick = onClick)
             .padding(6.dp)
             .size(28.dp),

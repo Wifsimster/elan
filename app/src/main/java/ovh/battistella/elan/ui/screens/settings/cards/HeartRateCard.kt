@@ -30,10 +30,6 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 
-/**
- * Demande les permissions Bluetooth puis lance [onGranted] ; [onDenied] sinon.
- * Renvoie l'action à brancher sur le bouton « Rechercher ».
- */
 @Composable
 internal fun rememberBleScanAction(onGranted: () -> Unit, onDenied: () -> Unit): () -> Unit {
     val context = LocalContext.current
@@ -45,7 +41,6 @@ internal fun rememberBleScanAction(onGranted: () -> Unit, onDenied: () -> Unit):
     }
 }
 
-/** Carte Réglages : appairage et état de la ceinture cardiaque (BLE). */
 @Composable
 fun HeartRateCard(
     state: HrState,
@@ -75,8 +70,6 @@ fun HeartRateCard(
                 onClick = onDisconnect,
                 modifier = Modifier.fillMaxWidth(),
             )
-            // « Stop » pendant le scan plutôt qu'un bouton désactivé : la radio
-            // ne reste pas à balayer si l'utilisateur change d'avis.
             SensorStatus.Scanning -> ElanButton(
                 title = stringResource(R.string.settings_scan_stop),
                 icon = MdiIcons.BluetoothOff,
@@ -112,7 +105,6 @@ fun HeartRateCard(
     }
 }
 
-/** Pastille colorée + libellé d'état + FC live si connectée. */
 @Composable
 private fun HrStatusLine(state: HrState) {
     val colors = ElanTheme.colors

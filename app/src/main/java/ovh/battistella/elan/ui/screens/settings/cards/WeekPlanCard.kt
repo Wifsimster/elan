@@ -27,10 +27,8 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.forKey
 
-/** Libellés des jours, lundi en tête (index 0 = lundi, comme le planning). */
 val WEEK_DAY_LABELS: List<String> = listOf("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
 
-/** Carte Réglages : planning hebdomadaire personnalisable (séance prévue par jour). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WeekPlanCard(

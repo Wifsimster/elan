@@ -43,10 +43,6 @@ import ovh.battistella.elan.ui.screens.common.TintedIconBox
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 
-/**
- * Progression muscu : carte « Changements de la semaine » (progression auto),
- * puis un exercice par ligne vers sa fiche. Vide : invitation à démarrer.
- */
 @Composable
 fun ProgressionScreen(
     contentPadding: PaddingValues,
@@ -118,7 +114,6 @@ fun ProgressionScreen(
     }
 }
 
-/** Ligne d'index : pastille, nom, « N séances · dernière … », dernière charge, flèche de ressenti, chevron. */
 @Composable
 private fun ExerciseSummaryRow(item: ExerciseSummary, onClick: () -> Unit) {
     val colors = ElanTheme.colors

@@ -1,15 +1,3 @@
-// Service de premier plan d'une sortie GPS (type `location`).
-//
-// Il ne fait rien lui-même : c'est `TrackingController` qui possède le flux
-// GPS et l'état. Le service existe pour qu'Android maintienne le processus et
-// le GPS actifs écran éteint (notification persistante, verrou partiel de
-// veille), comme le faisait le service expo-location de l'app d'origine. Il se
-// coupe tout seul dès que le contrôleur quitte les phases ACTIVE / PAUSED.
-//
-// Démarré par le contrôleur app visible (Android interdit le démarrage d'un
-// service de premier plan depuis l'arrière-plan). `START_NOT_STICKY` : après un
-// kill mémoire, le sauvetage se fait au prochain lancement (SessionRecovery),
-// pas par un service ressuscité sans consommateur.
 package ovh.battistella.elan.tracking
 
 import android.annotation.SuppressLint
@@ -37,11 +25,6 @@ import kotlinx.coroutines.launch
 
 class TrackingService : Service() {
 
-    /**
-     * Le contrôleur est résolu par un point d'entrée Hilt plutôt que par
-     * `@AndroidEntryPoint` : les tests Robolectric tournent sans application
-     * Hilt et fournissent le contrôleur par [controllerProvider].
-     */
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface Deps {
@@ -61,8 +44,6 @@ class TrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // En premier, sans condition : Android exige `startForeground` dans les
-        // secondes qui suivent `startForegroundService`.
         ServiceCompat.startForeground(
             this,
             LiveNotification.FOREGROUND_ID,
@@ -90,14 +71,12 @@ class TrackingService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    // Verrou sans délai : la sortie dure ce qu'elle dure ; il est relâché avec le service.
     @SuppressLint("WakelockTimeout")
     private fun acquireWakeLock() {
         try {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG).also { it.acquire() }
         } catch (_: Exception) {
-            // Sans verrou, le GPS continue tant que le service de premier plan vit.
         }
     }
 
@@ -105,7 +84,6 @@ class TrackingService : Service() {
         try {
             wakeLock?.takeIf { it.isHeld }?.release()
         } catch (_: Exception) {
-            // Déjà relâché.
         } finally {
             wakeLock = null
         }
@@ -114,7 +92,6 @@ class TrackingService : Service() {
     companion object {
         const val WAKE_LOCK_TAG = "elan:outing"
 
-        /** Remplace la résolution Hilt du contrôleur (tests Robolectric sans application Hilt). */
         @VisibleForTesting
         internal var controllerProvider: (() -> TrackingController)? = null
 

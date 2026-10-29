@@ -1,6 +1,3 @@
-// Orchestrateur de la carte du parcours (port de components/route-map.tsx) :
-// si un style MapLibre est configuré, affiche un vrai fond de carte avec le
-// tracé par-dessus ; sinon retombe sur le tracé Canvas hors-ligne.
 package ovh.battistella.elan.ui.components
 
 import android.content.Context
@@ -25,13 +22,7 @@ import ovh.battistella.elan.maps.MapLibreRouteView
 import ovh.battistella.elan.maps.MapStyleRepository
 import ovh.battistella.elan.ui.theme.ElanTheme
 
-/**
- * Rendu du fond de carte, injecté par composition locale pour que les tests
- * fournissent un substitut qui n'instancie jamais MapLibre (pas de bibliothèque
- * native sur la JVM) et que les écrans ignorent d'où vient le style.
- */
 interface MapRenderer {
-    /** URL de style connue en mémoire ; `""` = aucun fond (rendu Canvas). */
     val styleUrl: StateFlow<String>
 
     @Composable
@@ -47,7 +38,6 @@ interface MapRenderer {
     )
 }
 
-/** Rendu de production : style du dépôt, carte MapLibre. */
 class MapLibreRenderer(repository: MapStyleRepository) : MapRenderer {
     override val styleUrl: StateFlow<String> = repository.styleUrl
 
@@ -75,7 +65,6 @@ class MapLibreRenderer(repository: MapStyleRepository) : MapRenderer {
     }
 }
 
-/** Sans graphe Hilt (aperçus, tests sans substitut) : jamais de fond de carte. */
 object OfflineMapRenderer : MapRenderer {
     override val styleUrl: StateFlow<String> = MutableStateFlow("")
 
@@ -92,7 +81,6 @@ object OfflineMapRenderer : MapRenderer {
     ) = Unit
 }
 
-/** `null` = résoudre depuis le graphe Hilt de l'application (production). */
 val LocalMapRenderer = staticCompositionLocalOf<MapRenderer?> { null }
 
 @EntryPoint
@@ -114,12 +102,6 @@ private fun resolveMapRenderer(): MapRenderer {
     }
 }
 
-/**
- * Carte du parcours : fond MapLibre si un style est configuré et qu'il y a au
- * moins 2 points, sinon [RouteCanvas] (qui ne dessine rien sous 2 points). Le
- * style est lu de façon synchrone depuis le cache mémoire : pas de flash
- * Canvas→MapLibre quand le fond est déjà connu.
- */
 @Composable
 fun RouteMap(
     points: List<GeoPoint>,

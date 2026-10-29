@@ -7,32 +7,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
 
-/**
- * Retours haptiques du design system Sillage (docs/port-spec/02-interface.md
- * §5). Toute interaction marquante en déclenche un ; l'échec (appareil sans
- * moteur, réglage système coupé) est silencieux.
- */
 enum class HapticKind {
-    /** Appui sur un contrôle secondaire, changement de sélection (chips, steppers). */
     Selection,
-    /** Appui sur une action principale. */
     Light,
-    /** Démarrage / bascule d'état d'effort (start, pause). */
     Medium,
-    /** Action lourde ou destructrice confirmée. */
     Heavy,
-    /** Séance enregistrée, série cochée, repos fini, retype. */
     Success,
-    /** Erreur, action refusée. */
     Error,
 }
 
-/**
- * Joue le retour haptique [kind] via la vue hôte. `CONFIRM` / `REJECT`
- * n'existent qu'à partir d'Android 11 : en dessous, le succès retombe sur un
- * simple tap clavier et l'erreur sur le motif d'appui long (le plus appuyé
- * des motifs disponibles).
- */
 fun performHaptic(view: View, kind: HapticKind) {
     val constant = when (kind) {
         HapticKind.Selection -> HapticFeedbackConstants.CONTEXT_CLICK
@@ -49,7 +32,6 @@ fun performHaptic(view: View, kind: HapticKind) {
     runCatching { view.performHapticFeedback(constant) }
 }
 
-/** Fonction prête à l'emploi, liée à la vue hôte de la composition. */
 @Composable
 fun rememberHaptics(): (HapticKind) -> Unit {
     val view = LocalView.current

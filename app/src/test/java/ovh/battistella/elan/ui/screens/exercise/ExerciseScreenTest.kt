@@ -89,11 +89,9 @@ class ExerciseScreenTest {
         compose.waitForIdle()
 
         compose.onNodeWithText(text(R.string.exercise_record)).performScrollTo().assertIsDisplayed()
-        // Record 25 kg (aussi en étiquette de barre), actuel 22,5 kg, +2,5 kg depuis le début.
         compose.onAllNodesWithText("25 kg").onFirst().assertIsDisplayed()
         compose.onNodeWithText("+2,5 kg").assertIsDisplayed()
         compose.onNodeWithText(text(R.string.exercise_1rm_record)).performScrollTo().assertIsDisplayed()
-        // 1RM record : 25 × (1 + 6/30) = 30 ; actuel : 22,5 × (1 + 8/30) = 28,5 → 29.
         compose.onNodeWithText("30 kg").assertIsDisplayed()
         compose.onNodeWithText("29 kg").assertIsDisplayed()
         compose.onNodeWithText(adviceLabel(ProgressionAdvice.AUGMENTE)).performScrollTo().assertIsDisplayed()
@@ -101,7 +99,6 @@ class ExerciseScreenTest {
         compose.onNodeWithText(text(R.string.exercise_max_per_session)).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(text(R.string.exercise_sessions)).performScrollTo().assertIsDisplayed()
 
-        // Séances : la plus récente d'abord ; la séance médiane a 2 séries, ≈ 30 kg 1RM, 330 kg vol.
         compose.onNodeWithText("22,5 kg × 8").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("25 kg × 6").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(text(R.string.exercise_1rm_approx, 30)).assertIsDisplayed()

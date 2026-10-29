@@ -8,10 +8,8 @@ export type Bar = { label: string; value: number };
 
 type Props = {
   data: Bar[];
-  /** Dégradé des barres (défaut : accent). */
   gradient?: GradientName;
   height?: number;
-  /** Formate la valeur affichée au-dessus de la barre la plus haute. */
   formatValue?: (v: number) => string;
 };
 
@@ -27,7 +25,6 @@ export function BarChart({ data, gradient = 'accent', height = 120, formatValue 
         const barHeight = Math.max(4, ratio * height);
         return (
           <View key={i} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
-            {/* Valeur au-dessus de chaque barre non nulle (réservation d'espace sinon). */}
             {hasValue && formatValue ? (
               <Text style={{ fontSize: 10, color: theme.textSecondary, fontWeight: '800' }}>
                 {formatValue(d.value)}
@@ -35,9 +32,6 @@ export function BarChart({ data, gradient = 'accent', height = 120, formatValue 
             ) : (
               <View style={{ height: 14 }} />
             )}
-            {/* Rail de fond pleine hauteur : chaque jour garde une présence visuelle
-                (sans rail, une semaine creuse paraît « cassée »). La barre se pose
-                par-dessus, alignée en bas. */}
             <View
               style={{
                 width: '64%',

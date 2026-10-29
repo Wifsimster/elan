@@ -35,11 +35,6 @@ import ovh.battistella.elan.tracking.fixAt
 import java.util.Optional
 import ovh.battistella.elan.tracking.OutingPhase as TrackingPhase
 
-/**
- * L'adaptateur recopie l'état du contrôleur champ pour champ et relaie les
- * commandes ; le cycle complet tourne sur un vrai contrôleur (base Room en
- * mémoire, GPS piloté par le test, temps virtuel).
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class TrackingOutingPortTest {
@@ -144,7 +139,7 @@ class TrackingOutingPortTest {
         assertEquals(OutingPhase.Active, started.phase)
         assertEquals(ActivityType.COURSE, started.type)
         assertNotNull(started.sessionId)
-        assertNull(started.speedKmh) // aucun fix encore
+        assertNull(started.speedKmh)
 
         for (i in 0 until 4) fix(i * 5.0)
         val moving = p.state.value

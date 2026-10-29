@@ -1,4 +1,3 @@
-// Accès SQLite local. Toutes les données restent sur l'appareil.
 import * as SQLite from 'expo-sqlite';
 
 import { isGpsActivity } from '@/lib/activity';
@@ -18,17 +17,10 @@ import type {
 
 const DB_NAME = 'suivi-sport.db';
 
-/**
- * Version courante du schéma SQLite — doit suivre la dernière migration de
- * `migrate()` ci-dessous (bump à chaque nouveau bloc `if (version < N)`).
- * Sert à estampiller les sauvegardes pour refuser une restauration issue d'une
- * version plus récente (cf. lib/backup.ts).
- */
 export const SCHEMA_VERSION = 7;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-/** Ouvre (une seule fois) la base et applique les migrations. */
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
     dbPromise = (async () => {
@@ -36,10 +28,6 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
       await migrate(db);
       return db;
     })().catch((e) => {
-      // Ne jamais mettre en cache une promesse rejetée : sinon un échec de
-      // migration (ou une ouverture ratée) condamnerait TOUS les accès base à
-      // chaque lancement, pour toujours. On réarme pour permettre une nouvelle
-      // tentative au prochain getDb() (ex. après un redémarrage de l'app).
       dbPromise = null;
       throw e;
     });
@@ -47,7 +35,6 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
   return dbPromise;
 }
 
-/** Vrai si `table` possède déjà la colonne `column`. */
 async function hasColumn(
   db: SQLite.SQLiteDatabase,
   table: string,
@@ -57,12 +44,6 @@ async function hasColumn(
   return cols.some((c) => c.name === column);
 }
 
-/**
- * Ajoute une colonne seulement si elle n'existe pas déjà. SQLite ne connaît pas
- * `ADD COLUMN IF NOT EXISTS` : sans cette garde, un bloc de migration rejoué
- * après une interruption (app tuée entre l'ALTER et le bump du pragma) lèverait
- * « duplicate column name » et briquerait la base.
- */
 async function addColumn(
   db: SQLite.SQLiteDatabase,
   table: string,
@@ -75,19 +56,12 @@ async function addColumn(
 }
 
 async function migrate(db: SQLite.SQLiteDatabase) {
-  // Hors transaction : WAL/foreign_keys sont des pragmas de connexion.
   await db.execAsync('PRAGMA journal_mode = WAL;');
   await db.execAsync('PRAGMA foreign_keys = ON;');
 
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;');
   const version = row?.user_version ?? 0;
 
-  // Chaque bloc (DDL + backfill + bump du pragma) tourne dans UNE transaction :
-  // si l'app est tuée en cours de route, tout est annulé et le bloc rejoue
-  // proprement au prochain lancement (au lieu de laisser un schéma à moitié
-  // migré avec un `user_version` incohérent). Les ajouts de colonnes passent par
-  // `addColumn` (idempotents) en défense de profondeur pour les bases déjà
-  // partiellement migrées par une version antérieure à ce correctif.
   if (version < 1) {
     await db.withTransactionAsync(async () => {
       await db.execAsync(`
@@ -140,7 +114,6 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   }
 
   if (version < 2) {
-    // Capteurs de cadence/vitesse vélo (profil BLE CSC).
     await db.withTransactionAsync(async () => {
       await addColumn(db, 'sessions', 'avgCadence', 'REAL');
       await addColumn(db, 'sessions', 'maxCadence', 'REAL');
@@ -150,9 +123,6 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   }
 
   if (version < 3) {
-    // Import Strava : provenance + clé de déduplication (index unique partiel
-    // pour rendre une ré-importation idempotente, sans gêner les séances natives
-    // dont externalId reste NULL).
     await db.withTransactionAsync(async () => {
       await addColumn(db, 'sessions', 'source', 'TEXT');
       await addColumn(db, 'sessions', 'externalId', 'TEXT');
@@ -164,9 +134,6 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   }
 
   if (version < 4) {
-    // Journal de poids corporel : une ligne par pesée. La pesée la plus
-    // récente sert de poids de référence (calories, charges conseillées) via
-    // la synchronisation du profil dans logBodyWeight().
     await db.withTransactionAsync(async () => {
       await db.execAsync(`
         CREATE TABLE IF NOT EXISTS body_measurements (
@@ -181,16 +148,9 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   }
 
   if (version < 5) {
-    // Temps « en mouvement » (vélo) : durée hors arrêts, façon Strava. On ajoute
-    // la colonne puis on la rétro-calcule depuis les points GPS des sorties déjà
-    // enregistrées — et on en dérive une vitesse moyenne « en mouvement » plus
-    // honnête que la moyenne sur le temps total (cas du chrono oublié à l'arrêt).
     await db.withTransactionAsync(async () => {
       await addColumn(db, 'sessions', 'movingTimeSec', 'INTEGER');
 
-      // Poids/FC max courants pour ré-estimer les calories des séances natives
-      // (lecture directe du réglage : appeler getProfile() rouvrirait getDb(),
-      // dont la promesse est encore en cours ici → interblocage).
       let weightKg = DEFAULT_PROFILE.weightKg;
       let profileMaxHr = DEFAULT_PROFILE.maxHr;
       const profileRow = await db.getFirstAsync<{ value: string }>(
@@ -202,7 +162,6 @@ async function migrate(db: SQLite.SQLiteDatabase) {
           if (typeof p.weightKg === 'number') weightKg = p.weightKg;
           if (typeof p.maxHr === 'number') profileMaxHr = p.maxHr;
         } catch {
-          // réglage illisible : on garde les valeurs par défaut.
         }
       }
 
@@ -222,12 +181,8 @@ async function migrate(db: SQLite.SQLiteDatabase) {
         const moving = movingTimeSec(pts);
         if (moving <= 0) continue;
 
-        // Vitesse moyenne sur le temps en mouvement (uniquement si la distance est
-        // connue, pour ne pas écraser une valeur par un 0 trompeur).
         const avgSpeedKmh =
           s.distanceM != null ? s.distanceM / 1000 / (moving / 3600) : null;
-        // Calories : on ne ré-estime que les séances natives — pour un import
-        // Strava la valeur du fichier fait foi, on ne la remplace pas.
         const calories =
           s.source == null
             ? estimateCalories({
@@ -265,10 +220,6 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   }
 
   if (version < 6) {
-    // Ressenti d'effort par exercice (facile / moyen / dur), dénormalisé sur
-    // chaque série de l'exercice dans la séance. Nullable : séances anciennes et
-    // imports Strava restent à NULL. Alimente le conseil de progression
-    // (lib/progression-advice.ts). 100 % local, aucune dépendance réseau.
     await db.withTransactionAsync(async () => {
       await addColumn(db, 'muscu_sets', 'difficulty', 'TEXT');
       await db.execAsync('PRAGMA user_version = 6;');
@@ -276,10 +227,6 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   }
 
   if (version < 7) {
-    // Index sur `muscu_sets(exercise)` : les requêtes par exercice
-    // (`exerciseHistory`, `listMuscuExercises`, export coach) filtrent sur cette
-    // colonne seule, que l'index composite `idx_sets_session` (préfixe
-    // sessionId) ne couvre pas. Sans migration de données — simple index.
     await db.withTransactionAsync(async () => {
       await db.execAsync('CREATE INDEX IF NOT EXISTS idx_sets_exercise ON muscu_sets (exercise);');
       await db.execAsync('PRAGMA user_version = 7;');
@@ -287,16 +234,11 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   }
 }
 
-/** Version du schéma effectivement appliquée à la base (PRAGMA user_version). */
 export async function getSchemaVersion(): Promise<number> {
   const db = await getDb();
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;');
   return row?.user_version ?? 0;
 }
-
-// ---------------------------------------------------------------------------
-// Réglages clé/valeur (profil, ceinture appairée…)
-// ---------------------------------------------------------------------------
 
 export async function getSetting(key: string): Promise<string | null> {
   const db = await getDb();
@@ -343,11 +285,6 @@ export async function saveProfile(profile: Profile): Promise<void> {
   await setSetting('profile', JSON.stringify(profile));
 }
 
-// ---------------------------------------------------------------------------
-// Séances
-// ---------------------------------------------------------------------------
-
-/** Crée une séance « en cours » et renvoie son id. */
 export async function createSession(type: ActivityType, startedAt: number): Promise<number> {
   const db = await getDb();
   const res = await db.runAsync(
@@ -386,18 +323,6 @@ export async function updateSession(id: number, patch: SessionUpdate): Promise<v
   await db.runAsync(`UPDATE sessions SET ${assignments} WHERE id = ?;`, ...values, id);
 }
 
-/**
- * Change le type d'une séance déjà enregistrée (vélo ↔ course ↔ marche).
- *
- * Le type n'est pas qu'une étiquette : les calories sont ré-estimées avec la
- * table MET de la nouvelle activité et la cadence du capteur vélo est effacée
- * si on passe à pied (cf. `lib/session-retype.ts`). Tout part dans un seul
- * UPDATE, donc pas d'état intermédiaire incohérent.
- *
- * Renvoie la séance mise à jour, ou `null` si elle n'existe pas ou si le
- * changement n'est pas permis (même type, ou musculation impliquée) — l'appelant
- * n'a alors rien à rafraîchir.
- */
 export async function changeSessionType(id: number, to: ActivityType): Promise<Session | null> {
   const session = await getSession(id);
   if (!session) return null;
@@ -421,14 +346,6 @@ export async function getSession(id: number): Promise<Session | null> {
   return db.getFirstAsync<Session>('SELECT * FROM sessions WHERE id = ?;', id);
 }
 
-/**
- * Finalise une séance vélo pré-créée (au `begin()`) de façon ATOMIQUE : réécrit
- * l'intégralité de ses points GPS et applique les agrégats + `endedAt` dans une
- * seule transaction. Idempotent : un réessai après un échec (ou un flush
- * incrémental antérieur) réécrit proprement le même résultat, sans doublon de
- * séance ni point orphelin. C'est le remplaçant du triptyque non transactionnel
- * createSession → updateSession → insertTrackPoints côté écran.
- */
 export async function finalizeSession(
   id: number,
   patch: SessionUpdate,
@@ -447,7 +364,6 @@ export async function finalizeSession(
   });
 }
 
-/** Séances « en cours » (endedAt NULL), optionnellement filtrées par type. */
 export async function listInProgressSessions(type?: ActivityType): Promise<Session[]> {
   const db = await getDb();
   const clause = type ? ' AND type = ?' : '';
@@ -458,22 +374,12 @@ export async function listInProgressSessions(type?: ActivityType): Promise<Sessi
   );
 }
 
-/** Options de filtrage de l'historique. Compatibilité ascendante : passer un
- * nombre garde l'ancien comportement (limite seule, pas d'offset, pas de filtre). */
 export type ListSessionsOptions = {
   limit?: number;
-  /** Décale la fenêtre (pour la pagination). */
   offset?: number;
-  /** Restreint à un type d'activité. */
   type?: ActivityType;
-  /** Recherche libre, insensible à la casse, sur :
-   *  - le code du type (« velo » / « muscu »),
-   *  - les notes de séance,
-   *  - les noms d'exercices muscu rattachés. */
   search?: string;
-  /** Borne basse de `startedAt` (ms epoch, inclus). */
   fromMs?: number;
-  /** Borne haute de `startedAt` (ms epoch, exclus). */
   toMs?: number;
 };
 
@@ -484,8 +390,6 @@ export async function listSessions(
     typeof optsOrLimit === 'number' ? { limit: optsOrLimit } : optsOrLimit;
   const { limit = 100, offset = 0, type, search, fromMs, toMs } = opts;
 
-  // Prédicats qualifiés par l'alias `s` : la requête joint `muscu_sets` (alias
-  // `ms`) pour agréger la complétion, donc les colonnes nues seraient ambiguës.
   const where: string[] = ['s.endedAt IS NOT NULL'];
   const params: (string | number)[] = [];
 
@@ -503,11 +407,6 @@ export async function listSessions(
   }
   const trimmed = search?.trim();
   if (trimmed) {
-    // SQLite : LIKE est insensible à la casse pour l'ASCII par défaut. On
-    // matche sur le code de type (« velo »/« muscu »), les notes ou un
-    // exercice muscu rattaché. Les jokers `%` `_` (et l'échappement `\`) sont
-    // neutralisés dans la saisie utilisateur — sinon taper « 50 % » ou « a_b »
-    // matcherait n'importe quoi. `ESCAPE '\'` active la séquence d'échappement.
     const escaped = trimmed.replace(/[\\%_]/g, '\\$&');
     const like = `%${escaped}%`;
     where.push(
@@ -518,9 +417,6 @@ export async function listSessions(
     params.push(like, like, like);
   }
 
-  // Agrégat de lecture : nombre de séries et d'exercices distincts par séance
-  // (complétion muscu, affichée à la place de la durée). Vélo → 0. Pas de
-  // migration : c'est purement un calcul à la lecture.
   const sql = `SELECT s.*,
                       COUNT(ms.id)                AS setCount,
                       COUNT(DISTINCT ms.exercise) AS exerciseCount
@@ -540,22 +436,8 @@ export async function deleteSession(id: number): Promise<void> {
   await db.runAsync('DELETE FROM sessions WHERE id = ?;', id);
 }
 
-// ---------------------------------------------------------------------------
-// Points GPS
-// ---------------------------------------------------------------------------
-
-/** Lignes par INSERT multi-valeurs : 100 × 8 colonnes = 800 paramètres liés,
- *  sous la limite SQLite (999) tout en réduisant les allers-retours du pont. */
 const TRACK_POINT_CHUNK = 100;
 
-/**
- * Insère en lot des points GPS rattachés à une séance (l'id est auto-incrémenté).
- * À appeler dans une transaction déjà ouverte. Une longue sortie peut compter
- * plusieurs milliers de points : on regroupe les lignes en INSERT multi-valeurs
- * (une exécution par paquet de 100 au lieu d'un aller-retour du pont par point,
- * soit ~12 000 → ~120 pour 3 h de sortie). Partagé par `insertTrackPoints` et
- * `insertImportedSession`.
- */
 async function insertTrackPointRows(
   db: SQLite.SQLiteDatabase,
   sessionId: number,
@@ -587,11 +469,6 @@ export async function insertTrackPoints(
   });
 }
 
-// ---------------------------------------------------------------------------
-// Import de séances externes (Strava) — déduplication par externalId
-// ---------------------------------------------------------------------------
-
-/** Une séance prête à insérer depuis une source externe (fichier Strava). */
 export type ImportedSessionRow = {
   type: ActivityType;
   startedAt: number;
@@ -612,11 +489,6 @@ export type ImportedSessionRow = {
   externalId: string;
 };
 
-/**
- * Insère une séance importée et ses points GPS de façon atomique. Renvoie
- * `'duplicate'` (sans rien écrire) si une séance avec le même `externalId`
- * existe déjà — l'index unique partiel rend la ré-importation idempotente.
- */
 export async function insertImportedSession(
   session: ImportedSessionRow,
   points: Omit<TrackPoint, 'id' | 'sessionId'>[],
@@ -666,11 +538,6 @@ export async function getTrackPoints(sessionId: number): Promise<TrackPoint[]> {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Séries de musculation
-// ---------------------------------------------------------------------------
-
-/** Une série muscu prête à écrire (difficulty facultatif). */
 export type MuscuSetInput = Omit<MuscuSet, 'id' | 'sessionId' | 'difficulty'> & {
   difficulty?: Difficulty | null;
 };
@@ -696,8 +563,6 @@ async function replaceMuscuSetsIn(
 
 export async function replaceMuscuSets(
   sessionId: number,
-  // `difficulty` est facultatif à l'écriture (séries sans ressenti noté) ; il
-  // reste un champ plein (nullable) à la lecture via `MuscuSet`.
   sets: MuscuSetInput[],
 ): Promise<void> {
   const db = await getDb();
@@ -706,14 +571,6 @@ export async function replaceMuscuSets(
   });
 }
 
-/**
- * Enregistre une séance muscu terminée de façon ATOMIQUE : création de la ligne
- * (si `id` absent), agrégats + `endedAt`, et remplacement des séries, le tout
- * dans une seule transaction. En cas d'échec, tout est annulé : ni séance
- * visible sans séries, ni séance orpheline `endedAt IS NULL`. Renvoie l'id créé
- * (ou réutilisé). Remplace le triptyque createSession → updateSession →
- * replaceMuscuSets côté écran.
- */
 export async function saveMuscuSession(
   id: number | null,
   startedAt: number,
@@ -750,19 +607,11 @@ export async function getMuscuSets(sessionId: number): Promise<MuscuSet[]> {
   );
 }
 
-/**
- * Dernière charge enregistrée par exercice : la série la plus lourde de la
- * séance muscu terminée la plus récente contenant cet exercice. Sert d'amorce
- * de progression au chargement d'un programme. La correspondance se fait sur le
- * libellé exact — les templates réutilisent les mêmes noms.
- */
 export async function lastWeightByExercise(
   names: string[],
 ): Promise<Record<string, number>> {
   if (names.length === 0) return {};
   const db = await getDb();
-  // Une seule requête pour tous les exercices : on prend la charge max de la
-  // dernière séance muscu terminée qui contient chaque exercice (window function).
   const placeholders = names.map(() => '?').join(', ');
   const rows = await db.getAllAsync<{ exercise: string; weightKg: number }>(
     `SELECT exercise, weightKg FROM (
@@ -783,17 +632,14 @@ export async function lastWeightByExercise(
   return out;
 }
 
-/** Ligne d'index : un exercice connu et son dernier état. */
 export type ExerciseSummary = {
   exercise: string;
   sessions: number;
   lastWeightKg: number;
   lastAt: number;
-  /** Ressenti noté à la dernière séance (indice de progression dans l'index). */
   lastDifficulty: Difficulty | null;
 };
 
-/** Liste des exercices muscu déjà enregistrés, les plus récents d'abord. */
 export async function listMuscuExercises(): Promise<ExerciseSummary[]> {
   const db = await getDb();
   return db.getAllAsync<ExerciseSummary>(
@@ -820,7 +666,6 @@ export async function listMuscuExercises(): Promise<ExerciseSummary[]> {
   );
 }
 
-/** Un point de progression : l'état d'un exercice sur une séance donnée. */
 export type ExercisePoint = {
   sessionId: number;
   startedAt: number;
@@ -828,20 +673,9 @@ export type ExercisePoint = {
   topReps: number;
   volume: number;
   sets: number;
-  /** Ressenti noté pour cet exercice sur la séance (`null` si non noté). */
   difficulty: Difficulty | null;
 };
 
-/**
- * Historique d'un exercice, une ligne par séance terminée, du plus ancien au
- * plus récent. `topReps` correspond aux reps de la série la plus lourde.
- *
- * On NE s'appuie PAS sur « colonne nue = ligne du MAX » : cette garantie SQLite
- * ne vaut qu'avec un seul agrégat min/max dans la requête, or on a aussi besoin
- * de `difficulty`. On isole donc `topReps` et `difficulty` dans des sous-requêtes
- * corrélées explicites (sinon `topReps` pouvait venir d'une série d'échauffement,
- * gonflant le 1RM Epley et les records).
- */
 export async function exerciseHistory(name: string): Promise<ExercisePoint[]> {
   const db = await getDb();
   return db.getAllAsync<ExercisePoint>(
@@ -869,16 +703,6 @@ export async function exerciseHistory(name: string): Promise<ExercisePoint[]> {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Journal de poids corporel
-// ---------------------------------------------------------------------------
-
-/**
- * Enregistre une pesée, puis aligne le poids du profil sur la pesée la plus
- * récente : le profil reste l'unique source consommée par les calculs
- * (calories des séances, charges conseillées, import Strava), le journal n'est
- * que l'historique.
- */
 export async function logBodyWeight(weightKg: number, measuredAt: number): Promise<void> {
   const db = await getDb();
   await db.runAsync(
@@ -895,7 +719,6 @@ export async function deleteBodyMeasurement(id: number): Promise<void> {
   await syncProfileWeight();
 }
 
-/** Recale le poids du profil sur la dernière pesée restante (s'il y en a une). */
 async function syncProfileWeight(): Promise<void> {
   const latest = await latestBodyMeasurement();
   if (!latest) return;
@@ -905,7 +728,6 @@ async function syncProfileWeight(): Promise<void> {
   }
 }
 
-/** Pesées du journal, de la plus récente à la plus ancienne. */
 export async function listBodyMeasurements(limit = 1000): Promise<BodyMeasurement[]> {
   const db = await getDb();
   return db.getAllAsync<BodyMeasurement>(
@@ -921,12 +743,6 @@ export async function latestBodyMeasurement(): Promise<BodyMeasurement | null> {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Statistiques
-// ---------------------------------------------------------------------------
-
-/** Agrégats sur une fenêtre `[fromMs, toMs)` (ms epoch), éventuellement
- * restreints à un type d'activité (sinon tous types confondus). */
 export async function statsBetween(
   fromMs: number,
   toMs: number,
@@ -936,8 +752,6 @@ export async function statsBetween(
   const typeClause = type ? ' AND type = ?' : '';
   const params: (string | number)[] = type ? [fromMs, toMs, type] : [fromMs, toMs];
   const row = await db.getFirstAsync<PeriodStats>(
-    // Temps en mouvement quand il est connu (vélo), sinon durée totale (muscu) :
-    // un chrono oublié à l'arrêt ne gonfle pas le cumul d'effort.
     `SELECT
        COUNT(*) AS sessionCount,
        COALESCE(SUM(COALESCE(movingTimeSec, durationSec)), 0) AS totalDurationSec,
@@ -952,16 +766,10 @@ export async function statsBetween(
   );
 }
 
-/** Agrégats depuis `sinceMs` jusqu'à maintenant. */
 export async function statsSince(sinceMs: number): Promise<PeriodStats> {
   return statsBetween(sinceMs, Number.MAX_SAFE_INTEGER);
 }
 
-/**
- * Tonnage musculation (Σ reps × charge) des séances terminées dans la fenêtre
- * `[fromMs, toMs)`. Sert au suivi d'objectifs de volume — cohérent avec le
- * volume affiché ailleurs (mêmes séries `muscu_sets`).
- */
 export async function tonnageBetween(fromMs: number, toMs: number): Promise<number> {
   const db = await getDb();
   const row = await db.getFirstAsync<{ tonnage: number }>(
@@ -976,7 +784,6 @@ export async function tonnageBetween(fromMs: number, toMs: number): Promise<numb
   return row?.tonnage ?? 0;
 }
 
-/** Durée totale d'effort par jour sur les N derniers jours (pour le graphe). */
 export async function dailyDurations(days: number): Promise<{ day: string; durationSec: number }[]> {
   const db = await getDb();
   return db.getAllAsync<{ day: string; durationSec: number }>(
@@ -991,16 +798,9 @@ export async function dailyDurations(days: number): Promise<{ day: string; durat
   );
 }
 
-// ---------------------------------------------------------------------------
-// Records personnels (façon « PR » Strava)
-// ---------------------------------------------------------------------------
-
-/** Métrique sur laquelle une séance peut établir un record. */
 export type RecordKind = 'distance' | 'elevation' | 'duration' | 'speed';
-/** Portée d'un record : sur l'année de la séance, ou sur toute l'historique. */
 export type SessionRecord = { kind: RecordKind; scope: 'year' | 'all' };
 
-// Colonnes correspondantes — liste blanche fermée (jamais d'entrée utilisateur).
 const RECORD_COLUMNS: Record<RecordKind, string> = {
   distance: 'distanceM',
   elevation: 'elevationGainM',
@@ -1008,14 +808,6 @@ const RECORD_COLUMNS: Record<RecordKind, string> = {
   speed: 'avgSpeedKmh',
 };
 
-/**
- * Expression SQL et valeur de la séance pour une métrique de record. Pour le
- * vélo, le record de durée se mesure sur le temps en mouvement (hors arrêts)
- * quand il est connu : une sortie dont le chrono a tourné à l'arrêt ne peut pas
- * s'octroyer un faux record de durée. La musculation (sans GPS) garde la durée
- * totale. L'expression vient d'une liste blanche fermée — jamais d'entrée
- * utilisateur, sûre à interpoler.
- */
 function recordColumn(kind: RecordKind, s: Session): { expr: string; value: number | null } {
   if (kind === 'duration' && s.type === 'velo') {
     return { expr: 'COALESCE(movingTimeSec, durationSec)', value: s.movingTimeSec ?? s.durationSec };
@@ -1024,12 +816,6 @@ function recordColumn(kind: RecordKind, s: Session): { expr: string; value: numb
   return { expr: col, value: s[col as keyof Session] as number | null };
 }
 
-/**
- * Détermine, pour une séance donnée, les records qu'elle détient parmi les
- * séances du même type. Pour chaque métrique : record « all » si aucune autre
- * séance ne fait mieux, sinon record « year » si aucune ne fait mieux sur la
- * même année civile. La musculation n'a pas de distance/dénivelé → durée seule.
- */
 export async function sessionRecords(s: Session): Promise<SessionRecord[]> {
   const db = await getDb();
   const kinds: RecordKind[] = isGpsActivity(s.type)
@@ -1072,11 +858,6 @@ export async function sessionRecords(s: Session): Promise<SessionRecord[]> {
   return out;
 }
 
-/**
- * Efface les séances (points, séries) — garde les réglages ET le journal de
- * poids (page « Poids » distincte, avec sa propre gestion). Transactionnel :
- * une interruption ne laisse pas des points/séries orphelins de leur séance.
- */
 export async function clearAllData(): Promise<void> {
   const db = await getDb();
   await db.withTransactionAsync(async () => {
@@ -1084,13 +865,6 @@ export async function clearAllData(): Promise<void> {
   });
 }
 
-/**
- * Réinitialisation complète : séances, points, séries ET réglages (profil,
- * FC max, capteurs appairés, planning, fond de carte…). Ne conserve que les
- * clés propres à l'appareil exclues des sauvegardes (identifiants S3, statut)
- * pour ne pas casser la configuration de sauvegarde locale. Permet d'honorer la
- * promesse « suppression de toutes les données » du formulaire Sécurité Play.
- */
 export async function clearAllDataIncludingSettings(): Promise<void> {
   const db = await getDb();
   const keep = [...RESET_KEEP_KEYS];
@@ -1103,40 +877,18 @@ export async function clearAllDataIncludingSettings(): Promise<void> {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Sauvegarde / restauration (export complet de la base)
-// ---------------------------------------------------------------------------
-
-/**
- * Clés de réglages exclues des sauvegardes (secrets, propres à l'appareil).
- * `map_style_url` y figure car c'est un puits réseau sensible : une sauvegarde
- * falsifiée pourrait y injecter un hôte HTTPS arbitraire, qui recevrait alors
- * la zone du parcours + l'IP de l'appareil au prochain affichage de carte.
- * L'exclure de la restauration ferme ce canal (l'utilisateur ré-active le fond
- * de carte après une restauration) ; `map.ts` re-valide de toute façon à la
- * lecture en défense de profondeur.
- */
 const BACKUP_EXCLUDED_KEYS = new Set(['backup_s3', 'backup_last', 'map_style_url']);
 
-/**
- * Réglages préservés par une réinitialisation complète (`clearAllDataIncludingSettings`) :
- * la config de sauvegarde locale, pour ne pas la casser. À NE PAS confondre avec
- * les clés exclues des sauvegardes : `map_style_url` est exclu des sauvegardes
- * mais doit bien être effacé par une réinitialisation (c'est une préférence, pas
- * une config de sauvegarde).
- */
 const RESET_KEEP_KEYS = new Set(['backup_s3', 'backup_last']);
 
 export type DbSnapshot = {
   sessions: Session[];
   trackPoints: TrackPoint[];
   muscuSets: MuscuSet[];
-  /** Absent des sauvegardes antérieures au schéma 4. */
   bodyMeasurements?: BodyMeasurement[];
   settings: { key: string; value: string }[];
 };
 
-/** Lit l'intégralité de la base pour une sauvegarde (hors réglages secrets). */
 export async function exportAll(): Promise<DbSnapshot> {
   const db = await getDb();
   const [sessions, trackPoints, muscuSets, bodyMeasurements, allSettings] = await Promise.all([
@@ -1150,11 +902,6 @@ export async function exportAll(): Promise<DbSnapshot> {
   return { sessions, trackPoints, muscuSets, bodyMeasurements, settings };
 }
 
-/**
- * Remplace toutes les données locales par celles d'une sauvegarde. Les ids
- * sont conservés (la base est vidée au préalable, dans une transaction).
- * Les réglages secrets de la sauvegarde elle-même ne sont jamais réécrits.
- */
 export async function importAll(snap: DbSnapshot): Promise<void> {
   const db = await getDb();
   const n = (v: unknown): SQLite.SQLiteBindValue => (v === undefined ? null : (v as SQLite.SQLiteBindValue));
@@ -1163,8 +910,6 @@ export async function importAll(snap: DbSnapshot): Promise<void> {
       'DELETE FROM track_points; DELETE FROM muscu_sets; DELETE FROM sessions; DELETE FROM body_measurements;',
     );
 
-    // Statements préparés : une restauration peut comporter des dizaines de
-    // milliers de points GPS, runAsync re-parse le SQL à chaque appel.
     const sessions = snap.sessions ?? [];
     if (sessions.length > 0) {
       const stmt = await db.prepareAsync(
@@ -1206,7 +951,6 @@ export async function importAll(snap: DbSnapshot): Promise<void> {
       }
     }
 
-    // Sauvegardes d'avant le schéma 4 : pas de journal de poids, table vide.
     const bodyMeasurements = snap.bodyMeasurements ?? [];
     if (bodyMeasurements.length > 0) {
       const stmt = await db.prepareAsync(
@@ -1231,7 +975,6 @@ export async function importAll(snap: DbSnapshot): Promise<void> {
         for (const m of muscuSets) {
           await stmt.executeAsync(
             n(m.id), n(m.sessionId), n(m.exercise), n(m.setIndex), n(m.reps), n(m.weightKg),
-            // `difficulty` est du texte nullable : ne pas passer par n() (force un number).
             m.difficulty ?? null,
           );
         }

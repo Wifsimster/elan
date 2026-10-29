@@ -1,12 +1,4 @@
 #!/usr/bin/env node
-// Génère le feature graphic 1024×500 du Play Store (langue par défaut fr-FR)
-// dans l'identité Sillage : fond Encre, logotype « élan » (docs/brand/),
-// accroche en Archivo embarquée (app/src/main/res/font/) et trace Volt.
-// Rendu par Chromium via Playwright, image opaque (exigence Google).
-//
-//   npx -y playwright@1 --version   # une fois, si Playwright manque
-//   node scripts/feature-graphic.mjs
-//
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

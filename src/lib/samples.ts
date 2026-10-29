@@ -1,13 +1,5 @@
-// Agrégation et appariement temporel d'échantillons de capteurs (FC, cadence).
-// Pur : aucune dépendance React/Expo — partagé par les écrans de séance
-// (velo.tsx / muscu.tsx) et testé dans __tests__/lib/samples.test.ts.
 import type { HrSample } from '@/lib/types';
 
-/**
- * Moyenne (arrondie) et maximum d'une série de valeurs. Renvoie `null` quand la
- * série est vide — pour ne pas inscrire un faux 0 lorsqu'aucun capteur n'était
- * connecté (ex. séance sans ceinture cardiaque).
- */
 export function meanMax(values: number[]): { avg: number | null; max: number | null } {
   if (values.length === 0) return { avg: null, max: null };
   let sum = 0;
@@ -19,18 +11,11 @@ export function meanMax(values: number[]): { avg: number | null; max: number | n
   return { avg: Math.round(sum / values.length), max };
 }
 
-/** Moyenne (arrondie) et max d'un buffer d'échantillons cardiaques. */
 export function summarizeHr(samples: HrSample[]): { avgHr: number | null; maxHr: number | null } {
   const { avg, max } = meanMax(samples.map((s) => s.hr));
   return { avgHr: avg, maxHr: max };
 }
 
-/**
- * Moyenne « en mouvement » et max de cadence (tr/min). La moyenne exclut les
- * phases de roue libre (cadence 0) pour ne pas la diluer, mais le max porte sur
- * toutes les valeurs. `null` si aucun échantillon ; la moyenne est `null` si la
- * roue n'a jamais tourné (que des 0).
- */
 export function summarizeCadence(
   rpms: number[],
 ): { avgCadence: number | null; maxCadence: number | null } {
@@ -49,12 +34,6 @@ export function summarizeCadence(
   return { avgCadence: Math.round(sum / moving), maxCadence: max };
 }
 
-/**
- * Ajoute un échantillon à un buffer en down-samplant les paliers : ignore une
- * valeur identique à la dernière reçue il y a moins de `minGapMs`. Borne ainsi
- * les buffers sur les longues sorties (FC/cadence stables) sans altérer
- * moyenne, max ni l'appariement temporel avec les points GPS. Mute `buf`.
- */
 export function pushDownsampled<T extends { ts: number }>(
   buf: T[],
   sample: T,
@@ -66,13 +45,6 @@ export function pushDownsampled<T extends { ts: number }>(
   buf.push(sample);
 }
 
-/**
- * Valeur de l'échantillon temporellement le plus proche de `ts` (au-delà de
- * `toleranceMs`, renvoie `null`). Les échantillons sont supposés triés par `ts`
- * croissant (ordre de réception BLE) : recherche dichotomique en O(log N) au
- * lieu d'un scan par point GPS — sur une longue sortie cela évite plusieurs
- * secondes de calcul au moment de l'enregistrement.
- */
 export function nearestSample<T extends { ts: number }>(
   samples: T[],
   ts: number,
@@ -80,7 +52,6 @@ export function nearestSample<T extends { ts: number }>(
   toleranceMs = 10_000,
 ): number | null {
   if (samples.length === 0) return null;
-  // Borne basse via recherche dichotomique : premier index dont ts >= cible.
   let lo = 0;
   let hi = samples.length;
   while (lo < hi) {

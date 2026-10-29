@@ -10,12 +10,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import ovh.battistella.elan.testing.TestSupport
 
-/**
- * Garde le contrat des noms hérités : les tables, colonnes (types, nullabilité,
- * défauts) et index de la base Room sont exactement ceux du schéma v7 de
- * l'app d'origine (`db.ts`). Une sauvegarde ou un export coach produit par
- * l'ancienne app doit rester relisible colonne pour colonne.
- */
 @RunWith(RobolectricTestRunner::class)
 class SchemaTest {
 
@@ -31,7 +25,6 @@ class SchemaTest {
         db.close()
     }
 
-    /** (nom, type, notnull, défaut, pk) tel que `PRAGMA table_info` le rapporte. */
     private data class Column(val name: String, val type: String, val notNull: Boolean, val default: String?, val pk: Boolean)
 
     private fun query(sql: String): Cursor = db.openHelper.readableDatabase.query(sql)
@@ -48,7 +41,6 @@ class SchemaTest {
         }.toList()
     }
 
-    /** (nom d'index → unique) des index NOMMÉS de la table (hors auto-index de clé primaire). */
     private fun indexes(table: String): Map<String, Boolean> = query("PRAGMA index_list(`$table`)").use { c ->
         generateSequence { if (c.moveToNext()) c else null }
             .filter { it.getString(3) != "pk" }
@@ -59,11 +51,10 @@ class SchemaTest {
         generateSequence { if (c.moveToNext()) c else null }.map { it.getString(2) }.toList()
     }
 
-    /** Colonnes de l'index dans l'ordre de définition, avec le sens (`PRAGMA index_xinfo`). */
     private fun indexColumnsWithOrder(index: String): List<Pair<String, String>> =
         query("PRAGMA index_xinfo(`$index`)").use { c ->
             generateSequence { if (c.moveToNext()) c else null }
-                .filter { it.getInt(1) >= 0 } // exclut la colonne rowid implicite
+                .filter { it.getInt(1) >= 0 }
                 .map { it.getString(2) to (if (it.getInt(3) == 1) "DESC" else "ASC") }
                 .toList()
         }
@@ -71,11 +62,10 @@ class SchemaTest {
     private fun foreignKeys(table: String): List<Triple<String, String, String>> =
         query("PRAGMA foreign_key_list(`$table`)").use { c ->
             generateSequence { if (c.moveToNext()) c else null }
-                .map { Triple(it.getString(2), it.getString(3), it.getString(6)) } // table, from, on_delete
+                .map { Triple(it.getString(2), it.getString(3), it.getString(6)) }
                 .toList()
         }
 
-    /** Tables applicatives : hors internes SQLite, Room et `android_metadata` (locale, posée par Android). */
     private fun tables(): Set<String> =
         query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'room_%' AND name <> 'android_metadata'").use { c ->
             generateSequence { if (c.moveToNext()) c else null }.map { it.getString(0) }.toSet()
@@ -188,7 +178,6 @@ class SchemaTest {
             assertTrue(c.moveToFirst())
             assertEquals(1, c.getInt(0))
         }
-        // AUTOINCREMENT crée la table interne sqlite_sequence.
         query("SELECT name FROM sqlite_master WHERE name = 'sqlite_sequence'").use { c ->
             assertTrue(c.moveToFirst())
         }

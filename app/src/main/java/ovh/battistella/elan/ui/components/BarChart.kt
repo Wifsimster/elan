@@ -31,30 +31,17 @@ import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.max
 import kotlin.math.roundToLong
 
-/** Une barre : libellé sous l'axe et valeur (≥ 0). */
 data class BarPoint(val label: String, val value: Double)
 
-/** Résumé lu par les lecteurs d'écran : « libellé valeur » par barre (pur, pour les tests). */
 internal fun barChartSummary(data: List<BarPoint>, formatValue: (Double) -> String): String =
     data.joinToString(", ") { "${it.label} ${formatValue(it.value)}" }
 
-/**
- * Histogramme Sillage : une colonne par point, valeur au-dessus des barres non
- * nulles (ou espaceur de 14 dp pour garder l'alignement), rail de fond pleine
- * hauteur en `hairline` (chaque jour garde une présence visuelle — sans rail,
- * une semaine creuse paraît « cassée »), barre « sillage » (la teinte pleine
- * en haut, qui s'estompe vers la base) sur 56 % de la largeur de colonne,
- * hauteur mini 4 dp. La dernière barre — la plus récente, « aujourd'hui » —
- * reste pleine et son libellé passe à l'encre principale.
- */
 @Composable
 fun BarChart(
     data: List<BarPoint>,
     modifier: Modifier = Modifier,
-    /** Teinte des barres (défaut : la marque en trait, `accent`). */
     color: Color? = null,
     height: Dp = 120.dp,
-    /** Formate la valeur affichée au-dessus de chaque barre non nulle. */
     formatValue: ((Double) -> String)? = null,
 ) {
     val colors = ElanTheme.colors

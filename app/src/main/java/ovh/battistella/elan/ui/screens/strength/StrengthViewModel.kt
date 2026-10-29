@@ -52,56 +52,40 @@ import ovh.battistella.elan.ui.screens.common.HeartRatePort
 import java.time.Clock
 import javax.inject.Inject
 
-/** Boîte de dialogue ouverte sur l'écran Muscu. */
 sealed interface StrengthDialog {
     data object None : StrengthDialog
 
-    /** « Terminer la séance ? » */
     data object Finish : StrengthDialog
 
-    /** « Séance vide » (Terminer sans série). */
     data object EmptyFinish : StrengthDialog
 
-    /** « Quitter la séance ? » : Continuer / Mettre en pause / Abandonner. */
     data object Exit : StrengthDialog
 
-    /** « Échec de l'enregistrement ». */
     data object SaveFailed : StrengthDialog
 
     data class RemoveExercise(val id: String, val name: String) : StrengthDialog
 
-    /** Suppression d'une série déjà cochée (les autres partent sans confirmation). */
     data class RemoveSet(val id: String, val index: Int) : StrengthDialog
 }
 
-/** Événements ponctuels vers l'écran. */
 sealed interface StrengthEvent {
-    /** Séance enregistrée : remplacer l'écran par son détail. */
     data class Saved(val sessionId: Long) : StrengthEvent
 
-    /** Quitter l'écran (pause, abandon, ou séance vide). */
     data object Exit : StrengthEvent
 
-    /** Nouvelle séance : demander la permission de notification (Android 13+, best-effort). */
     data object RequestNotificationPermission : StrengthEvent
 }
 
 data class StrengthUi(
-    /** Vrai une fois le montage (reprise ou démarrage) terminé. */
     val hydrated: Boolean = false,
     val exercises: List<StrengthExercise> = emptyList(),
     val paused: Boolean = false,
     val saving: Boolean = false,
-    /** Chrono actif en secondes (hors pauses). */
     val elapsedSec: Int = 0,
-    /** Ceinture cardio (bpm), `null` sans ceinture. */
     val bpm: Int? = null,
-    /** Fin du repos inter-séries (ms epoch), `null` = aucun repos en cours. */
     val restEndsAt: Long? = null,
-    /** Fiche « comment faire » ouverte. */
     val infoExercise: StrengthExercise? = null,
     val catalogOpen: Boolean = false,
-    /** Profil réduit aux champs qui pilotent les recommandations du catalogue. */
     val recoProfile: RecoProfile = RecoProfile(70.0, 175.0, null, TrainingGoal.HYPERTROPHIE),
     val dialog: StrengthDialog = StrengthDialog.None,
 ) {
@@ -109,13 +93,6 @@ data class StrengthUi(
     val addedNames: Set<String> get() = exercises.mapTo(HashSet()) { it.name }
 }
 
-/**
- * Séance de musculation (port de `muscu.tsx`). Hydratation : profil → repos
- * préféré → brouillon (reprise en pause) ou nouvelle séance (chrono,
- * notification live, programme `?template=`) ; `?add=` ajoute un exercice du
- * catalogue. Le brouillon est réécrit à chaque changement structurel et au
- * passage en arrière-plan ; l'enregistrement final est atomique.
- */
 @HiltViewModel
 class StrengthViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -145,10 +122,8 @@ class StrengthViewModel @Inject constructor(
     private var weightKg = 70.0
     private var maxHr = 190.0
 
-    /** Durée de repos préférée (s), réutilisée à chaque série cochée et persistée. */
     private var restDurationSec = 90
 
-    /** Id réutilisé entre tentatives d'enregistrement ; null tant que rien n'est validé. */
     private var savedId: Long? = null
 
     private val hrSamples = ArrayList<HrSample>()
@@ -156,7 +131,6 @@ class StrengthViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { hydrate() }
-        // Échantillonnage FC : down-sampling sur palier, ignoré en pause.
         viewModelScope.launch {
             heartRate.bpm.collect { bpm ->
                 if (bpm == null || _ui.value.paused || !_ui.value.hydrated) return@collect
@@ -171,13 +145,11 @@ class StrengthViewModel @Inject constructor(
         maxHr = profile.maxHr
         _ui.update { it.copy(recoProfile = profile.toRecoProfile()) }
 
-        // Repos préféré mémorisé, sinon repos conseillé pour l'objectif.
         val saved = settings.getSetting(SettingsRepository.Keys.REST_SECONDS)?.toDoubleOrNull()
         restDurationSec = if (saved != null && saved.isFinite() && saved > 0) saved.toInt().coerceIn(15, 600) else goalSpec(profile.goal).restSec
 
         val draft = settings.snapshot().muscuDraft
         if (draft != null) {
-            // Reprise : on restaure tout l'état et on reste en pause.
             startedAt = draft.startedAt
             hrSamples.clear()
             hrSamples.addAll(draft.hrSamples)
@@ -198,10 +170,6 @@ class StrengthViewModel @Inject constructor(
         _ui.update { it.copy(hydrated = true) }
     }
 
-    /**
-     * Pré-remplit la séance depuis un programme (séance vide uniquement) : la
-     * liste est REMPLACÉE, jamais empilée. Cibles via la progression auto.
-     */
     fun loadTemplate(template: WorkoutTemplate) {
         viewModelScope.launch {
             val targets = progression.targetsForExercises(template.exercises)
@@ -209,10 +177,7 @@ class StrengthViewModel @Inject constructor(
         }
     }
 
-    /** Résultat de la demande de permission : (ré)affiche la notification persistante. */
     fun onNotificationPermission() = LiveNotification.showLive(context, LiveKind.MUSCU)
-
-    // ---- chrono ----------------------------------------------------------
 
     fun pause() {
         watch.pause()
@@ -222,11 +187,8 @@ class StrengthViewModel @Inject constructor(
     fun resume() {
         watch.start()
         mutate { it.copy(paused = false) }
-        // Reprise (y compris depuis un brouillon) : notification idempotente.
         LiveNotification.showLive(context, LiveKind.MUSCU)
     }
-
-    // ---- exercices et séries --------------------------------------------
 
     fun addExercise(name: String) {
         val trimmed = name.trim()
@@ -256,7 +218,6 @@ class StrengthViewModel @Inject constructor(
         })
     }
 
-    /** Une série cochée ne part pas d'un geste : confirmation ; une série non cochée part directement. */
     fun requestRemoveSet(id: String, index: Int) {
         val done = _ui.value.exercises.firstOrNull { it.id == id }?.sets?.getOrNull(index)?.done ?: return
         if (done) _ui.update { it.copy(dialog = StrengthDialog.RemoveSet(id, index)) } else dropSet(id, index)
@@ -283,14 +244,12 @@ class StrengthViewModel @Inject constructor(
         })
     }
 
-    /** Cocher / décocher une série ; cocher démarre le repos. */
     fun toggleSet(id: String, index: Int) {
         val wasDone = _ui.value.exercises.firstOrNull { it.id == id }?.sets?.getOrNull(index)?.done ?: return
         updateSet(id, index) { it.copy(done = !it.done) }
         if (!wasDone) _ui.update { it.copy(restEndsAt = clock.millis() + restDurationSec * 1_000L) }
     }
 
-    /** Ressenti (facile / moyen / dur) ; re-taper la valeur sélectionnée la désélectionne. */
     fun setDifficulty(id: String, value: Difficulty) = mutate { u ->
         u.copy(exercises = u.exercises.map { e ->
             if (e.id != id) e else e.copy(difficulty = if (e.difficulty == value) null else value)
@@ -301,39 +260,25 @@ class StrengthViewModel @Inject constructor(
 
     fun setCatalogOpen(open: Boolean) = _ui.update { it.copy(catalogOpen = open) }
 
-    // ---- repos -----------------------------------------------------------
-
-    /** Ouvre / décale / ferme le minuteur de repos (horodatage de fin seul). */
     fun onRestChange(endsAt: Long?) = _ui.update { it.copy(restEndsAt = endsAt) }
 
-    /**
-     * Ajustement ±15 s : mémorise la nouvelle DURÉE préférée (repos souhaité +
-     * delta, bornée 15–600), pas le temps restant. Best-effort, local.
-     */
     fun adjustRestPreference(deltaSec: Int) {
         restDurationSec = (restDurationSec + deltaSec).coerceIn(15, 600)
         val secs = restDurationSec
         viewModelScope.launch { settings.setRestSeconds(secs) }
     }
 
-    /** Durée de repos préférée courante (s) — exposée pour les tests. */
     val restDuration: Int get() = restDurationSec
 
-    /** Horloge de la séance, partagée avec le minuteur de repos (même référence de temps). */
     fun nowMs(): Long = clock.millis()
 
-    // ---- brouillon -------------------------------------------------------
-
-    /** Change l'état puis réécrit le brouillon (ou l'efface si la séance est vide). */
     private fun mutate(block: (StrengthUi) -> StrengthUi) {
         _ui.update(block)
         persistDraft()
     }
 
-    /** Au passage en arrière-plan : chrono live et FC depuis la dernière écriture structurelle. */
     fun onStop() = persistDraft()
 
-    /** Best-effort : un brouillon qui ne s'écrit pas ne doit jamais faire tomber la séance. */
     private fun persistDraft() {
         if (!_ui.value.hydrated || _ui.value.saving) return
         viewModelScope.launch {
@@ -357,8 +302,6 @@ class StrengthViewModel @Inject constructor(
         hrSamples = hrSamples.toList(),
     )
 
-    // ---- fin de séance ---------------------------------------------------
-
     fun requestFinish() {
         val u = _ui.value
         if (u.saving) return
@@ -371,11 +314,10 @@ class StrengthViewModel @Inject constructor(
     }
 
     private fun save() {
-        if (_ui.value.saving) return // réentrance (double-tap « Terminer »)
+        if (_ui.value.saving) return
         _ui.update { it.copy(saving = true) }
         watch.pause()
         viewModelScope.launch {
-            // Durée lue en direct à l'instant du « Terminer ».
             val durationSec = watch.getElapsedSec()
             val samples = hrSamples.toList()
             val hr = summarizeHr(samples)
@@ -390,12 +332,10 @@ class StrengthViewModel @Inject constructor(
             val endedAt = clock.millis()
             val flat = u.exercises.flatMap { e ->
                 e.sets.mapIndexed { i, s ->
-                    // Ressenti dénormalisé : même valeur sur toutes les séries de l'exercice.
                     MuscuSetInput(exercise = e.name, setIndex = i + 1, reps = s.reps, weightKg = s.weightKg, difficulty = e.difficulty)
                 }
             }
             try {
-                // Écriture atomique : création + agrégats + séries dans une transaction.
                 val id = sessions.saveMuscuSession(
                     id = savedId,
                     startedAt = startedAt,
@@ -410,7 +350,6 @@ class StrengthViewModel @Inject constructor(
                     sets = flat,
                 )
                 savedId = id
-                // Le brouillon n'est effacé qu'APRÈS l'écriture réussie.
                 draftMutex.withLock { settings.setMuscuDraft(null) }
                 finalizer.onSaved(
                     SavedSessionData(
@@ -426,17 +365,12 @@ class StrengthViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // Échec d'écriture : brouillon intact, on peut réessayer.
                 Log.w(TAG, "enregistrement de la séance muscu échoué", e)
                 _ui.update { it.copy(saving = false, paused = true, dialog = StrengthDialog.SaveFailed) }
             }
         }
     }
 
-    /**
-     * Croix et retour matériel : vide → effacer et sortir ; sinon proposer de
-     * mettre en pause (brouillon) ou d'abandonner. Ignoré en plein enregistrement.
-     */
     fun requestExit() {
         val u = _ui.value
         if (u.saving) return
@@ -451,7 +385,6 @@ class StrengthViewModel @Inject constructor(
         _ui.update { it.copy(dialog = StrengthDialog.Exit) }
     }
 
-    /** « Mettre en pause » : brouillon sauvegardé, reprenable plus tard. */
     fun pauseAndExit() {
         watch.pause()
         _ui.update { it.copy(dialog = StrengthDialog.None, paused = true) }
@@ -461,11 +394,6 @@ class StrengthViewModel @Inject constructor(
         }
     }
 
-    /**
-     * « Abandonner » : brouillon et notification effacés. La séance est vidée
-     * d'abord : l'ON_STOP de l'écran qui se ferme rappelle [onStop], et un
-     * brouillon vide s'efface au lieu de ressusciter la séance abandonnée.
-     */
     fun abandon() {
         _ui.update { it.copy(dialog = StrengthDialog.None, exercises = emptyList()) }
         viewModelScope.launch {

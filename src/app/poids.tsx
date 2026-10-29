@@ -23,16 +23,10 @@ import { useTheme } from '@/hooks/use-theme';
 
 const DAY = 86_400_000;
 
-/** 76.4 -> « 76,4 » ; 76 -> « 76 ». */
 const fmtKg = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
 
-/** Variation signée : +0,4 / −1,2 / 0. */
 const fmtDelta = (v: number) => (v > 0 ? `+${fmtKg(v)}` : v < 0 ? `−${fmtKg(Math.abs(v))}` : '0');
 
-/**
- * Saisie utilisateur (« 76,4 », « 76.4 », « 76 ») -> poids en kg arrondi au
- * dixième, ou `null` si invalide / hors plage plausible.
- */
 function parseWeightInput(text: string): number | null {
   const v = Number.parseFloat(text.trim().replace(',', '.'));
   if (!Number.isFinite(v)) return null;
@@ -46,8 +40,6 @@ export default function PoidsScreen() {
   const insets = useSafeAreaInsets();
   const contentStyle = useScreenContentStyle();
 
-  // null = chargement (évite un flash d'état vide), sinon de la plus récente
-  // à la plus ancienne (ordre de listBodyMeasurements).
   const [items, setItems] = useState<BodyMeasurement[] | null>(null);
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +47,6 @@ export default function PoidsScreen() {
   const load = useCallback(async () => {
     const list = await listBodyMeasurements();
     setItems(list);
-    // Pré-remplit la saisie avec le dernier poids connu (journal, sinon profil).
     if (list.length > 0) {
       setInput(fmtKg(list[0].weightKg));
     } else {
@@ -66,7 +57,7 @@ export default function PoidsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      load().catch(() => {}); // lecture locale : un échec transitoire ne casse pas l'écran
+      load().catch(() => {});
     }, [load]),
   );
 
@@ -99,7 +90,6 @@ export default function PoidsScreen() {
     );
   };
 
-  // Séries dérivées (entrées triées de la plus récente à la plus ancienne).
   const latest = items?.[0] ?? null;
   const oldest = items && items.length > 0 ? items[items.length - 1] : null;
   const monthAgo = latest ? findBefore(items!, latest.measuredAt - 30 * DAY) : null;
@@ -110,16 +100,12 @@ export default function PoidsScreen() {
 
   const list = items ?? [];
 
-  // En-tête (tout le contenu au-dessus du journal) : rendu une fois par la
-  // FlatList. Le journal des pesées, lui, est virtualisé (renderItem) — il peut
-  // compter des centaines de lignes sur plusieurs années.
   const header = (
     <View style={{ gap: 14 }}>
       <Text style={{ ...Type.label, color: theme.textSecondary }}>
         {'Note ton poids régulièrement : la dernière pesée sert de référence pour les calories et les charges conseillées. Tout reste sur l’appareil.'}
       </Text>
 
-      {/* Nouvelle pesée */}
       <Card style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MaterialCommunityIcons name="scale-bathroom" size={22} color={theme.accent} />
@@ -202,13 +188,10 @@ export default function PoidsScreen() {
         ...contentStyle,
         paddingTop: 12,
         paddingBottom: insets.bottom + 32,
-        // Pas de `gap` : l'en-tête gère son propre espacement (14) et les lignes
-        // du journal sont contiguës pour former un bloc arrondi continu.
       }}
       data={list}
       keyExtractor={(m) => String(m.id)}
       ListHeaderComponent={header}
-      // Marge entre l'en-tête (titre « Pesées ») et le bloc journal.
       ListHeaderComponentStyle={{ marginBottom: 14 }}
       renderItem={({ item: m, index: i }) => {
         const prev = list[i + 1];
@@ -264,7 +247,6 @@ export default function PoidsScreen() {
   );
 }
 
-/** Pesée la plus récente antérieure ou égale à `beforeMs` (liste triée desc). */
 function findBefore(items: BodyMeasurement[], beforeMs: number): BodyMeasurement | null {
   for (const m of items) {
     if (m.measuredAt <= beforeMs) return m;

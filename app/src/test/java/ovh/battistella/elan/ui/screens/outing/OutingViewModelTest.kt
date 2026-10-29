@@ -134,7 +134,6 @@ class OutingViewModelTest {
         assertEquals(OutingDialog.None, vm.ui.value.dialog)
         assertTrue("finish" in port.calls)
 
-        // En plein enregistrement : plus de confirmation empilée.
         port.update { copy(phase = OutingPhase.Saving) }
         advanceUntilIdle()
         vm.requestFinish()
@@ -228,7 +227,6 @@ class OutingViewModelTest {
 
     @Test
     fun `état hérité du port - ni navigation ni alerte à l'ouverture d'un nouvel écran`() = runTest(mainDispatcher.dispatcher) {
-        // Le port (singleton) garde l'id de la sortie précédente et sa dernière erreur.
         val port = FakeOutingPort(OutingUi(phase = OutingPhase.Idle, savedSessionId = 41, errorMessage = "Localisation refusée"))
         val vm = vm(port = port)
         val events = mutableListOf<OutingEvent>()
@@ -238,14 +236,12 @@ class OutingViewModelTest {
         assertTrue(events.isEmpty())
         assertNull(vm.ui.value.alert)
 
-        // Une nouvelle erreur identique à l'ancienne (refus répété) alerte bien.
         port.update { copy(phase = OutingPhase.Requesting, errorMessage = null) }
         advanceUntilIdle()
         port.update { copy(phase = OutingPhase.Idle, errorMessage = "Localisation refusée") }
         advanceUntilIdle()
         assertEquals(OutingAlert.StartFailed, vm.ui.value.alert)
 
-        // Et une nouvelle séance enregistrée navigue.
         port.update { copy(savedSessionId = 42, errorMessage = null) }
         advanceUntilIdle()
         assertEquals(listOf<OutingEvent>(OutingEvent.Saved(42)), events)

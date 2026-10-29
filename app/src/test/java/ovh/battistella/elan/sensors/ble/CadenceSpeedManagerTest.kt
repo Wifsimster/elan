@@ -1,6 +1,3 @@
-// Capteurs cadence/vitesse sur doublures : maths CSC (deltas, bouclage,
-// plausibilité, silence), deux capteurs en parallèle, reconnexion par capteur.
-// Robolectric uniquement pour `org.json` (sérialisation de `csc_devices`).
 package ovh.battistella.elan.sensors.ble
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -57,8 +54,6 @@ class CadenceSpeedManagerTest {
         return ids.map { h.links.last(it) }
     }
 
-    // ---- scan / connexion ------------------------------------------------
-
     @Test
     fun `le scan liste les capteurs sauf ceux déjà connectés`() = runTest {
         val h = harness()
@@ -76,7 +71,7 @@ class CadenceSpeedManagerTest {
 
         h.manager.stopScan()
         runCurrent()
-        assertEquals(SensorStatus.Connected, h.state.status) // repos = connecté, un capteur l'est
+        assertEquals(SensorStatus.Connected, h.state.status)
         assertEquals(0, h.le.active)
     }
 
@@ -113,8 +108,6 @@ class CadenceSpeedManagerTest {
         assertEquals(SensorStatus.Idle, h.state.status)
     }
 
-    // ---- maths CSC -------------------------------------------------------
-
     @Test
     fun `cadence 90 tr-min à partir des deltas de pédalier`() = runTest {
         val h = harness()
@@ -122,11 +115,11 @@ class CadenceSpeedManagerTest {
 
         link.notify(crankFrame(10, 0))
         runCurrent()
-        assertNull(h.state.cadenceRpm) // deux mesures nécessaires
+        assertNull(h.state.cadenceRpm)
         assertTrue(h.frames.isEmpty())
 
         h.clock.nowMs = 5_000L
-        link.notify(crankFrame(13, 2048)) // 3 tours en 2 s
+        link.notify(crankFrame(13, 2048))
         runCurrent()
         assertEquals(90, h.state.cadenceRpm)
         assertNull(h.state.speedKmh)
@@ -140,7 +133,7 @@ class CadenceSpeedManagerTest {
         assertEquals(2105, h.state.wheelCircumferenceMm)
 
         link.notify(wheelFrame(100, 0))
-        link.notify(wheelFrame(110, 4096)) // 10 tours en 4 s = 5,2625 m/s
+        link.notify(wheelFrame(110, 4096))
         runCurrent()
         assertEquals(18.945, h.state.speedKmh!!, 1e-9)
         assertNull(h.state.cadenceRpm)
@@ -155,9 +148,9 @@ class CadenceSpeedManagerTest {
         val (cad, spd) = connected(h, "CAD", "SPD")
 
         cad.notify(crankFrame(0xFFFF, 0xFC00))
-        cad.notify(crankFrame(0x0002, 0x0400)) // 3 tours, 2048 ticks
+        cad.notify(crankFrame(0x0002, 0x0400))
         spd.notify(wheelFrame(0xFFFF_FFFFL, 0xFC00))
-        spd.notify(wheelFrame(9L, 0x0C00)) // 10 tours, 4096 ticks
+        spd.notify(wheelFrame(9L, 0x0C00))
         runCurrent()
         assertEquals(90, h.state.cadenceRpm)
         assertEquals(18.945, h.state.speedKmh!!, 1e-9)
@@ -180,13 +173,12 @@ class CadenceSpeedManagerTest {
         val h = harness()
         val (link) = connected(h, "CAD")
         link.notify(cscFrame(0, 0, 0, 0))
-        link.notify(cscFrame(100, 1024, 100, 1024)) // 6000 tr/min, 757 km/h
+        link.notify(cscFrame(100, 1024, 100, 1024))
         runCurrent()
         assertNull(h.state.cadenceRpm)
         assertNull(h.state.speedKmh)
         assertTrue(h.frames.isEmpty())
 
-        // Un delta de temps nul n'est pas exploitable non plus.
         link.notify(cscFrame(101, 1024, 101, 1024))
         runCurrent()
         assertNull(h.state.cadenceRpm)
@@ -218,7 +210,7 @@ class CadenceSpeedManagerTest {
         h.clock.nowMs = 12_500L
         advanceTimeBy(1_001)
         runCurrent()
-        assertEquals(90, h.state.cadenceRpm) // pas encore périmé
+        assertEquals(90, h.state.cadenceRpm)
 
         h.clock.nowMs = 13_100L
         advanceTimeBy(1_000)
@@ -246,8 +238,6 @@ class CadenceSpeedManagerTest {
         assertEquals(90, h.frames.last().cadenceRpm)
         assertEquals(18.945, h.frames.last().speedKmh!!, 1e-9)
 
-        // Déconnecter l'un garde l'autre connecté ; les mesures ne sont
-        // remises à `null` que lorsqu'il ne reste plus aucun capteur.
         h.manager.disconnect("SPD")
         runCurrent()
         assertTrue(spd.closed)
@@ -264,8 +254,6 @@ class CadenceSpeedManagerTest {
         assertTrue(h.savedDevices().isEmpty())
     }
 
-    // ---- reconnexion -----------------------------------------------------
-
     @Test
     fun `la reconnexion est gérée capteur par capteur`() = runTest {
         val h = harness()
@@ -274,7 +262,7 @@ class CadenceSpeedManagerTest {
         spd.drop(8)
         runCurrent()
         assertTrue(spd.closed)
-        assertEquals(SensorStatus.Connected, h.state.status) // CAD tient toujours
+        assertEquals(SensorStatus.Connected, h.state.status)
         assertEquals(listOf(ScannedDevice("CAD", "CAD70")), h.state.devices)
 
         advanceTimeBy(1_001)
@@ -312,7 +300,7 @@ class CadenceSpeedManagerTest {
 
         advanceTimeBy(120_000)
         runCurrent()
-        assertEquals(6, h.links.created.size) // 1 + 5 tentatives
+        assertEquals(6, h.links.created.size)
         assertTrue(h.links.created.all { it.closed })
         assertEquals(SensorStatus.Idle, h.state.status)
         assertEquals("Erreur GATT 133.", h.state.error)
@@ -332,8 +320,6 @@ class CadenceSpeedManagerTest {
         assertEquals(SensorStatus.Idle, h.state.status)
     }
 
-    // ---- adaptateur et réglages ------------------------------------------
-
     @Test
     fun `au lancement, reconnexion en parallèle aux capteurs mémorisés`() = runTest {
         val h = Harness(this)
@@ -341,7 +327,7 @@ class CadenceSpeedManagerTest {
         h.settings.setSetting(SettingsRepository.Keys.CSC_WHEEL_MM, "2096")
         h.links.configure = { it.connectDelayMs = 1_000 }
         h.start(this)
-        advanceTimeBy(1_500) // les deux tentatives se chevauchent : 1 s au total, pas 2
+        advanceTimeBy(1_500)
         runCurrent()
         assertEquals(SensorStatus.Connected, h.state.status)
         assertEquals(2, h.state.devices.size)
@@ -366,7 +352,7 @@ class CadenceSpeedManagerTest {
         spd.drop(8)
         advanceTimeBy(60_000)
         runCurrent()
-        assertEquals(2, h.links.created.size) // aucune tentative radio éteinte
+        assertEquals(2, h.links.created.size)
 
         h.adapter.turnOn()
         runCurrent()
@@ -386,7 +372,7 @@ class CadenceSpeedManagerTest {
 
         val (link) = connected(h, "SPD")
         link.notify(wheelFrame(0, 0))
-        link.notify(wheelFrame(10, 4096)) // 10 × 2 m en 4 s = 5 m/s
+        link.notify(wheelFrame(10, 4096))
         runCurrent()
         assertEquals(18.0, h.state.speedKmh!!, 1e-9)
     }

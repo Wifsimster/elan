@@ -7,7 +7,6 @@ import { SettingField } from '@/components/settings/setting-field';
 import { getMapStyleUrl, isValidMapStyleUrl, OPENFREEMAP_STYLE_URL, setMapStyleUrl } from '@/lib/map';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Carte Réglages : fond de carte MapLibre en ligne (opt-in, off par défaut). */
 export function MapCard() {
   const theme = useTheme();
   const [mapUrl, setMapUrl] = useState('');
@@ -18,14 +17,10 @@ export function MapCard() {
 
   const updateMapUrl = (url: string) => {
     setMapUrl(url);
-    // Non-bloquant : l'appelant a déjà validé l'URL (HTTPS). Le .catch évite une
-    // rejection non gérée si une URL invalide passe malgré tout.
     setMapStyleUrl(url).catch(() => {});
   };
 
-  // Fond de carte en ligne : opt-in. Vide = hors-ligne (tracé SVG sans réseau).
   const mapEnabled = mapUrl.trim().length > 0;
-  // Le champ « serveur perso » reste vide quand on utilise le preset OpenFreeMap.
   const customMapUrl = mapUrl === OPENFREEMAP_STYLE_URL ? '' : mapUrl;
 
   const toggleMap = (on: boolean) => {
@@ -34,13 +29,10 @@ export function MapCard() {
 
   const updateCustomMapUrl = (url: string) => {
     const trimmed = url.trim();
-    // Serveur de tuiles en HTTPS uniquement : un fond http fuiterait la zone du
-    // parcours + l'IP en clair, et ne fonctionnerait pas en release.
     if (trimmed !== '' && !isValidMapStyleUrl(trimmed)) {
       Alert.alert('URL invalide', 'Le serveur de tuiles doit être en HTTPS (https://…).');
       return;
     }
-    // Champ vidé : on retombe sur OpenFreeMap si la carte est activée, sinon hors-ligne.
     updateMapUrl(trimmed === '' ? (mapEnabled ? OPENFREEMAP_STYLE_URL : '') : trimmed);
   };
 

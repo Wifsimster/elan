@@ -1,4 +1,3 @@
-// Tests pour les calculs géographiques (haversine + décimation).
 import { decimateByDistance, haversineMeters } from '@/lib/geo';
 
 describe('haversineMeters', () => {
@@ -8,8 +7,8 @@ describe('haversineMeters', () => {
   });
 
   it('symétrique entre A et B', () => {
-    const a = { lat: 48.8566, lon: 2.3522 }; // Paris
-    const b = { lat: 45.7640, lon: 4.8357 }; // Lyon
+    const a = { lat: 48.8566, lon: 2.3522 };
+    const b = { lat: 45.7640, lon: 4.8357 };
     expect(haversineMeters(a, b)).toBeCloseTo(haversineMeters(b, a), 6);
   });
 
@@ -60,19 +59,17 @@ describe('decimateByDistance', () => {
   });
 
   it('élimine les points trop proches selon le seuil', () => {
-    // Quatre points à 1 mètre d’écart : on garde le 1er et le dernier.
     const pts = [
       { lat: 0, lon: 0 },
-      { lat: 0.000_009, lon: 0 }, // ~1 m
-      { lat: 0.000_018, lon: 0 }, // ~2 m
-      { lat: 0.000_027, lon: 0 }, // ~3 m
+      { lat: 0.000_009, lon: 0 },
+      { lat: 0.000_018, lon: 0 },
+      { lat: 0.000_027, lon: 0 },
     ];
     const out = decimateByDistance(pts, 100);
     expect(out).toHaveLength(2);
   });
 
   it('conserve les points suffisamment éloignés', () => {
-    // Trois points séparés de ~111 m : avec un seuil de 50 m, tous sont gardés.
     const pts = [
       { lat: 0, lon: 0 },
       { lat: 0.001, lon: 0 },

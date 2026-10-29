@@ -1,5 +1,3 @@
-// Port de __tests__/lib/notifications.test.ts (fonctions pures) + canal et
-// notification postée.
 package ovh.battistella.elan.sync
 
 import android.Manifest
@@ -77,7 +75,7 @@ class ReminderNotificationsTest {
     @Test
     fun `le canal routine est d'importance par défaut avec vibration`() {
         ReminderNotifications.ensureChannel(context)
-        ReminderNotifications.ensureChannel(context) // idempotent
+        ReminderNotifications.ensureChannel(context)
 
         val channel = realManager.getNotificationChannel(ReminderNotifications.CHANNEL)
         assertNotNull(channel)

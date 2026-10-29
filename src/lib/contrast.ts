@@ -1,11 +1,3 @@
-// Choix d'une encre lisible sur un aplat de couleur.
-//
-// Les puces sélectionnées peignent leur fond avec la teinte de l'activité : du
-// blanc y est illisible dès que la teinte est claire (le lime de la marche, le
-// teal du vélo tombent sous 2:1). Plutôt que de maintenir une liste de « teintes
-// claires » à la main, on mesure. Pur et sans dépendance au thème, donc testé.
-
-/** Canaux 0-255 d'un hex `#rrggbb` (ou `#rgb`). `null` si la chaîne est invalide. */
 function channels(hex: string): [number, number, number] | null {
   const clean = hex.trim().replace(/^#/, '');
   const full =
@@ -23,7 +15,6 @@ function channels(hex: string): [number, number, number] | null {
   ];
 }
 
-/** Luminance relative WCAG 2.x d'une couleur opaque, entre 0 (noir) et 1 (blanc). */
 export function relativeLuminance(hex: string): number {
   const rgb = channels(hex);
   if (!rgb) return 0;
@@ -34,7 +25,6 @@ export function relativeLuminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-/** Rapport de contraste WCAG entre deux couleurs opaques, de 1:1 à 21:1. */
 export function contrastRatio(a: string, b: string): number {
   const la = relativeLuminance(a);
   const lb = relativeLuminance(b);
@@ -42,12 +32,6 @@ export function contrastRatio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/**
- * Encre la plus lisible sur `background` parmi `candidates` (à égalité, la
- * première l'emporte). On choisit toujours la meilleure des deux plutôt que de
- * comparer à un seuil : sur une teinte moyenne, aucune ne passerait le seuil et
- * il faudrait quand même en prendre une.
- */
 export function bestInk(background: string, candidates: readonly string[]): string {
   let best = candidates[0];
   let bestRatio = -1;

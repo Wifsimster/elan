@@ -77,10 +77,8 @@ import kotlin.math.roundToLong
 private const val MIN_SCALE = 1f
 private const val MAX_SCALE = 8f
 
-/** Largeur du viewBox de référence : toutes les épaisseurs sont exprimées dans cette unité. */
 private const val VIEW_W = 1000.0
 
-/** Arrondit une distance à une valeur « ronde » (1/2/5 ×10ⁿ) pour l'échelle. */
 internal fun niceMeters(m: Double): Double {
     if (!(m > 0)) return 0.0
     val pow = 10.0.pow(floor(log10(m)))
@@ -88,7 +86,6 @@ internal fun niceMeters(m: Double): Double {
     return (if (f >= 5) 5.0 else if (f >= 2) 2.0 else 1.0) * pow
 }
 
-/** Libellé court d'une distance ronde : « 500 m », « 1 km », « 2,5 km ». */
 internal fun scaleLabel(m: Double): String {
     if (m >= 1000) {
         val km = m / 1000
@@ -99,11 +96,8 @@ internal fun scaleLabel(m: Double): String {
     return "${m.roundToLong()} m"
 }
 
-/** Projection et tracé calculés une fois par (points, taille) — pas à chaque image du halo pulsant. */
 private class RouteGeometry(points: List<GeoPoint>, val width: Float, val height: Float) {
-    /** Hauteur du viewBox pour garder le ratio de la zone de dessin. */
     val viewH: Double = VIEW_W * height / width
-    /** Pixels par unité de viewBox. */
     val k: Float = width / VIEW_W.toFloat()
     val projection = createProjection(points, VIEW_W, viewH)
     val coords: List<ProjectedPoint> = points.map { projection.project(it) }
@@ -117,20 +111,6 @@ private class RouteGeometry(points: List<GeoPoint>, val width: Float, val height
     fun px(p: ProjectedPoint): Offset = Offset((p.x * k).toFloat(), (p.y * k).toFloat())
 }
 
-/**
- * Tracé du parcours, normalisé dans la vue, sur `Canvas`. Aucun fond
- * cartographique : aucune donnée de localisation n'est envoyée à un serveur
- * (promesse 100 % locale). Les épaisseurs suivent le viewBox de 1000 unités de
- * l'app d'origine (halo 22, trait 10, marqueurs r 13), mises à l'échelle de la
- * largeur réelle.
- *
- * Trois modes :
- * - statique (défaut) — vignette figée avec grille, échelle de distance et nord ;
- * - [live] — marqueur de position courante pulsant, décor épuré (sécurité à vélo) ;
- * - [interactive] — pinch-zoom [1, 8], pan et double-tap pour réinitialiser.
- *
- * Ne dessine rien sous 2 points.
- */
 @Composable
 fun RouteCanvas(
     points: List<GeoPoint>,
@@ -139,7 +119,6 @@ fun RouteCanvas(
     height: Dp = 200.dp,
     live: Boolean = false,
     interactive: Boolean = false,
-    /** Plein écran : remplit son parent, sans bordure ni coins arrondis. */
     fill: Boolean = false,
 ) {
     if (points.size < 2) return
@@ -156,8 +135,6 @@ fun RouteCanvas(
         }
     }
 
-    // Halo pulsant du marqueur de position courante (mode live) : 1 → 1,9 en 1 100 ms,
-    // aller-retour. Figé quand le système demande des animations réduites.
     val pulse = if (live && !LocalReducedMotion.current) {
         rememberInfiniteTransition(label = "pulse").animateFloat(
             initialValue = 1f,
@@ -169,7 +146,6 @@ fun RouteCanvas(
         1f
     }
 
-    // Transform de vue (pinch/pan), découplé de la projection géographique.
     val scale = remember { Animatable(1f) }
     val offset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     val scope = rememberCoroutineScope()
@@ -258,7 +234,6 @@ private fun DrawScope.drawRoute(
     val w = g.width
     val h = g.height
 
-    // Grille discrète : repère visuel façon carte, sous le tracé (hors live).
     if (!live) {
         for (i in 1..5) {
             val x = w / 6 * i
@@ -268,11 +243,9 @@ private fun DrawScope.drawRoute(
         }
     }
 
-    // Halo sous le tracé : profondeur + lisibilité au-dessus de la grille.
     drawPath(g.path, stroke, alpha = 0.16f, style = Stroke(22 * k, cap = StrokeCap.Round, join = StrokeJoin.Round))
     drawPath(g.path, stroke, style = Stroke(10 * k, cap = StrokeCap.Round, join = StrokeJoin.Round))
 
-    // Départ : disque plein vert. Distinction non chromatique avec l'arrivée (a11y).
     val start = g.px(g.coords.first())
     val end = g.px(g.coords.last())
     drawCircle(startColor, radius = 13 * k, center = start)
@@ -281,14 +254,11 @@ private fun DrawScope.drawRoute(
         drawCircle(stroke, radius = 13 * k, center = end)
         drawCircle(background, radius = 13 * k, center = end, style = Stroke(4 * k))
     } else {
-        // Arrivée : anneau (forme distincte du départ).
         drawCircle(endColor, radius = 13 * k, center = end, style = Stroke(6 * k))
     }
 
     if (live) return
 
-    // Police de marque, taille proportionnelle au cadre (k) : l'interligne
-    // fixe du jeton est neutralisé pour suivre la taille mise à l'échelle.
     val labelStyle = ElanType.micro.copy(
         fontSize = (30 * k).toSp(),
         lineHeight = TextUnit.Unspecified,
@@ -296,7 +266,6 @@ private fun DrawScope.drawRoute(
         color = decorColor,
     )
 
-    // Échelle de distance (bas-gauche) : repère métrique pour le tracé.
     val mpp = g.projection.metersPerUnit
     val niceM = if (mpp > 0) niceMeters(VIEW_W * 0.28 * mpp) else 0.0
     if (niceM > 0) {
@@ -310,7 +279,6 @@ private fun DrawScope.drawRoute(
         drawLine(decorColor, Offset(x0 + barPx, h - 42 * k), Offset(x0 + barPx, h - 26 * k), strokeWidth = 5 * k)
     }
 
-    // Nord (haut-droit) : la projection garde toujours le nord en haut.
     val nx = w - 46 * k
     drawLine(decorColor, Offset(nx, 68 * k), Offset(nx, 32 * k), strokeWidth = 5 * k, cap = StrokeCap.Round)
     val arrow = Path().apply {
@@ -323,7 +291,6 @@ private fun DrawScope.drawRoute(
     drawText(north, topLeft = Offset(nx - north.size.width / 2f, 92 * k - north.size.height))
 }
 
-/** Cadre d'attente affiché tant que le tracé live n'a pas assez de points. */
 @Composable
 fun MapPlaceholder(status: GpsStatus, modifier: Modifier = Modifier) {
     val colors = ElanTheme.colors

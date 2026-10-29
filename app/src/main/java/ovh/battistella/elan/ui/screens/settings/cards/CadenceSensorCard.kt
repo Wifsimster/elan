@@ -49,7 +49,6 @@ import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import java.util.Locale
 
-/** Carte Réglages : capteurs vélo BLE (cadence / vitesse) + taille de pneu. */
 @Composable
 fun CadenceSensorCard(
     state: CscState,
@@ -152,7 +151,6 @@ fun CadenceSensorCard(
     }
 }
 
-/** Sélecteur de taille de pneu : liste des presets dans un dialogue, renseigne la circonférence (mm). */
 @Composable
 private fun WheelSizePicker(valueMm: Int, onSelect: (Int) -> Unit) {
     val colors = ElanTheme.colors

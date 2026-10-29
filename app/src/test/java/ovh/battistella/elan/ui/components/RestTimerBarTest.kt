@@ -26,7 +26,6 @@ class RestTimerBarTest {
 
     private val start = 1_800_000_000_000L
 
-    /** Horloge pilotée par le test et état hôte (fin de repos) comme dans l'écran muscu. */
     private inner class Host(initialEndsAt: Long?) {
         var now = start
         var endsAt by mutableStateOf(initialEndsAt)
@@ -59,19 +58,16 @@ class RestTimerBarTest {
         compose.onNodeWithText("REPOS").assertIsDisplayed()
         compose.onNodeWithText("1:30").assertIsDisplayed()
 
-        // 89,2 s plus tard : il reste 0,8 s → « 0:01 ».
         host.now = start + 89_200
         compose.mainClock.advanceTimeBy(REST_TICK_MS + 50)
         compose.onNodeWithText("0:01").assertIsDisplayed()
 
-        // À zéro : « Repos terminé », 0:00, pas encore fermé.
         host.now = start + 90_000
         compose.mainClock.advanceTimeBy(REST_TICK_MS + 50)
         compose.onNodeWithText("REPOS TERMINÉ").assertIsDisplayed()
         compose.onNodeWithText("0:00").assertIsDisplayed()
         assertTrue(host.changes.isEmpty())
 
-        // Après le délai de présence : fermeture (onChange(null)).
         host.now = start + 90_000 + REST_LINGER_MS
         compose.mainClock.advanceTimeBy(REST_TICK_MS + 50)
         assertEquals(listOf<Long?>(null), host.changes)

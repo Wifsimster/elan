@@ -9,11 +9,6 @@ import ovh.battistella.elan.ui.components.SettingCardHeader
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 
-/**
- * Carte Réglages : progression automatique du programme muscu. Activée par
- * défaut — relève la charge des exercices notés « facile » et allège ceux
- * notés « dur », d'une semaine sur l'autre.
- */
 @Composable
 fun ProgressionAutoCard(enabled: Boolean, onEnabledChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val colors = ElanTheme.colors

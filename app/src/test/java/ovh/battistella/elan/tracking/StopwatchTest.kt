@@ -10,7 +10,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Transposition de `use-stopwatch.ts` : temps virtuel, horloge calée dessus. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class StopwatchTest {
 
@@ -37,10 +36,10 @@ class StopwatchTest {
         w.start()
         advanceTimeBy(999)
         runCurrent()
-        assertEquals(0, w.elapsedSec.value) // dernier tick à 750 ms : 0 s entière
+        assertEquals(0, w.elapsedSec.value)
         advanceTimeBy(1)
         runCurrent()
-        assertEquals(1, w.elapsedSec.value) // tick à 1 000 ms
+        assertEquals(1, w.elapsedSec.value)
     }
 
     @Test
@@ -71,7 +70,6 @@ class StopwatchTest {
         advanceTimeBy(1_100)
         runCurrent()
         assertEquals(1, w.elapsedSec.value)
-        // Sans faire courir le tick : la valeur live avance quand même.
         testScheduler.advanceTimeBy(900)
         assertEquals(2, w.getElapsedSec())
     }
@@ -116,7 +114,7 @@ class StopwatchTest {
 
         w.start()
         advanceTimeBy(2_000)
-        w.start() // ne redémarre pas le décompte
+        w.start()
         advanceTimeBy(2_000)
         runCurrent()
         assertEquals(4, w.getElapsedSec())

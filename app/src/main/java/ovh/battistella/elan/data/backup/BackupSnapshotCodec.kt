@@ -1,12 +1,3 @@
-// (Dé)sérialisation en flux du fichier de sauvegarde (format 1 de l'app
-// d'origine) : `{format, app, exportedAt, schema, data: DbSnapshot}`. Écrit et
-// lu avec JsonWriter/JsonReader pour qu'une base de plusieurs dizaines de
-// milliers de points GPS ne passe jamais en mémoire sous forme de texte JSON.
-//
-// Forme EXACTEMENT celle de `exportAll()` de `db.ts` (clés camelCase des
-// colonnes, `null` explicites) : les sauvegardes restent échangeables entre
-// les deux versions de l'app. Lecture tolérante : `bodyMeasurements` absent
-// (schéma < 4), `hr`/`cadence`/`difficulty` absents, champs inconnus ignorés.
 package ovh.battistella.elan.data.backup
 
 import android.util.JsonReader
@@ -26,20 +17,12 @@ import java.io.IOException
 import java.io.OutputStream
 import java.io.Writer
 
-/** Version du format de sauvegarde (indépendante du schéma SQLite). */
 const val BACKUP_FORMAT = 1
 
-/**
- * Version de schéma estampillée dans les sauvegardes : celle du schéma v7 de
- * l'app d'origine, que la base Room reprend tel quel. Une sauvegarde d'un
- * schéma plus récent est refusée à la restauration.
- */
 const val BACKUP_SCHEMA = 7
 
-/** Identifiant d'application dans l'enveloppe (inchangé depuis l'app d'origine). */
 const val BACKUP_APP = "suivi-sport"
 
-/** Enveloppe lue : chaque champ est `null` s'il manque (sauvegarde héritée ou fichier étranger). */
 data class BackupEnvelope(
     val format: Int?,
     val app: String?,
@@ -48,14 +31,10 @@ data class BackupEnvelope(
     val data: DbSnapshot?,
 )
 
-/** Fichier de sauvegarde syntaxiquement invalide (JSON illisible ou types incohérents). */
 class BackupParseException(message: String, cause: Throwable? = null) : IOException(message, cause)
 
 object BackupSnapshotCodec {
 
-    // ---- écriture --------------------------------------------------------
-
-    /** Écrit l'enveloppe complète (format 1) dans `file`, en flux. */
     fun write(snapshot: DbSnapshot, exportedAt: Long, file: File) {
         file.parentFile?.mkdirs()
         file.outputStream().buffered().use { write(snapshot, exportedAt, it) }
@@ -74,7 +53,6 @@ object BackupSnapshotCodec {
         w.flush()
     }
 
-    /** Écrit un `DbSnapshot` nu (sans enveloppe) — partagé avec l'export coach. */
     fun writeSnapshot(w: JsonWriter, snapshot: DbSnapshot) {
         w.beginObject()
         w.name("sessions").beginArray()
@@ -106,7 +84,6 @@ object BackupSnapshotCodec {
         w.endObject()
     }
 
-    // Ordre des clés = ordre des colonnes de `SELECT * FROM sessions` de l'app d'origine.
     private fun writeSession(w: JsonWriter, s: Session) {
         w.beginObject()
         w.name("id").value(s.id)
@@ -158,11 +135,6 @@ object BackupSnapshotCodec {
 
     private fun JsonWriter.nullableLong(v: Long?): JsonWriter = if (v == null) nullValue() else value(v)
 
-    /**
-     * Nombre au format JavaScript (`String(n)` : entier sans « .0 »).
-     * `JsonWriter.value(Number)` écrit `toString()` tel quel, d'où ce
-     * `Number` de façade ; l'app d'origine produisait exactement ces chaînes.
-     */
     fun JsonWriter.jsNumber(v: Double?): JsonWriter =
         if (v == null || !v.isFinite()) nullValue() else value(JsNumberText(v))
 
@@ -177,9 +149,6 @@ object BackupSnapshotCodec {
         override fun toByte(): Byte = v.toInt().toByte()
     }
 
-    // ---- lecture ---------------------------------------------------------
-
-    /** Lit l'enveloppe complète depuis `file`. [BackupParseException] si le JSON est illisible. */
     fun read(file: File): BackupEnvelope = file.inputStream().buffered().use { read(it.reader(Charsets.UTF_8)) }
 
     fun read(reader: java.io.Reader): BackupEnvelope {
@@ -207,15 +176,12 @@ object BackupSnapshotCodec {
         } catch (e: BackupParseException) {
             throw e
         } catch (e: Exception) {
-            // IOException, IllegalStateException, NumberFormatException… tout
-            // écart de syntaxe ou de type est « JSON invalide ».
             throw BackupParseException("Sauvegarde illisible (JSON invalide).", e)
         } finally {
             runCatching { r.close() }
         }
     }
 
-    /** Lit un `DbSnapshot` nu (le lecteur est positionné sur son `{`). */
     fun readSnapshot(r: JsonReader): DbSnapshot {
         val sessions = ArrayList<Session>()
         val trackPoints = ArrayList<TrackPoint>()
@@ -245,7 +211,6 @@ object BackupSnapshotCodec {
         return DbSnapshot(sessions, trackPoints, muscuSets, bodyMeasurements, settings)
     }
 
-    /** Un enregistrement JSON générique : on collecte les champs puis on valide les obligatoires. */
     private class Fields {
         val longs = HashMap<String, Long>()
         val doubles = HashMap<String, Double>()
@@ -375,5 +340,4 @@ object BackupSnapshotCodec {
     }
 }
 
-/** `Writer` UTF-8 sur un flux, bufferisé (JsonWriter écrit caractère par caractère). */
 private fun OutputStream.utf8Writer(): Writer = java.io.OutputStreamWriter(this, Charsets.UTF_8).buffered()

@@ -1,5 +1,3 @@
-// Contexte de sauvegarde homelab : configuration S3, état de la dernière
-// sauvegarde, et actions manuelles (sauvegarder / restaurer).
 import {
   createContext,
   use,
@@ -29,15 +27,10 @@ type BackupContextValue = {
   last: BackupLast | null;
   status: BackupStatus;
   error: string | null;
-  /** Indique si la config permet de contacter le serveur. */
   ready: boolean;
-  /** Met à jour la config (fusion partielle) et la persiste. */
   update: (patch: Partial<BackupConfig>) => void;
-  /** Sauvegarde immédiate ; remonte une erreur dans `error`. */
   backupNow: () => Promise<void>;
-  /** Restaure depuis le serveur (écrase les données locales). */
   restore: () => Promise<number | null>;
-  /** Relit le statut de la dernière sauvegarde (ex. échec d'une auto-backup). */
   refreshLast: () => Promise<void>;
 };
 
@@ -48,7 +41,6 @@ export function BackupProvider({ children }: { children: ReactNode }) {
   const [last, setLast] = useState<BackupLast | null>(null);
   const [status, setStatus] = useState<BackupStatus>('idle');
   const [error, setError] = useState<string | null>(null);
-  // Miroir de `config` pour fusionner de façon fiable hors du updater setState.
   const configRef = useRef<BackupConfig | null>(null);
 
   useEffect(() => {
@@ -60,18 +52,12 @@ export function BackupProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const update = useCallback((patch: Partial<BackupConfig>) => {
-    // Tant que la config n'est pas hydratée, on IGNORE l'update : sinon on
-    // écrirait un objet tronqué et `persistSecrets(undefined, undefined)`
-    // effacerait access key + secret du SecureStore. La persistance est faite
-    // hors du updater setState (un updater peut être rejoué — StrictMode /
-    // React Compiler — ce qui doublait l'effet de bord).
     const prev = configRef.current;
     if (prev == null) return;
     const next = { ...prev, ...patch };
     configRef.current = next;
     setConfig(next);
     saveBackupConfig(next).catch(() => {
-      // échec d'écriture des réglages : la config en mémoire reste la référence
     });
   }, []);
 

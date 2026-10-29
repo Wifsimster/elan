@@ -1,12 +1,8 @@
-// Illustrations photo des exercices (paire départ → fin), résolues localement
-// depuis les ressources bundlées (`res/drawable-nodpi/exercise_<clé>_{0,1}.jpg`).
-// Photos domaine public (free-exercise-db) : aucun accès réseau.
 package ovh.battistella.elan.ui.components
 
 import androidx.annotation.DrawableRes
 import ovh.battistella.elan.R
 
-/** Les deux positions d'un mouvement : départ puis fin. */
 data class ExercisePhotos(@DrawableRes val start: Int, @DrawableRes val end: Int)
 
 private val EXERCISE_IMAGES: Map<String, ExercisePhotos> = mapOf(
@@ -22,5 +18,4 @@ private val EXERCISE_IMAGES: Map<String, ExercisePhotos> = mapOf(
     "side-plank" to ExercisePhotos(R.drawable.exercise_side_plank_0, R.drawable.exercise_side_plank_1),
 )
 
-/** Paire de photos d'une clé d'illustration (`imageKey` du programme / catalogue), ou `null`. */
 fun exerciseImages(imageKey: String?): ExercisePhotos? = if (imageKey == null) null else EXERCISE_IMAGES[imageKey]

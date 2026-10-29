@@ -92,17 +92,11 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import ovh.battistella.elan.ui.components.ChartPoint as UiChartPoint
 
-/** Abscisse en km : entier dès 10 km, sinon une décimale (« 2,5 »). */
 private fun fmtKm(v: Double): String =
     if (v >= 10) v.roundToInt().toString() else String.format(Locale.ROOT, "%.1f", v).replace('.', ',')
 
 private fun List<ChartPoint>.toUi(): List<UiChartPoint> = map { UiChartPoint(it.x, it.y) }
 
-/**
- * Détail d'une séance : en-tête, records, vignette du tracé, statistiques,
- * profils vitesse / altitude / FC, zones cardiaques, détail muscu, notes,
- * changement de type et actions (export, partage, suppression).
- */
 @Composable
 fun SessionDetailScreen(
     contentPadding: PaddingValues,
@@ -198,7 +192,6 @@ fun SessionDetailScreen(
                     .pressableScale(onClick = { onOpenMap(session.id) }),
             ) {
                 RouteMap(points = points, color = color)
-                // En bas à droite : le nord (haut-droit) et l'échelle (bas-gauche) restent visibles.
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -341,11 +334,6 @@ fun SessionDetailScreen(
     }
 }
 
-/**
- * Carte de statistiques. Vélo : temps en mouvement en tête, temps total
- * seulement s'il en diffère d'au moins 60 s ; muscu : séries + exercices ;
- * sinon la durée. Puis les métriques GPS, la FC, les calories et l'effort.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StatsCard(session: Session, sets: List<MuscuSet>, maxHr: Double, color: Color, isGps: Boolean, pace: Boolean) {
@@ -427,7 +415,6 @@ private fun androidx.compose.foundation.layout.FlowRowScope.CompactTile(
     StatTile(label = label, value = value, unit = unit, icon = icon, color = color, compact = true, modifier = Modifier.weight(1f))
 }
 
-/** Carte de section pour un graphe : titre + unité + contenu. */
 @Composable
 private fun ChartCard(title: String, unit: String, content: @Composable () -> Unit) {
     val colors = ElanTheme.colors
@@ -461,7 +448,6 @@ private fun recordIcon(kind: RecordKind): Int = when (kind) {
     RecordKind.SPEED -> MdiIcons.Speedometer
 }
 
-/** Bannière de records, façon « PR » Strava : absolus d'abord, trois au plus. */
 @Composable
 internal fun RecordsBanner(records: List<SessionRecord>, year: Int) {
     if (records.isEmpty()) return
@@ -500,7 +486,6 @@ internal fun RecordsBanner(records: List<SessionRecord>, year: Int) {
     }
 }
 
-/** Une carte par exercice : nom (→ fiche), ressenti, volume, lignes « n — reps × kg ». */
 @Composable
 internal fun MuscuBreakdown(sets: List<MuscuSet>, color: Color, onOpenExercise: (String) -> Unit) {
     if (sets.isEmpty()) return
@@ -569,11 +554,6 @@ internal fun MuscuBreakdown(sets: List<MuscuSet>, color: Color, onOpenExercise: 
     }
 }
 
-/**
- * Carte « Type d'activité » : corrige après coup une sortie enregistrée sous
- * le mauvais type. Limitée aux activités GPS ; la confirmation (portée par
- * l'écran) dit ce qui va bouger.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SessionTypeCard(current: ActivityType, busy: Boolean, onSelect: (ActivityType) -> Unit) {

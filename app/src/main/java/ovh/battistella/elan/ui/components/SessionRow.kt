@@ -31,16 +31,9 @@ import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.forKey
 
-/** « 3 séries », « 1 exercice » : pluriel français à partir de 2. */
 internal fun pluralFr(count: Int, singular: String): String =
     "$count $singular${if (count > 1) "s" else ""}"
 
-/**
- * Ligne d'historique d'une séance : pastille d'activité teintée 48 dp, libellé
- * + date, et à droite la métrique clé. En muscu la durée n'a pas de sens : on
- * met en avant la complétion (séries faites, puis exercices) ; les activités
- * GPS gardent temps en mouvement + distance ; sinon la FC moyenne.
- */
 @Composable
 fun SessionRow(
     session: Session,

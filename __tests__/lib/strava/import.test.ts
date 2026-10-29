@@ -1,9 +1,5 @@
-// Tests de la normalisation Strava (lib/strava/import.ts) : construction des
-// brouillons importables, clé de déduplication (externalId) stable, et motifs
-// d'exclusion. Pur (aucun accès base) — on alimente buildDrafts en octets.
 import { buildDrafts } from '@/lib/strava/import';
 
-/** Encode une chaîne ASCII en octets (entrée attendue par buildDrafts). */
 function bytes(str: string): Uint8Array {
   const out = new Uint8Array(str.length);
   for (let i = 0; i < str.length; i++) out[i] = str.charCodeAt(i) & 0xff;
@@ -12,7 +8,6 @@ function bytes(str: string): Uint8Array {
 
 const WEIGHT_KG = 75;
 
-// GPX minimal valide : 3 points horodatés et géolocalisés sur 20 s.
 const GPX = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx creator="StravaGPX" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><time>2025-06-02T08:00:00Z</time></metadata>
@@ -23,10 +18,8 @@ const GPX = `<?xml version="1.0" encoding="UTF-8"?>
   </trkseg></trk>
 </gpx>`;
 
-// Même trace mais démarrée 1 h plus tard : doit produire un externalId différent.
 const GPX_AUTRE_DEPART = GPX.replace(/08:00:/g, '09:00:');
 
-// GPX sans horodatage par point : aucune donnée temporelle exploitable.
 const GPX_SANS_TEMPS = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx creator="StravaGPX" xmlns="http://www.topografix.com/GPX/1/1">
   <trk><trkseg>
@@ -51,17 +44,13 @@ describe('buildDrafts — construction du brouillon', () => {
 
   it('calcule distance, vitesse et dénivelé positif depuis les points GPS', () => {
     const { session } = buildDrafts(bytes(GPX), WEIGHT_KG).drafts[0];
-    // Aucune distance dans le GPX : elle est dérivée des points.
     expect(session.distanceM).not.toBeNull();
     expect(session.distanceM as number).toBeGreaterThan(0);
     expect(session.avgSpeedKmh as number).toBeGreaterThan(0);
-    // Montée 35 → 36 → 40 = +5 m (le bruit < 0,5 m est filtré).
     expect(session.elevationGainM).toBe(5);
   });
 });
 
-// GPX avec un point « téléporté » : le 2e point saute de ~1000 km en 10 s
-// (vitesse absurde). La distance de ce segment ne doit pas être créditée.
 const GPX_TELEPORT = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx creator="StravaGPX" xmlns="http://www.topografix.com/GPX/1/1">
   <trk><trkseg>
@@ -74,8 +63,6 @@ const GPX_TELEPORT = `<?xml version="1.0" encoding="UTF-8"?>
 describe('buildDrafts — segment aberrant (téléportation GPS)', () => {
   it("n'inclut pas la distance du saut invraisemblable", () => {
     const { session } = buildDrafts(bytes(GPX_TELEPORT), WEIGHT_KG).drafts[0];
-    // Seul le dernier segment (~13 m, plausible) est crédité : la distance reste
-    // petite, pas les ~1000 km du saut Paris → Oslo.
     expect(session.distanceM as number).toBeLessThan(1000);
   });
 });
@@ -85,7 +72,7 @@ describe('buildDrafts — clé de déduplication (externalId)', () => {
     const a = buildDrafts(bytes(GPX), WEIGHT_KG).drafts[0].session.externalId;
     const b = buildDrafts(bytes(GPX), WEIGHT_KG).drafts[0].session.externalId;
     expect(a).toMatch(/^strava-/);
-    expect(a).toBe(b); // ré-import du même fichier → même clé → pas de doublon
+    expect(a).toBe(b);
   });
 
   it('diffère pour une activité au départ différent', () => {

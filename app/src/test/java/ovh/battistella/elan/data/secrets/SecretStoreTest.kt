@@ -38,9 +38,6 @@ class SecretStoreTest {
         assertEquals("2", store.get("b"))
     }
 
-    // ---- KeystoreSecretStore, chiffrement + fichiers avec une clé AES locale ---
-
-    /** Clé AES-256 en mémoire : exerce tout le chemin chiffrement/fichier hors KeyStore Android. */
     private fun localKey(): SecretKey = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
 
     private fun fileStore(dir: File, key: SecretKey = localKey()) =
@@ -60,16 +57,14 @@ class SecretStoreTest {
         assertEquals("AKIAEXAMPLE", store.get(SecretStore.BACKUP_S3_ACCESS_KEY_ID))
         assertEquals("sécrét/très+long=", store.get(SecretStore.BACKUP_S3_SECRET_ACCESS_KEY))
 
-        // Une nouvelle instance sur le même dossier et la même clé relit les fichiers.
         assertEquals("AKIAEXAMPLE", fileStore(dir, key).get(SecretStore.BACKUP_S3_ACCESS_KEY_ID))
 
-        // Rien en clair sur le disque : blob Base64 `iv || chiffré`, IV de 12 octets.
         val file = File(dir, "${SecretStore.BACKUP_S3_ACCESS_KEY_ID}.bin")
         assertTrue(file.exists())
         val raw = file.readText()
         assertFalse(raw.contains("AKIAEXAMPLE"))
         val blob = Base64.decode(raw, Base64.NO_WRAP)
-        assertEquals(12 + "AKIAEXAMPLE".length + 16, blob.size) // iv + texte + tag GCM
+        assertEquals(12 + "AKIAEXAMPLE".length + 16, blob.size)
 
         store.remove(SecretStore.BACKUP_S3_ACCESS_KEY_ID)
         assertFalse(file.exists())
@@ -81,7 +76,6 @@ class SecretStoreTest {
     fun `une autre clé ou un blob corrompu valent absence de secret`() = runTest {
         val dir = tempDir()
         fileStore(dir).put("s", "valeur")
-        // Clé perdue (restauration système) : pas d'exception, juste null.
         assertNull(fileStore(dir).get("s"))
 
         val store = fileStore(dir)
@@ -109,7 +103,6 @@ class SecretStoreTest {
                 store.put(bad, "x")
                 fail("nom accepté : $bad")
             } catch (e: IllegalArgumentException) {
-                // attendu
             }
         }
     }

@@ -1,4 +1,3 @@
-// Tests sanity sur le barème des circonférences de roue.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals

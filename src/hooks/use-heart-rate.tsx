@@ -1,5 +1,3 @@
-// Contexte global pour la ceinture cardiaque : une seule connexion BLE,
-// partagée par les écrans de séance et les réglages.
 import {
   createContext,
   use,
@@ -40,8 +38,6 @@ export type HrStatus =
 
 export type ScannedDevice = { id: string; name: string };
 
-// Type du domaine, défini dans lib/types.ts ; ré-exporté ici par commodité pour
-// les consommateurs du contexte cardiaque.
 export type { HrSample };
 
 type HeartRateContextValue = {
@@ -54,13 +50,6 @@ type HeartRateContextValue = {
   stopScan: () => void;
   connect: (deviceId: string) => Promise<void>;
   disconnect: () => Promise<void>;
-  /**
-   * S'abonne aux mesures brutes : appelé à chaque trame BLE reçue, **y compris
-   * lorsque la valeur est identique à la précédente** (cas typique du palier
-   * cardiaque). Un `useEffect([bpm])` côté écran raterait ces trames car
-   * React déduplique les setStates identiques — ce qui appauvrissait les
-   * statistiques (moyenne biaisée, points GPS sans FC attachée).
-   */
   subscribe: (listener: (sample: HrSample) => void) => () => void;
 };
 
@@ -68,7 +57,6 @@ const HeartRateContext = createContext<HeartRateContextValue | null>(null);
 
 const SUPPORTED = Platform.OS === 'android' || Platform.OS === 'ios';
 const LAST_DEVICE_KEY = 'hr_device';
-/** Reconnexion auto : nombre max de tentatives après une coupure involontaire. */
 const MAX_RECONNECT_ATTEMPTS = 5;
 
 export function HeartRateProvider({ children }: { children: ReactNode }) {
@@ -79,20 +67,14 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const monitorRef = useRef<Subscription | null>(null);
-  // Abonnement onDisconnected : conservé pour être retiré (sinon les handlers
-  // s'accumulent à chaque reconnexion et une seule coupure en déclenche N).
   const disconnectSubRef = useRef<Subscription | null>(null);
   const connectedRef = useRef<Device | null>(null);
-  // Garde anti-double-connexion (tentative déjà en vol).
   const connectingRef = useRef(false);
   const listenersRef = useRef<Set<(s: HrSample) => void>>(new Set());
-  // Reconnexion auto sur coupure involontaire (capteur hors de portée, etc.).
   const userDisconnectedRef = useRef(false);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const connectRef = useRef<((deviceId: string) => Promise<void>) | null>(null);
-  // Propriétaire du scan partagé (coordinateur lib/ble) + timeout d'auto-arrêt.
-  // useState (initialiseur paresseux) : jeton stable propre à cette instance.
   const [scanOwner] = useState(() => Symbol('hr-scan'));
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -124,9 +106,6 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
     }
     setScanned([]);
     setStatus('scanning');
-    // Coordination du scan partagé : si les capteurs vélo scannaient, ils sont
-    // notifiés et arrêtés ; « scan volé » nous ramène à l'arrêt si l'inverse
-    // se produit (au lieu de rester bloqué sur « scan en cours »).
     acquireScan(scanOwner, () => {
       setStatus((s) => (s === 'scanning' ? 'idle' : s));
     });
@@ -151,8 +130,6 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
   }, [scanOwner]);
 
   const disconnect = useCallback(async () => {
-    // Déconnexion volontaire : on désarme la reconnexion auto et on annule une
-    // tentative en attente AVANT cancelConnection (onDisconnected suit aussitôt).
     userDisconnectedRef.current = true;
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
@@ -171,7 +148,6 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
       try {
         await dev.cancelConnection();
       } catch {
-        // déjà déconnecté
       }
     }
   }, []);
@@ -194,11 +170,6 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
   const connect = useCallback(
     async (deviceId: string) => {
       if (!SUPPORTED) return;
-      // Garde anti-double-connexion : une tentative déjà en vol, ou une connexion
-      // au même appareil, ne doit pas en lancer une seconde (deux moniteurs
-      // mêleraient leurs valeurs). Une connexion à un AUTRE appareil déconnecte
-      // d'abord le précédent. `connectingRef` est armé AVANT tout `await` (la
-      // déconnexion du précédent en contient un) pour fermer la fenêtre de course.
       if (connectingRef.current) return;
       if (connectedRef.current?.id === deviceId) return;
       connectingRef.current = true;
@@ -212,12 +183,9 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
         try {
           await prev.cancelConnection();
         } catch {
-          // déjà déconnecté
         }
       }
       setError(null);
-      // Tentative volontaire : on réarme la reconnexion auto et on annule une
-      // tentative différée éventuellement en cours.
       userDisconnectedRef.current = false;
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
@@ -231,7 +199,6 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
         if (!ok) throw new Error('Permissions Bluetooth refusées.');
 
         const manager = getManager();
-        // Timeout : un capteur endormi ne doit pas bloquer la carte ~30 s.
         dev = await manager.connectToDevice(deviceId, {
           autoConnect: false,
           timeout: CONNECT_TIMEOUT_MS,
@@ -239,7 +206,6 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
         dev = await dev.discoverAllServicesAndCharacteristics();
         connectedRef.current = dev;
 
-        // Ancien abonnement retiré avant d'en réenregistrer un (anti-accumulation).
         disconnectSubRef.current?.remove();
         disconnectSubRef.current = dev.onDisconnected(() => {
           disconnectSubRef.current?.remove();
@@ -249,10 +215,9 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
           connectedRef.current = null;
           setBpm(null);
           setDevice(null);
-          scheduleReconnect(deviceId); // coupure involontaire : back-off borné
+          scheduleReconnect(deviceId);
         });
 
-        // Ancien moniteur retiré avant d'en réattacher un.
         monitorRef.current?.remove();
         monitorRef.current = dev.monitorCharacteristicForService(
           HEART_RATE_SERVICE,
@@ -260,10 +225,8 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
           (err, characteristic) => {
             if (err) return;
             const value = parseHeartRate(characteristic?.value ?? null);
-            if (value == null) return; // trame invalide ou FC 0 (contact perdu)
+            if (value == null) return;
             setBpm(value);
-            // Notifie chaque trame brute (même valeur identique) pour éviter
-            // les trous d'échantillonnage pendant un palier cardiaque.
             const sample: HrSample = { ts: nowMs(), hr: value };
             for (const cb of listenersRef.current) cb(sample);
           },
@@ -271,25 +234,19 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
 
         const info: ScannedDevice = { id: dev.id, name: dev.name ?? 'Ceinture cardiaque' };
         setDevice(info);
-        setScanned([]); // liste de scan devenue obsolète, ne plus la laisser tapable
+        setScanned([]);
         setStatus('connected');
-        reconnectAttemptsRef.current = 0; // connexion établie : compteur remis à zéro
+        reconnectAttemptsRef.current = 0;
         await setSetting(LAST_DEVICE_KEY, JSON.stringify(info));
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Échec de connexion.');
         connectedRef.current = null;
-        // Découverte/monitoring échoué après connexion (GATT 133 fréquent) :
-        // l'appareil reste semi-connecté et indétectable au scan → on force la
-        // fermeture GATT.
         if (dev) {
           try {
             await dev.cancelConnection();
           } catch {
-            // déjà fermé
           }
         }
-        // Replanifie tant que le budget de tentatives n'est pas épuisé (la chaîne
-        // de reconnexion ne doit pas mourir au premier échec).
         connectingRef.current = false;
         scheduleReconnect(deviceId);
         return;
@@ -299,13 +256,10 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
     [scheduleReconnect, stopScan],
   );
 
-  // Réf vers le dernier `connect` (appelé par la reconnexion différée, sans
-  // recréer le timer à chaque changement d'identité de connect).
   useEffect(() => {
     connectRef.current = connect;
   }, [connect]);
 
-  // Nettoyage : annule une reconnexion / un scan en attente au démontage.
   useEffect(() => {
     return () => {
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
@@ -314,11 +268,6 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
     };
   }, [scanOwner]);
 
-  // Écoute l'état de l'adaptateur Bluetooth. `emitCurrentState` déclenche aussi
-  // la tentative de reconnexion initiale au lancement (on appelle toujours
-  // connect() — même si l'appareil est déjà connecté au niveau BLE, il faut
-  // (ré)attacher le moniteur, surtout après un reload de dev). Et un cycle
-  // BT off→on re-déclenche la reconnexion au lieu de rester en « Erreur ».
   useEffect(() => {
     if (!SUPPORTED) return;
     const reconnectLast = () => {
@@ -330,7 +279,6 @@ export function HeartRateProvider({ children }: { children: ReactNode }) {
           reconnectAttemptsRef.current = 0;
           connectRef.current?.(saved.id);
         } catch {
-          // réglage illisible : on attend l'action utilisateur
         }
       });
     };

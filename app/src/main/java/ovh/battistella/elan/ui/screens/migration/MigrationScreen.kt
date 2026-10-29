@@ -30,10 +30,6 @@ import ovh.battistella.elan.ui.theme.ElanColors
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Spacing
 
-/**
- * Palette sombre fixe (encre Sillage), identique quel que soit le thème :
- * l'écran précède le thème utilisateur.
- */
 private val MigrationColors = ElanColors.Dark
 private val MigrationBackground = MigrationColors.background
 private val MigrationText = MigrationColors.text
@@ -41,12 +37,6 @@ private val MigrationTextSecondary = MigrationColors.textSecondary
 private val MigrationAccent = MigrationColors.accent
 private val MigrationDanger = MigrationColors.danger
 
-/**
- * Écran plein cadre affiché tant que la reprise des anciennes données n'est
- * pas réglée. [state] ne vaut jamais `Ready` ici (l'activité monte alors
- * l'interface normale). En [MigrationState.Pending] on ne montre que le fond :
- * la vérification dure quelques millisecondes, un titre clignoterait.
- */
 @Composable
 fun MigrationScreen(
     state: MigrationState,
@@ -112,7 +102,6 @@ private fun FailedContent(
     onRetry: () -> Unit,
     onSkip: () -> Unit,
 ) {
-    // 0 = aucun dialogue, 1 = première confirmation, 2 = seconde.
     var confirmStep by rememberSaveable { mutableIntStateOf(0) }
 
     Text(

@@ -10,11 +10,6 @@ import ovh.battistella.elan.domain.BodyMeasurement
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Journal de poids corporel. Le profil reste l'unique source consommée par les
- * calculs (calories, charges conseillées, import Strava) : chaque écriture du
- * journal réaligne `profile.weightKg` sur la pesée la plus récente restante.
- */
 @Singleton
 class BodyWeightRepository @Inject constructor(
     private val bodyMeasurementDao: BodyMeasurementDao,
@@ -31,7 +26,6 @@ class BodyWeightRepository @Inject constructor(
         syncProfileWeight()
     }
 
-    /** Pesées, de la plus récente à la plus ancienne. */
     suspend fun listBodyMeasurements(limit: Int = 1000): List<BodyMeasurement> = withContext(io) {
         bodyMeasurementDao.list(limit).map { it.toDomain() }
     }
@@ -40,7 +34,6 @@ class BodyWeightRepository @Inject constructor(
         bodyMeasurementDao.latest()?.toDomain()
     }
 
-    /** Recale le poids du profil sur la dernière pesée restante (s'il y en a une). */
     private suspend fun syncProfileWeight() {
         val latest = bodyMeasurementDao.latest() ?: return
         val profile = settings.getProfile()

@@ -39,8 +39,6 @@ class S3ClientTest {
     @Before
     fun setUp() {
         server.start()
-        // L'endpoint signé est HTTPS (exigé par le signataire) ; un
-        // intercepteur redirige la connexion vers le serveur factice en clair.
         val rewrite = Interceptor { chain ->
             val req = chain.request()
             val url = req.url.newBuilder().scheme("http").host(server.hostName).port(server.port).build()
@@ -129,8 +127,6 @@ class S3ClientTest {
         val e = expectS3 { client.getObject(config, File(tmp, "b.json")) }
         assertEquals("Erreur côté serveur (HTTP 503) : réessaie plus tard.", e.message)
     }
-
-    // ---- describeS3Failure / describeNetworkFailure ---------------------
 
     @Test
     fun `describeS3Failure couvre chaque code S3`() {

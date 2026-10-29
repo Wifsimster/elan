@@ -1,4 +1,3 @@
-// Tests de `Double.toJsString()` : vecteurs alignés sur `Number#toString()` de V8.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals

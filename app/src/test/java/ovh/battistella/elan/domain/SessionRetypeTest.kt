@@ -1,5 +1,3 @@
-// Tests du changement de type d'une séance enregistrée : décider si le
-// changement est permis, et recalculer ce qui dépend du type.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -12,7 +10,6 @@ import org.junit.Test
 class SessionRetypeTest {
     private val profile = Profile(weightKg = 70.0, maxHr = 190.0)
 
-    /** Sortie d'une heure, 20 km, 20 km/h de moyenne — de quoi comparer les barèmes. */
     private fun session(
         type: ActivityType = ActivityType.VELO,
         durationSec: Int = 3600,
@@ -80,11 +77,8 @@ class SessionRetypeTest {
         val s = session()
         val versCourse = retypeChanges(s, ActivityType.COURSE, profile)!!
         val versMarche = retypeChanges(s, ActivityType.MARCHE, profile)!!
-        // À 20 km/h : courir coûte beaucoup plus que pédaler, marcher (extrapolation
-        // plate au-delà de la table) reste au-dessus du vélo mais loin de la course.
         assertTrue(versCourse.calories > s.calories!!)
         assertTrue(versCourse.calories > versMarche.calories)
-        // La valeur stockée d'origine n'entre jamais dans le nouveau calcul.
         val memeSeanceAutreCalories = session(calories = 99_999.0)
         assertEquals(versCourse.calories, retypeChanges(memeSeanceAutreCalories, ActivityType.COURSE, profile)!!.calories, 1e-5)
     }

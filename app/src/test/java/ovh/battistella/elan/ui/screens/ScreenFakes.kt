@@ -50,7 +50,6 @@ import kotlinx.coroutines.Dispatchers
 import java.time.Clock
 import java.util.Optional
 
-/** Suivi GPS piloté par le test : l'état est posé à la main, les appels sont journalisés. */
 class FakeOutingPort(initial: OutingUi = OutingUi()) : OutingPort {
     val mutable = MutableStateFlow(initial)
     override val state: StateFlow<OutingUi> = mutable.asStateFlow()
@@ -77,11 +76,6 @@ class FakeCadencePort(cadenceRpm: Int? = null, speedKmh: Double? = null, hasSens
     override val hasSensor = MutableStateFlow(hasSensor)
 }
 
-/**
- * Fabrique de ViewModels pour les tests de navigation : vrais dépôts sur une
- * base en mémoire, ports factices, horloge fournie. Le `SavedStateHandle`
- * vient des extras du `NavBackStackEntry` (arguments de route).
- */
 class TestViewModelFactory(
     private val db: ElanDatabase,
     private val clock: Clock = Clock.systemUTC(),
@@ -123,10 +117,6 @@ class TestViewModelFactory(
     }
 }
 
-/**
- * Gestionnaires BLE sur radio factice (aucun appareil, adaptateur allumé) :
- * les cartes capteurs se rendent en état « Non connectée » sans Bluetooth.
- */
 fun testBleManagers(
     settings: SettingsRepository,
     clock: Clock = Clock.systemUTC(),

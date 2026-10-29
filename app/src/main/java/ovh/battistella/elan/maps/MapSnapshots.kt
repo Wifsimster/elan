@@ -1,9 +1,3 @@
-// Capture d'un fond de carte statique pour la carte de partage (port de
-// lib/static-map.ts). MapLibre rend une image hors écran via `MapSnapshotter`,
-// cadrée sur l'emprise du tracé. Aucune tuile n'est demandée à un tiers : le
-// style pointe uniquement vers le serveur choisi par l'utilisateur, et en cas
-// d'échec (hors-ligne, pas de style, délai dépassé) on retourne `null` —
-// l'appelant retombe sur le tracé sans fond.
 package ovh.battistella.elan.maps
 
 import android.content.Context
@@ -24,10 +18,6 @@ object MapSnapshots {
     private const val TAG = "MapSnapshots"
     private const val TIMEOUT_MS = 10_000L
 
-    /**
-     * Fond de carte cadré sur [points] (marge [paddingPx]), ou `null` si moins
-     * de 2 points, pas de style valide, échec du rendu ou délai de 10 s dépassé.
-     */
     suspend fun snapshotRoute(
         context: Context,
         points: List<GeoPoint>,
@@ -40,7 +30,6 @@ object MapSnapshots {
         if (styleUrl.isBlank() || !isValidMapStyleUrl(styleUrl)) return null
         return try {
             withTimeoutOrNull(TIMEOUT_MS) {
-                // Le snapshotter veut le thread principal (looper) pour ses rappels.
                 withContext(Dispatchers.Main.immediate) {
                     ensureMapLibre(context)
                     val bounds = paddedBounds(points, width, height, paddingPx)
@@ -71,11 +60,6 @@ object MapSnapshots {
         }
     }
 
-    /**
-     * Emprise du tracé élargie d'une marge de [paddingPx] pixels de chaque
-     * côté (le snapshotter n'a pas de padding : on agrandit la région en
-     * proportion de l'image), avec un minimum pour un tracé quasi ponctuel.
-     */
     internal fun paddedBounds(points: List<GeoPoint>, width: Int, height: Int, paddingPx: Int): LatLngBounds {
         val minLat = points.minOf { it.lat }
         val maxLat = points.maxOf { it.lat }
@@ -93,6 +77,5 @@ object MapSnapshots {
         )
     }
 
-    /** ≈ 100 m : un tracé sans étendue reste lisible. */
     private const val MIN_SPAN_DEG = 0.001
 }

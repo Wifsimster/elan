@@ -11,11 +11,6 @@ import ovh.battistella.elan.ui.components.SettingField
 import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 
-/**
- * Carte Réglages : fond de carte MapLibre en ligne (opt-in, off par défaut).
- * [customUrl] est le contenu du champ « serveur personnel » (vide quand le
- * preset OpenFreeMap est utilisé).
- */
 @Composable
 fun MapCard(
     enabled: Boolean,

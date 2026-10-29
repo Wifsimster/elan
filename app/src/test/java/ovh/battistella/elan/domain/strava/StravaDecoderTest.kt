@@ -38,7 +38,6 @@ class StravaDecoderTest {
     @Test
     fun `une bombe gzip annoncée est refusée avant décompression`() {
         val zipped = gzip(gpx)
-        // ISIZE forgé à 4 Go - 1 : refus sur la taille annoncée, sans inflater.
         val n = zipped.size
         zipped[n - 4] = 0xff.toByte(); zipped[n - 3] = 0xff.toByte(); zipped[n - 2] = 0xff.toByte(); zipped[n - 1] = 0xff.toByte()
         assertEquals(0xffffffffL, StravaDecoder.declaredGunzipSize(zipped))
@@ -48,8 +47,6 @@ class StravaDecoderTest {
 
     @Test
     fun `une bombe gzip à l'ISIZE menteur est refusée pendant la décompression`() {
-        // 61 Mo de zéros compressent en ~60 Ko ; ISIZE = 61 Mo mod 2^32, on le
-        // falsifie à 1 pour passer le premier contrôle.
         val big = ByteArray(61 * 1024 * 1024)
         val zipped = gzip(big)
         val n = zipped.size

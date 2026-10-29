@@ -43,9 +43,6 @@ import ovh.battistella.elan.domain.upsertGoal
 import java.time.Clock
 import javax.inject.Inject
 
-// ---- objectifs -------------------------------------------------------------
-
-/** Bornes, pas et défaut du sélecteur de cible selon la métrique (`TARGET_SPEC`). */
 data class TargetSpec(val unit: String, val step: Int, val min: Int, val max: Int, val def: Int)
 
 val TARGET_SPEC: Map<GoalMetric, TargetSpec> = mapOf(
@@ -54,7 +51,6 @@ val TARGET_SPEC: Map<GoalMetric, TargetSpec> = mapOf(
     GoalMetric.TONNAGE to TargetSpec("kg", 100, 100, 100_000, 5000),
 )
 
-/** Formulaire « Nouvel objectif ». */
 data class GoalForm(
     val metric: GoalMetric = GoalMetric.SESSIONS,
     val activity: GoalActivity = GoalActivity.ALL,
@@ -64,15 +60,11 @@ data class GoalForm(
     val spec: TargetSpec get() = TARGET_SPEC.getValue(metric)
 }
 
-/** Un objectif de distance ne peut viser qu'une activité tracée au GPS. */
 fun goalActivityAllowed(metric: GoalMetric, activity: GoalActivity): Boolean =
     metric != GoalMetric.DISTANCE || activity == GoalActivity.ALL || activity.asActivityType()?.let { isGpsActivity(it) } == true
 
 fun GoalActivity.asActivityType(): ActivityType? = ActivityType.fromKey(key)
 
-// ---- planning --------------------------------------------------------------
-
-/** Option proposée pour un jour du planning : libellé court + séance persistée. */
 data class WeekPlanOption(val label: String, val planned: PlannedSession)
 
 private fun outingOption(label: String, kind: String) =
@@ -92,21 +84,12 @@ val WEEK_PLAN_OPTIONS: List<WeekPlanOption> = listOf(
     muscuOption("Cervicales", TemplateId.CERVICALES),
 )
 
-/** L'option correspond-elle à la séance planifiée ce jour-là ? */
 fun isOptionActive(opt: WeekPlanOption, entry: PlannedSession): Boolean = when (val p = opt.planned) {
     PlannedSession.Repos -> entry is PlannedSession.Repos
     is PlannedSession.Outing -> entry is PlannedSession.Outing && entry.kind == p.kind
     is PlannedSession.Muscu -> entry is PlannedSession.Muscu && entry.templateId == p.templateId
 }
 
-// ---- import Strava ---------------------------------------------------------
-
-/**
- * Bilan du dernier import, persisté sous `strava_last_import` (compteurs et
- * date, format de l'app d'origine). [details] — motifs par fichier des
- * activités ignorées / en erreur — n'est montré que pour l'import qui vient
- * d'avoir lieu : non persisté, vide après relecture.
- */
 data class StravaLastImport(
     val imported: Int,
     val duplicates: Int,
@@ -134,15 +117,11 @@ internal fun serializeStravaLastImport(r: StravaLastImport): String = JSONObject
     .put("at", r.at)
     .toString()
 
-/** Types MIME proposés au sélecteur de fichiers (GPX/TCX/FIT, éventuellement .gz). */
 val STRAVA_IMPORT_MIME_TYPES: Array<String> =
     arrayOf("application/gpx+xml", "application/xml", "text/xml", "application/octet-stream", "*/*")
 
-// ---- état ------------------------------------------------------------------
-
 enum class ExportKind { Markdown, Json }
 
-/** Dialogue ouvert sur l'écran Réglages (les `Alert.alert` d'origine). */
 sealed interface SettingsDialog {
     data object None : SettingsDialog
     data object ClearSessions : SettingsDialog
@@ -163,15 +142,11 @@ data class SettingsUi(
     val weekPlan: List<PlannedSession> = DEFAULT_WEEK_PLAN,
     val autoProgression: Boolean = true,
     val notifications: NotificationConfig = NotificationConfig(),
-    /** Permission de notification refusée à l'activation des rappels. */
     val notificationsError: Boolean = false,
     val privacyZoneM: Int = 0,
-    /** Style persisté ; '' = carte hors ligne. */
     val mapStyleUrl: String = "",
-    /** Contenu du champ « serveur personnel » (saisie en cours ou valeur persistée). */
     val mapUrlField: String = "",
     val mapEnabled: Boolean = false,
-    /** Le fond vient d'un serveur personnel (et non du preset OpenFreeMap). */
     val mapCustom: Boolean = false,
     val healthSupported: Boolean = false,
     val healthEnabled: Boolean = false,
@@ -184,11 +159,9 @@ data class SettingsUi(
     val dialog: SettingsDialog = SettingsDialog.None,
 )
 
-/** État local de l'écran (hors réglages persistés). */
 private data class SettingsLocal(
     val goalForm: GoalForm = GoalForm(),
     val notificationsError: Boolean = false,
-    /** Saisie en cours de l'URL personnelle ; `null` = suit la valeur persistée. */
     val mapDraft: String? = null,
     val healthBusy: Boolean = false,
     val exporting: ExportKind? = null,
@@ -199,12 +172,6 @@ private data class SettingsLocal(
     val dialog: SettingsDialog = SettingsDialog.None,
 )
 
-/**
- * Réglages : profil, objectifs, planning, progression auto, rappels, données,
- * exports, import Strava, carte et Health Connect. Chaque modification est
- * persistée immédiatement (pas de bouton « Enregistrer »), comme dans l'app
- * d'origine ; les capteurs BLE et la sauvegarde S3 ont leur propre ViewModel.
- */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
@@ -249,7 +216,6 @@ class SettingsViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUi())
 
-    /** Permissions et contrat Health Connect, lancés par la carte à l'activation. */
     val healthPermissions: Set<String> get() = health.permissions
     fun healthContract(): ActivityResultContract<Set<String>, Set<String>> = health.permissionContract()
 
@@ -265,8 +231,6 @@ class SettingsViewModel @Inject constructor(
     private fun info(titleRes: Int, textRes: Int) =
         local.update { it.copy(dialog = SettingsDialog.Info(context.getString(titleRes), context.getString(textRes))) }
 
-    // ---- profil ----------------------------------------------------------
-
     private fun patchProfile(transform: (Profile) -> Profile) {
         viewModelScope.launch { settings.saveProfile(transform(settings.getProfile())) }
     }
@@ -277,9 +241,6 @@ class SettingsViewModel @Inject constructor(
     fun setTrainingGoal(goal: TrainingGoal) = patchProfile { it.copy(goal = goal) }
     fun setSex(sex: Sex?) = patchProfile { it.copy(sex = sex) }
 
-    // ---- objectifs -------------------------------------------------------
-
-    /** Change de métrique : cible remise au défaut de l'unité, activité non GPS écartée pour la distance. */
     fun setGoalMetric(metric: GoalMetric) = local.update { l ->
         val f = l.goalForm
         val activity = if (goalActivityAllowed(metric, f.activity)) f.activity else GoalActivity.ALL
@@ -292,7 +253,6 @@ class SettingsViewModel @Inject constructor(
 
     fun setGoalPeriod(period: GoalPeriod) = local.update { it.copy(goalForm = it.goalForm.copy(period = period)) }
 
-    /** Cible bornée par la spécification de la métrique. */
     fun setGoalTarget(target: Int) = local.update { l ->
         val spec = l.goalForm.spec
         l.copy(goalForm = l.goalForm.copy(target = target.coerceIn(spec.min, spec.max)))
@@ -310,9 +270,6 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settings.setGoals(removeGoal(settings.snapshot().goals, id)) }
     }
 
-    // ---- planning --------------------------------------------------------
-
-    /** Remplace la séance d'un jour (0 = lundi), persiste et replanifie les rappels. */
     fun setPlanDay(dayIndex: Int, planned: PlannedSession) {
         if (dayIndex !in 0..6) return
         viewModelScope.launch {
@@ -333,15 +290,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    // ---- progression automatique -----------------------------------------
-
     fun setAutoProgression(enabled: Boolean) {
         viewModelScope.launch { settings.setAutoProgression(AutoProgressionConfig(enabled)) }
     }
 
-    // ---- rappels ---------------------------------------------------------
-
-    /** La permission a déjà été obtenue par la carte (33+) quand [enabled] est vrai. */
     fun setNotificationsEnabled(enabled: Boolean) {
         local.update { it.copy(notificationsError = false) }
         viewModelScope.launch {
@@ -359,8 +311,6 @@ class SettingsViewModel @Inject constructor(
             if (next.enabled) reminders.apply()
         }
     }
-
-    // ---- données ---------------------------------------------------------
 
     fun requestClearSessions() = local.update { it.copy(dialog = SettingsDialog.ClearSessions) }
     fun requestResetAll() = local.update { it.copy(dialog = SettingsDialog.ResetAll) }
@@ -393,15 +343,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    // ---- zone de confidentialité -----------------------------------------
-
     fun setPrivacyZone(meters: Int) {
         viewModelScope.launch { settings.setPrivacyZoneM(meters.toDouble()) }
     }
 
-    // ---- carte -----------------------------------------------------------
-
-    /** Commutateur : OpenFreeMap (ou le serveur perso déjà saisi) / hors ligne. */
     fun setMapEnabled(on: Boolean) {
         viewModelScope.launch {
             val current = mapStyle.styleUrl.first()
@@ -410,11 +355,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Saisie du serveur personnel : un préfixe de `https://` est toléré le temps
-     * de taper ; une URL complète est persistée ; vidé, on retombe sur OpenFreeMap
-     * (carte activée) ou hors ligne ; toute autre valeur est refusée avec alerte.
-     */
     fun setCustomMapUrl(text: String) {
         val trimmed = text.trim()
         when {
@@ -437,18 +377,14 @@ class SettingsViewModel @Inject constructor(
     private fun persistMapUrl(url: String) {
         viewModelScope.launch {
             mapStyle.setStyleUrl(url)
-            // La valeur persistée reprend la main dès qu'elle correspond à la saisie.
             local.update { l -> if (l.mapDraft?.trim() == url || url.isEmpty()) l.copy(mapDraft = null) else l }
         }
     }
-
-    // ---- Health Connect --------------------------------------------------
 
     fun disableHealthConnect() {
         viewModelScope.launch { health.disable() }
     }
 
-    /** La carte lance le contrat de permissions juste après. */
     fun healthRequestStarted() = local.update { it.copy(healthBusy = true) }
 
     fun onHealthPermissionResult(granted: Set<String>) {
@@ -473,10 +409,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /** Le contrat n'a pas pu être lancé (Health Connect absent). */
     fun healthUnavailable() = local.update { it.copy(healthBusy = false, dialog = SettingsDialog.HealthUnavailable) }
-
-    // ---- exports ---------------------------------------------------------
 
     fun exportMarkdown() = runExport(ExportKind.Markdown)
     fun exportJson() = runExport(ExportKind.Json)
@@ -501,8 +434,6 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-
-    // ---- import Strava ---------------------------------------------------
 
     fun importStrava(uris: List<Uri>) {
         if (uris.isEmpty() || local.value.stravaImporting) return

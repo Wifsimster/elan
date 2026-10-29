@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Écran de reprise des anciennes données (premier lancement d'Élan 2.0). -->
 <resources>
     <string name="migration_title">Mise à jour de vos données…</string>
     <string name="migration_keep_open">Ne fermez pas l\'application</string>

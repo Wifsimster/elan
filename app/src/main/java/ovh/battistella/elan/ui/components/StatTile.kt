@@ -26,18 +26,10 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 
-/** Ton d'une tendance : [Positive] = vert, [Negative] = atténué, [Neutral] = stable. */
 enum class Tone { Positive, Negative, Neutral }
 
-/** Évolution affichée sous la valeur (ex. comparaison à la période précédente). */
 data class Trend(val label: String, val tone: Tone)
 
-/**
- * Tuile de métrique : petite icône teintée + libellé en overline, puis le
- * chiffre en Archivo Condensed tabulaire — le chiffre est le héros. Conçue pour s'aligner en grille fluide dans une [ElanCard] :
- * largeur mini 96 dp (pleine largeur en [hero]), et se laisse pondérer par
- * `Modifier.weight(1f)` dans une Row.
- */
 @Composable
 fun StatTile(
     label: String,
@@ -46,11 +38,8 @@ fun StatTile(
     unit: String? = null,
     @DrawableRes icon: Int? = null,
     color: Color? = null,
-    /** Affichage compact (police plus petite). */
     compact: Boolean = false,
-    /** Métrique mise en avant (chiffre plus grand) — valeur clé à lire en effort. */
     hero: Boolean = false,
-    /** Petite ligne d'évolution sous la valeur. */
     trend: Trend? = null,
 ) {
     val colors = ElanTheme.colors
@@ -62,8 +51,6 @@ fun StatTile(
         else -> ElanType.metric
     }
 
-    // Libellé, valeur, unité et tendance forment un seul nœud pour TalkBack
-    // (« Distance : 12,4 km, +8 % vs semaine passée »).
     val description = listOfNotNull(
         stringResource(R.string.stat_tile_a11y, label, listOfNotNull(value, unit).joinToString(" ")),
         trend?.label,
@@ -87,8 +74,6 @@ fun StatTile(
                 )
             }
             Text(
-                // Casse d'origine (lecteurs d'écran, recherche par texte) : le
-                // style overline condensé suffit à le distinguer de la valeur.
                 text = label,
                 style = ElanType.overline.copy(letterSpacing = 0.4.sp),
                 color = colors.textSecondary,

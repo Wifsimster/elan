@@ -18,8 +18,6 @@ describe('aggregateFromPoints', () => {
   });
 
   it('recalcule durée, distance et vitesse max plausibles', () => {
-    // ~15,7 m entre deux points à 0,0001° de longitude (≈ à cette latitude),
-    // sur 1 s → mouvement. On roule 10 s.
     const points: AggPoint[] = [];
     for (let i = 0; i <= 10; i++) {
       points.push(p({ ts: i * 1000, lon: 2.35 + i * 0.0002, speedKmh: 30, hr: 140 + (i % 3), cadence: 85 }));
@@ -37,14 +35,13 @@ describe('aggregateFromPoints', () => {
   it('plafonne la vitesse max (fix Doppler glitché ignoré)', () => {
     const agg = aggregateFromPoints([
       p({ ts: 0, speedKmh: 25 }),
-      p({ ts: 1000, lon: 2.3502, speedKmh: 500 }), // aberrant
+      p({ ts: 1000, lon: 2.3502, speedKmh: 500 }),
       p({ ts: 2000, lon: 2.3504, speedKmh: 28 }),
     ])!;
     expect(agg.maxSpeedKmh).toBe(28);
   });
 
   it('ne crédite pas la distance à l’arrêt (dérive GPS)', () => {
-    // Points quasi immobiles avec vitesse Doppler nulle : pas de distance.
     const agg = aggregateFromPoints([
       p({ ts: 0, speedKmh: 0 }),
       p({ ts: 1000, lat: 48.850001, speedKmh: 0 }),

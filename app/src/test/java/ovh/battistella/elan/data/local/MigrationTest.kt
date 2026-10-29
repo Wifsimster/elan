@@ -15,22 +15,6 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 import java.util.concurrent.Executor
 
-/**
- * Recette de test des migrations (reprise d'Ondes) : une base brute est créée
- * depuis le schéma JSON exporté par Room pour la version de DÉPART (versionné
- * dans `app/schemas`, sur le classpath de test), peuplée, puis rouverte par
- * Room avec les vraies migrations — Room valide alors le résultat contre les
- * entités courantes et refuse d'ouvrir une base dont les tables ne
- * correspondent pas. Sans repli destructif dans l'app, un changement de schéma
- * livré sans migration doit échouer ICI, pas au prochain lancement d'un
- * utilisateur.
- *
- * Pas encore de migration : la version 8 est la première de la base Room. Le
- * cas ci-dessous ouvre la v8 exportée telle quelle et vérifie que Room
- * l'accepte et relit les données — c'est le squelette qu'un futur
- * `MIGRATION_8_9` étendra (`createDatabaseAt(8) { … }` puis
- * `openMigratedDatabase(AppModule.MIGRATION_8_9)`).
- */
 @RunWith(RobolectricTestRunner::class)
 class MigrationTest {
 
@@ -70,10 +54,6 @@ class MigrationTest {
         assertEquals("{\"weightKg\":72.5}", db.settingsDao().get("profile"))
     }
 
-    /**
-     * Construit une base au schéma [version] depuis le JSON exporté par Room,
-     * puis laisse [populate] y insérer des lignes de fixture.
-     */
     private fun createDatabaseAt(version: Int, populate: SQLiteDatabase.() -> Unit) {
         val file: File = context.getDatabasePath(DB_NAME)
         file.parentFile?.mkdirs()
@@ -95,7 +75,6 @@ class MigrationTest {
         }
     }
 
-    /** Ouvre la base avec Room, qui exécute les migrations puis valide le schéma. */
     private fun openMigratedDatabase(vararg migrations: Migration): ElanDatabase {
         val directExecutor = Executor { it.run() }
         return Room.databaseBuilder(context, ElanDatabase::class.java, DB_NAME)

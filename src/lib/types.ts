@@ -1,56 +1,28 @@
-// Types du domaine — suivi d'activité physique personnel et local.
-
-/**
- * Type d'activité. `velo`, `course` et `marche` produisent un tracé GPS (voir
- * `isGpsActivity`) ; `muscu` non. La colonne `sessions.type` est un TEXT libre :
- * ajouter un type ne demande aucune migration.
- */
 export type ActivityType = 'velo' | 'muscu' | 'course' | 'marche';
 
-/** Une séance d'entraînement enregistrée. */
 export type Session = {
   id: number;
   type: ActivityType;
-  /** Début en ms epoch. */
   startedAt: number;
-  /** Fin en ms epoch (null si en cours). */
   endedAt: number | null;
-  /** Durée active en secondes (hors pauses) — temps total écran allumé/chrono. */
   durationSec: number;
-  /**
-   * Temps « en mouvement » en secondes (vélo) : durée hors arrêts, déduite des
-   * points GPS façon Strava. `null` quand il n'a pas pu être calculé (pas de
-   * tracé, musculation) — l'affichage retombe alors sur `durationSec`.
-   */
   movingTimeSec: number | null;
   notes: string | null;
-  // Cardio (commun aux deux types, si ceinture connectée)
   avgHr: number | null;
   maxHr: number | null;
-  // Spécifique vélo
   distanceM: number | null;
   avgSpeedKmh: number | null;
   maxSpeedKmh: number | null;
   elevationGainM: number | null;
-  // Cadence (vélo, si capteur de cadence connecté), en tours/min
   avgCadence: number | null;
   maxCadence: number | null;
   calories: number | null;
-  /** Provenance : null = enregistré dans l'app, 'strava' = importé d'un fichier. */
   source: string | null;
-  /** Clé de déduplication des séances importées (null pour les séances natives). */
   externalId: string | null;
-  /**
-   * Nombre de séries muscu enregistrées. Renseigné uniquement par `listSessions`
-   * (agrégat de lecture) : `0` pour le vélo, `undefined` ailleurs (`getSession`,
-   * exports). Sert à afficher la complétion à la place de la durée en muscu.
-   */
   setCount?: number;
-  /** Nombre d'exercices muscu distincts. Mêmes règles que `setCount`. */
   exerciseCount?: number;
 };
 
-/** Un point GPS d'un tracé vélo. */
 export type TrackPoint = {
   id: number;
   sessionId: number;
@@ -60,32 +32,19 @@ export type TrackPoint = {
   altitude: number | null;
   speedKmh: number | null;
   hr: number | null;
-  /** Cadence en tours/min au point le plus proche (si capteur connecté). */
   cadence: number | null;
 };
 
-/**
- * Un échantillon de fréquence cardiaque horodaté (ms epoch), accumulé pendant
- * une séance puis agrégé (cf. `lib/samples.ts`) et apparié aux points GPS.
- */
 export type HrSample = { ts: number; hr: number };
 
-/** Une pesée du journal de poids corporel. */
 export type BodyMeasurement = {
   id: number;
-  /** Date de la mesure en ms epoch. */
   measuredAt: number;
   weightKg: number;
 };
 
-/**
- * Ressenti d'effort d'un exercice sur une séance : pilote le conseil de
- * progression (augmenter / maintenir / réduire reps et charge). `null` = non noté
- * (anciennes séances, imports Strava).
- */
 export type Difficulty = 'facile' | 'moyen' | 'dur';
 
-/** Une série de musculation (un exercice peut avoir plusieurs séries). */
 export type MuscuSet = {
   id: number;
   sessionId: number;
@@ -93,36 +52,21 @@ export type MuscuSet = {
   setIndex: number;
   reps: number;
   weightKg: number;
-  /**
-   * Ressenti de l'exercice, dénormalisé sur chaque série (valeur identique pour
-   * toutes les séries d'un même exercice dans la séance). `null` si non noté.
-   */
   difficulty: Difficulty | null;
 };
 
-/**
- * Objectif d'entraînement musculation — pilote les fourchettes de répétitions,
- * le repos et l'intensité (charge) conseillés par le moteur de recommandation.
- */
 export type TrainingGoal = 'force' | 'hypertrophie' | 'endurance' | 'tonification' | 'perte-poids';
 
-/** Sexe biologique — affine la recommandation de charge. `null` = non précisé. */
 export type Sex = 'h' | 'f' | null;
 
-/** Profil utilisateur : calories, zones cardio et charges/reps conseillées. */
 export type Profile = {
   weightKg: number;
-  /** Taille en cm — entre dans la personnalisation des charges conseillées. */
   heightCm: number;
-  /** FC max théorique, pour les zones cardio. */
   maxHr: number;
-  /** Ce que l'utilisateur cherche à faire : oriente reps et charge conseillées. */
   goal: TrainingGoal;
-  /** Sexe (optionnel) : ajuste la charge conseillée (haut du corps surtout). */
   sex: Sex;
 };
 
-/** Statistiques agrégées sur une période. */
 export type PeriodStats = {
   sessionCount: number;
   totalDurationSec: number;

@@ -34,14 +34,6 @@ import ovh.battistella.elan.ui.screens.settings.BackupPatch
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 
-/**
- * Champs de connexion S3, partagés par la carte Réglages et la feuille de
- * restauration du premier lancement (mêmes libellés, mêmes placeholders, même
- * persistance). Quatre champs suffisent (endpoint, bucket, clés) ; région et
- * nom d'objet ont des défauts qui conviennent à MinIO/SeaweedFS/Garage et
- * restent modifiables sous « Options avancées », dépliées d'office si la
- * valeur stockée s'écarte du défaut.
- */
 @Composable
 fun BackupConfigFields(
     config: BackupFormConfig,
@@ -56,7 +48,6 @@ fun BackupConfigFields(
     val showAdvanced = advancedOpen || hasAdvanced
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp), modifier = modifier.fillMaxWidth()) {
-        // Éviter de taper une clé secrète au clavier : QR généré sur le serveur.
         QrScanButton(
             title = stringResource(R.string.settings_backup_scan_qr),
             onScanned = onQrScanned,

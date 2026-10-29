@@ -1,9 +1,3 @@
-// Codecs JSON des réglages (org.json, comme le domaine). Lecture TOLÉRANTE :
-// une valeur absente, corrompue ou mal typée retombe sur le défaut, jamais
-// sur une exception — ce sont les mêmes repli que `src/lib/*.ts`, un réglage
-// illisible ne doit pas bloquer l'app. Écriture au format exact de l'app
-// d'origine (mêmes clés, mêmes formes), pour que les sauvegardes S3 restent
-// échangeables entre les deux versions.
 package ovh.battistella.elan.data.settings
 
 import org.json.JSONArray
@@ -25,9 +19,6 @@ import kotlin.math.floor
 
 object SettingsJson {
 
-    // ---- helpers ---------------------------------------------------------
-
-    /** `JSON.parse` tolérant : `null` si vide, invalide, ou pas un objet. */
     private fun parseObject(raw: String?): JSONObject? {
         if (raw.isNullOrEmpty()) return null
         return try {
@@ -50,17 +41,12 @@ object SettingsJson {
     private fun JSONObject.string(key: String): String? = opt(key) as? String
     private fun JSONObject.boolean(key: String): Boolean? = opt(key) as? Boolean
 
-    /**
-     * `Number(str)` de JavaScript sur une chaîne : vide → 0, non numérique →
-     * NaN (Kotlin accepte aussi « Infinity »/« NaN », que JS produit de même).
-     */
     fun jsNumber(raw: String): Double {
         val t = raw.trim()
         if (t.isEmpty()) return 0.0
         return t.toDoubleOrNull() ?: Double.NaN
     }
 
-    /** Valeur org.json → structures Kotlin (Map/List/scalaires, `NULL` → null). */
     fun toKotlin(value: Any?): Any? = when (value) {
         null, JSONObject.NULL -> null
         is JSONObject -> LinkedHashMap<String, Any?>().also { m ->
@@ -70,9 +56,6 @@ object SettingsJson {
         else -> value
     }
 
-    // ---- profile ---------------------------------------------------------
-
-    /** `{...DEFAULT_PROFILE, ...JSON.parse(raw)}` ; défaut si absent ou illisible. */
     fun parseProfile(raw: String?): Profile {
         val d = Profile()
         val o = parseObject(raw) ?: return d
@@ -93,8 +76,6 @@ object SettingsJson {
         .put("sex", p.sex?.key ?: JSONObject.NULL)
         .toString()
 
-    // ---- capteurs BLE ----------------------------------------------------
-
     private fun deviceFrom(o: JSONObject?): BleDevice? {
         val id = o?.string("id") ?: return null
         return BleDevice(id, o.string("name") ?: "")
@@ -114,7 +95,6 @@ object SettingsJson {
     fun serializeDevices(devices: List<BleDevice>): String =
         JSONArray().also { arr -> devices.forEach { arr.put(deviceJson(it)) } }.toString()
 
-    /** Circonférence de roue (mm) : texte numérique fini, sinon 2105 (700×25c). */
     fun parseWheelMm(raw: String?): Double {
         if (raw.isNullOrEmpty()) return DEFAULT_WHEEL_MM
         val mm = jsNumber(raw)
@@ -123,14 +103,6 @@ object SettingsJson {
 
     const val DEFAULT_WHEEL_MM = 2105.0
 
-    // ---- sauvegarde S3 ---------------------------------------------------
-
-    /**
-     * Config stockée fusionnée avec les défauts ; région et nom d'objet vides
-     * reviennent à leur défaut pour que l'écran montre la valeur effective.
-     * Les éventuels secrets d'une config héritée sont ignorés ici (voir
-     * [legacyBackupSecrets]).
-     */
     fun parseBackupConfig(raw: String?): BackupConfig {
         val d = BackupConfig()
         val o = parseObject(raw) ?: return d
@@ -143,11 +115,6 @@ object SettingsJson {
         )
     }
 
-    /**
-     * Secrets qu'une ancienne version aurait laissés en clair dans le JSON
-     * (`accessKeyId`/`secretAccessKey`), à migrer une fois vers le stockage
-     * sécurisé puis à retirer du réglage. `null` s'il n'y en a pas.
-     */
     fun legacyBackupSecrets(raw: String?): Pair<String, String>? {
         val o = parseObject(raw) ?: return null
         val ak = o.string("accessKeyId") ?: ""
@@ -176,21 +143,15 @@ object SettingsJson {
         .apply { if (b.error != null) put("error", b.error) }
         .toString()
 
-    // ---- carte -----------------------------------------------------------
-
-    /** Vide (carte désactivée) ou HTTPS ; le HTTP en clair est refusé. */
     fun isValidMapStyleUrl(url: String): Boolean {
         val u = url.trim()
         return u.isEmpty() || u.startsWith("https://", ignoreCase = true)
     }
 
-    /** Re-validation à la lecture : toute valeur héritée/incorrecte → ''. */
     fun parseMapStyleUrl(raw: String?): String {
         val url = raw ?: ""
         return if (isValidMapStyleUrl(url)) url else ""
     }
-
-    // ---- notifications ---------------------------------------------------
 
     fun parseNotifications(raw: String?): NotificationConfig {
         val d = NotificationConfig()
@@ -205,9 +166,6 @@ object SettingsJson {
     fun serializeNotifications(c: NotificationConfig): String =
         JSONObject().put("enabled", c.enabled).put("hour", c.hour).toString()
 
-    // ---- planning --------------------------------------------------------
-
-    /** Plan personnalisé valide (7 entrées bien formées), sinon `null` → défaut. */
     fun parseWeekPlan(raw: String?): List<PlannedSession>? {
         val arr = parseArray(raw) ?: return null
         return weekPlanFrom(toKotlin(arr))
@@ -230,8 +188,6 @@ object SettingsJson {
         return arr.toString()
     }
 
-    // ---- progression automatique -----------------------------------------
-
     fun parseAutoProgression(raw: String?): AutoProgressionConfig {
         val o = parseObject(raw) ?: return AutoProgressionConfig()
         return AutoProgressionConfig(enabled = o.boolean("enabled") ?: return AutoProgressionConfig())
@@ -240,7 +196,6 @@ object SettingsJson {
     fun serializeAutoProgression(c: AutoProgressionConfig): String =
         JSONObject().put("enabled", c.enabled).toString()
 
-    /** `{week, changes, dismissed}` ; `changes` filtrées par `isChange`, sinon état vide. */
     fun parseAutoProgressionState(raw: String?): AutoProgressionState {
         val o = parseObject(raw) ?: return AutoProgressionState()
         val week = o.string("week") ?: return AutoProgressionState()
@@ -267,29 +222,19 @@ object SettingsJson {
         .put("to", c.to)
         .put("direction", c.direction.key)
 
-    // ---- brouillon muscu -------------------------------------------------
-
     fun parseDraft(raw: String?): MuscuDraft? = parseMuscuDraft(raw)
 
     fun serializeDraft(d: MuscuDraft): String = serializeMuscuDraft(d)
 
-    // ---- scalaires -------------------------------------------------------
-
-    /** Rayon de confidentialité (m) : nombre fini > 0, sinon 0 (désactivé). */
     fun parsePrivacyZoneM(raw: String?): Double {
         if (raw == null) return 0.0
         val v = jsNumber(raw)
         return if (v.isFinite() && v > 0) v else 0.0
     }
 
-    /** `String(Math.max(0, Math.round(m)))` : entier positif, arrondi comme JS. */
     fun serializePrivacyZoneM(meters: Double): String =
         Math.max(0L, Math.round(meters)).toString()
 
-    /**
-     * Repos préféré entre séries : nombre fini > 0 borné à 15..600 s, sinon
-     * `null` (l'écran retombe alors sur le repos conseillé pour l'objectif).
-     */
     fun parseRestSeconds(raw: String?): Int? {
         if (raw == null) return null
         val v = jsNumber(raw)
@@ -297,12 +242,8 @@ object SettingsJson {
         return Math.round(v.coerceIn(15.0, 600.0)).toInt()
     }
 
-    /** `String(number)` JS : entier sans « .0 ». */
     fun serializeNumber(v: Double): String = v.toJsString()
 
-    // ---- (dé)codage du bundle complet ------------------------------------
-
-    /** Décode l'intégralité des réglages depuis la table `settings` (clé → valeur). */
     fun decode(values: Map<String, String>): ElanSettings = ElanSettings(
         profile = parseProfile(values[SettingsRepository.Keys.PROFILE]),
         hrDevice = parseHrDevice(values[SettingsRepository.Keys.HR_DEVICE]),
@@ -320,7 +261,6 @@ object SettingsJson {
         muscuDraft = parseDraft(values[SettingsRepository.Keys.MUSCU_DRAFT]),
         privacyZoneM = parsePrivacyZoneM(values[SettingsRepository.Keys.PRIVACY_ZONE_M]),
         restSeconds = parseRestSeconds(values[SettingsRepository.Keys.REST_SECONDS]),
-        // Toute valeur non vide est « vraie » (l'app d'origine testait la truthiness).
         onboardingDone = !values[SettingsRepository.Keys.ONBOARDING_DONE].isNullOrEmpty(),
     )
 }

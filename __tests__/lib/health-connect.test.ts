@@ -1,14 +1,9 @@
-// Tests de la construction des enregistrements Health Connect
-// (lib/health-connect.ts — buildHealthRecords, fonction pure).
-//
-// Le module importe lib/db (pour le réglage opt-in) qui importe expo-sqlite :
-// on le neutralise, buildHealthRecords ne touche jamais la base.
 jest.mock('expo-sqlite', () => ({ openDatabaseAsync: jest.fn() }));
 
 import { buildHealthRecords, healthClientRecordId } from '@/lib/health-connect';
 
-const T0 = Date.UTC(2026, 5, 1, 10, 0, 0); // 2026-06-01T10:00:00Z
-const T1 = T0 + 3600_000; // +1 h
+const T0 = Date.UTC(2026, 5, 1, 10, 0, 0);
+const T1 = T0 + 3600_000;
 
 describe('buildHealthRecords', () => {
   it('vélo complet : ExerciseSession + Distance + ActiveCaloriesBurned + HeartRate', () => {
@@ -33,7 +28,7 @@ describe('buildHealthRecords', () => {
 
     const session = records[0];
     if (session.recordType !== 'ExerciseSession') throw new Error('type inattendu');
-    expect(session.exerciseType).toBe(8); // ExerciseType.BIKING
+    expect(session.exerciseType).toBe(8);
     expect(session.startTime).toBe('2026-06-01T10:00:00.000Z');
     expect(session.endTime).toBe('2026-06-01T11:00:00.000Z');
 
@@ -47,7 +42,6 @@ describe('buildHealthRecords', () => {
 
     const hr = records[3];
     if (hr.recordType !== 'HeartRate') throw new Error('type inattendu');
-    // Les BPM sont arrondis (Health Connect attend des entiers).
     expect(hr.samples).toEqual([
       { time: new Date(T0 + 60_000).toISOString(), beatsPerMinute: 120 },
       { time: new Date(T0 + 120_000).toISOString(), beatsPerMinute: 146 },
@@ -68,7 +62,7 @@ describe('buildHealthRecords', () => {
     ]);
     const session = records[0];
     if (session.recordType !== 'ExerciseSession') throw new Error('type inattendu');
-    expect(session.exerciseType).toBe(70); // ExerciseType.STRENGTH_TRAINING
+    expect(session.exerciseType).toBe(70);
   });
 
   it('ignore distance et calories nulles, absentes ou à zéro', () => {
@@ -88,11 +82,11 @@ describe('buildHealthRecords', () => {
       startedAt: T0,
       endedAt: T1,
       hrSamples: [
-        { ts: T0 - 1000, hr: 110 }, // avant le départ
-        { ts: T0 + 1000, hr: 0 }, // bpm nul
-        { ts: T0 + 2000, hr: 320 }, // bpm aberrant
-        { ts: T1 + 1000, hr: 130 }, // après l'arrivée
-        { ts: T0 + 3000, hr: 142 }, // seul valide
+        { ts: T0 - 1000, hr: 110 },
+        { ts: T0 + 1000, hr: 0 },
+        { ts: T0 + 2000, hr: 320 },
+        { ts: T1 + 1000, hr: 130 },
+        { ts: T0 + 3000, hr: 142 },
       ],
     });
     const hr = records.find((r) => r.recordType === 'HeartRate');
@@ -120,8 +114,7 @@ describe('buildHealthRecords', () => {
   it('estampille un clientRecordId stable par (séance × type) — idempotence', () => {
     const data = { type: 'velo' as const, startedAt: T0, endedAt: T1, distanceM: 1000, calories: 100 };
     const a = buildHealthRecords(data);
-    const b = buildHealthRecords(data); // ré-export de la même séance
-    // Deux exports → mêmes identifiants client (Health Connect réécrit, ne double pas).
+    const b = buildHealthRecords(data);
     const ids = (recs: typeof a) => recs.map((r) => r.metadata?.clientRecordId);
     expect(ids(a)).toEqual(ids(b));
     expect(ids(a)).toEqual([
@@ -129,7 +122,6 @@ describe('buildHealthRecords', () => {
       `elan-velo-${T0}-distance`,
       `elan-velo-${T0}-calories`,
     ]);
-    // Une autre séance (autre instant de début) a d'autres identifiants.
     const other = buildHealthRecords({ ...data, startedAt: T0 + 5000, endedAt: T1 + 5000 });
     expect(other[0].metadata?.clientRecordId).not.toBe(a[0].metadata?.clientRecordId);
   });
@@ -138,7 +130,6 @@ describe('buildHealthRecords', () => {
 describe('buildHealthRecords — activités à pied', () => {
   const base = { startedAt: T0, endedAt: T1, distanceM: 8000, calories: 500, hrSamples: [] };
 
-  /** Extrait l'ExerciseSession de l'union d'enregistrements. */
   const exerciseSession = (type: 'velo' | 'course' | 'marche' | 'muscu') => {
     const record = buildHealthRecords({ ...base, type })[0];
     if (record.recordType !== 'ExerciseSession') throw new Error('ExerciseSession attendue');
@@ -146,8 +137,6 @@ describe('buildHealthRecords — activités à pied', () => {
   };
 
   it('associe chaque activité à son type d’exercice Health Connect', () => {
-    // Constantes androidx ExerciseType : BIKING 8, RUNNING 56,
-    // STRENGTH_TRAINING 70, WALKING 79.
     const typeOf = (type: 'velo' | 'course' | 'marche' | 'muscu') =>
       exerciseSession(type).exerciseType;
     expect(typeOf('velo')).toBe(8);

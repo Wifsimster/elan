@@ -25,14 +25,8 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Spacing
 
-/** Rapport largeur / hauteur du logotype (`brand_wordmark.xml`). */
 private const val WORDMARK_RATIO = 1673f / 736f
 
-/**
- * Le logotype « élan » : lettres à l'encre du thème, accent — le trait
- * d'élan — à la couleur de marque. Deux calques vectoriels superposés
- * (`brand_wordmark` et `brand_wordmark_accent`) pour teinter l'accent seul.
- */
 @Composable
 fun ElanWordmark(
     modifier: Modifier = Modifier,
@@ -51,12 +45,6 @@ fun ElanWordmark(
     }
 }
 
-/**
- * Le « trait d'élan » : l'accent du logotype, un quadrilatère penché vers
- * l'avant. Motif de marque qui signale « ici, maintenant » : étiquette de
- * section, élément actif. Mêmes proportions que l'accent de la police
- * (227 × 132 unités, bord droit plus raide).
- */
 @Composable
 fun ElanTick(
     modifier: Modifier = Modifier,
@@ -78,10 +66,6 @@ fun ElanTick(
     }
 }
 
-/**
- * Étiquette de section : trait d'élan + overline en MAJUSCULES. Remplace les
- * overlines nues au-dessus d'un groupe (« DÉMARRER », « CETTE SEMAINE »).
- */
 @Composable
 fun SectionLabel(
     text: String,

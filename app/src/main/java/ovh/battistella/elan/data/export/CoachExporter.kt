@@ -1,10 +1,3 @@
-// Export des données vers un format lisible par une IA (« coach ») — port de
-// `src/lib/coach-export.ts` + `use-data-export.tsx`. Deux artefacts, 100 %
-// hors-ligne :
-//   - un bilan Markdown : programme, planning, stats, progression et
-//     historique, pensé pour être déposé dans un projet Claude Code qui suit
-//     la programmation ;
-//   - un export JSON brut : profil + programme + instantané complet de la base.
 package ovh.battistella.elan.data.export
 
 import android.content.Context
@@ -63,15 +56,12 @@ import kotlin.math.roundToLong
 private const val DAY = 86_400_000L
 private val JOURS_SEMAINE = listOf("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
 
-/** Nom de fichier et type MIME du bilan Markdown. */
 const val COACH_MARKDOWN_FILE = "suivi-sport-coach.md"
 const val COACH_MARKDOWN_MIME = "text/markdown"
 
-/** Nom de fichier et type MIME de l'export JSON brut. */
 const val COACH_JSON_FILE = "suivi-sport-export.json"
 const val COACH_JSON_MIME = "application/json"
 
-/** Nombre en français, sans décimale superflue (3 -> « 3 », 12.5 -> « 12,5 »). */
 internal fun num(n: Double?, digits: Int = 1): String {
     if (n == null) return "—"
     val scale = 10.0.pow(digits)
@@ -81,7 +71,6 @@ internal fun num(n: Double?, digits: Int = 1): String {
     return text.replace('.', ',')
 }
 
-/** Échappe le caractère pipe pour ne pas casser les tableaux Markdown. */
 internal fun cell(s: String): String = s.replace("|", "\\|").replace(Regex("\n+"), " ").trim()
 
 @Singleton
@@ -92,28 +81,18 @@ class CoachExporter @Inject constructor(
     private val snapshots: SnapshotRepository,
     private val clock: Clock,
 ) {
-    // ---- points d'entrée (écran Réglages) ---------------------------------
-
-    /** Écrit le bilan Markdown dans le cache partagé et renvoie le fichier. */
     suspend fun exportMarkdown(context: Context): File {
         val file = File(FileShare.shareDir(context), COACH_MARKDOWN_FILE)
         file.writeText(buildMarkdown(), Charsets.UTF_8)
         return file
     }
 
-    /** Écrit l'export JSON brut dans le cache partagé et renvoie le fichier. */
     suspend fun exportJson(context: Context): File {
         val file = File(FileShare.shareDir(context), COACH_JSON_FILE)
         buildJson(file)
         return file
     }
 
-    // ---- Markdown --------------------------------------------------------
-
-    /**
-     * Construit le bilan Markdown complet : un seul document auto-suffisant à
-     * déposer dans un projet pour qu'une IA suive la programmation et coache.
-     */
     suspend fun buildMarkdown(): String {
         val now = clock.millis()
         val s = settings.snapshot()
@@ -125,11 +104,8 @@ class CoachExporter @Inject constructor(
         val muscuSessions = all.filter { it.type == ActivityType.MUSCU }
         val gpsSessions = all.filter { isGpsActivity(it.type) }
 
-        // Séries par séance muscu (déjà triées de la plus récente à la plus ancienne).
         val muscuDetail = muscuSessions.map { session -> session to sessions.getMuscuSets(session.id) }
 
-        // Progression par exercice : exercices distincts vus dans l'historique
-        // muscu, puis leur courbe complète.
         val exerciseNames = ArrayList<String>()
         for ((_, sets) in muscuDetail) {
             for (set in sets) if (set.exercise !in exerciseNames) exerciseNames.add(set.exercise)
@@ -156,7 +132,6 @@ class CoachExporter @Inject constructor(
         ).joinToString("\n\n")
     }
 
-    /** Valeur réalisée d'un objectif sur sa période courante (`measureGoal` d'origine). */
     private suspend fun measureGoal(goal: Goal, now: Long): Double {
         val range = periodRange(goal.period, now)
         val type = when (goal.activity) {
@@ -168,7 +143,6 @@ class CoachExporter @Inject constructor(
         }
         return when (goal.metric) {
             GoalMetric.SESSIONS -> sessions.statsBetween(range.fromMs, range.toMs, type).sessionCount.toDouble()
-            // km arrondis au dixième, cohérent avec l'affichage des distances.
             GoalMetric.DISTANCE -> {
                 val m = sessions.statsBetween(range.fromMs, range.toMs, type).totalDistanceM
                 (m / 1000 * 10).roundToLong() / 10.0
@@ -194,7 +168,6 @@ class CoachExporter @Inject constructor(
         ).joinToString("\n")
     }
 
-    /** Courbe de poids corporel — section omise tant que le journal est vide. */
     private fun weightSection(measurements: List<BodyMeasurement>): String? {
         if (measurements.isEmpty()) return null
         val lines = mutableListOf(
@@ -265,7 +238,6 @@ class CoachExporter @Inject constructor(
             ).joinToString("\n")
     }
 
-    /** Objectifs et leur avancement sur la période courante — omis si aucun défini. */
     private fun goalsSection(progress: List<GoalProgress>): String? {
         if (progress.isEmpty()) return null
         val lines = mutableListOf(
@@ -337,18 +309,12 @@ class CoachExporter @Inject constructor(
         return lines.joinToString("\n")
     }
 
-    /** Regroupe les séries d'une séance par exercice, dans l'ordre d'apparition. */
     private fun groupByExercise(sets: List<MuscuSet>): List<Pair<String, List<MuscuSet>>> {
         val byEx = LinkedHashMap<String, MutableList<MuscuSet>>()
         for (s in sets) byEx.getOrPut(s.exercise) { ArrayList() }.add(s)
         return byEx.map { (k, v) -> k to v }
     }
 
-    /**
-     * Historique des sorties tracées au GPS — vélo, course et marche réunis.
-     * Une colonne « Activité » les distingue, et l'allure remplace la vitesse
-     * pour les activités à pied, où c'est l'unité qui parle.
-     */
     private fun gpsSection(gps: List<Session>): String {
         if (gps.isEmpty()) return "## Historique des sorties\n\n_Aucune sortie enregistrée._"
         val lines = mutableListOf(
@@ -369,12 +335,6 @@ class CoachExporter @Inject constructor(
         return lines.joinToString("\n")
     }
 
-    // ---- JSON ------------------------------------------------------------
-
-    /**
-     * Export JSON brut, écrit en flux : profil + programme + instantané complet
-     * de la base (séances, points GPS, séries, réglages non secrets).
-     */
     suspend fun buildJson(file: File) {
         val s = settings.snapshot()
         val data = snapshots.exportAll()

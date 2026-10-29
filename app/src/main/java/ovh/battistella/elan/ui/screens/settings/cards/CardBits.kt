@@ -1,5 +1,3 @@
-// Briques partagées par les cartes de réglages : texte explicatif, ligne
-// commutateur, pastille d'état, séparateur fin, ligne d'appareil.
 package ovh.battistella.elan.ui.screens.settings.cards
 
 import androidx.annotation.DrawableRes
@@ -31,11 +29,6 @@ import ovh.battistella.elan.ui.icons.MdiIcons
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 
-/**
- * Paragraphe explicatif d'une carte (secondaire). [size] choisit le jeton :
- * ≤ 12 → [ElanType.caption] (notes, aides avancées), ≥ 15 → [ElanType.body],
- * sinon [ElanType.bodySm].
- */
 @Composable
 fun CardText(text: String, modifier: Modifier = Modifier, muted: Boolean = false, size: Int = 13) {
     Text(
@@ -50,13 +43,11 @@ fun CardText(text: String, modifier: Modifier = Modifier, muted: Boolean = false
     )
 }
 
-/** Petite ligne d'erreur rouge sous une action (les erreurs BLE, export, import). */
 @Composable
 fun CardError(text: String, modifier: Modifier = Modifier) {
     Text(text = text, style = ElanType.bodySm, color = ElanTheme.colors.danger, modifier = modifier)
 }
 
-/** Libellé + commutateur Material sur une ligne. */
 @Composable
 fun SwitchRow(
     label: String,
@@ -88,28 +79,21 @@ fun SwitchRow(
     }
 }
 
-/** Pastille d'état colorée (10 dp). */
 @Composable
 fun StatusDot(color: Color, size: Int = 10) {
     Box(modifier = Modifier.size(size.dp).background(color, CircleShape))
 }
 
-/** Séparateur `hairline` pleine largeur. */
 @Composable
 fun Hairline(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxWidth().height(1.dp).background(ElanTheme.colors.hairline))
 }
 
-/** Titre de sous-bloc ([ElanType.subtitle]). */
 @Composable
 fun SubTitle(text: String, modifier: Modifier = Modifier) {
     Text(text, style = ElanType.subtitle, color = ElanTheme.colors.text, modifier = modifier)
 }
 
-/**
- * Ligne d'appareil détecté : icône teintée, nom, chevron ; toute la ligne est
- * pressable (connexion) avec haptique légère.
- */
 @Composable
 fun ScannedDeviceRow(@DrawableRes icon: Int, color: Color, name: String, onClick: () -> Unit) {
     val colors = ElanTheme.colors
@@ -128,7 +112,6 @@ fun ScannedDeviceRow(@DrawableRes icon: Int, color: Color, name: String, onClick
     }
 }
 
-/** Ligne libre alignée verticalement, séparée d'un hairline au-dessus. */
 @Composable
 fun HairlineRow(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
     Hairline()

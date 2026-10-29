@@ -1,6 +1,3 @@
-// Tests du brouillon de séance muscu (MuscuDraft.kt) : relecture validée du
-// JSON v1, rejet des valeurs corrompues, repli des échantillons FC. Robolectric
-// uniquement pour `org.json`.
 package ovh.battistella.elan.domain
 
 import org.json.JSONArray

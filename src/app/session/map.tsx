@@ -12,16 +12,10 @@ import { getSession, getTrackPoints } from '@/lib/db';
 import type { Session, TrackPoint } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Carte plein écran d'une sortie. On y arrive en touchant la vignette du tracé
- * sur l'écran de détail : la carte remplit l'écran et devient explorable
- * (pinch-zoom, pan). Le bouton flottant en haut à gauche revient en arrière.
- */
 export default function SessionMapScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  // Réactif à la rotation (Dimensions.get est figé au premier rendu).
   const { height: windowHeight } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
   const sessionId = Number(id);
@@ -61,7 +55,6 @@ export default function SessionMapScreen() {
         </View>
       )}
 
-      {/* Bouton retour flottant — respecte l'encoche, par-dessus la carte. */}
       <PressableScale
         onPress={() => router.back()}
         haptic="selection"

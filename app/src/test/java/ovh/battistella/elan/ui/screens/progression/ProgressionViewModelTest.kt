@@ -98,7 +98,6 @@ class ProgressionViewModelTest {
         advanceUntilIdle()
         assertEquals(listOf(change), fresh.ui.value.changes)
 
-        // Rafraîchi au focus.
         repos.settings.setAutoProgressionState(AutoProgressionState(week = isoWeekKey(now, zone), changes = emptyList(), dismissed = true))
         fresh.refresh()
         advanceUntilIdle()

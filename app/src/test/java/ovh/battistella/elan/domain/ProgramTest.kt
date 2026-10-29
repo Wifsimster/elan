@@ -1,4 +1,3 @@
-// Tests pour les utilitaires du programme muscu (templates, planning, helpers).
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -12,8 +11,6 @@ import org.junit.Test
 class ProgramTest {
     private val repos = mapOf("kind" to "repos")
     private fun plan(entry: Any?): List<Any?> = listOf(entry) + List(6) { repos }
-
-    // --- templateById --------------------------------------------------------
 
     @Test
     fun `retrouve un template existant`() {
@@ -54,8 +51,6 @@ class ProgramTest {
         assertEquals(ProgressKind.LOAD, exerciseByName("Goblet squat")?.autoProgress)
     }
 
-    // --- exerciseByName ------------------------------------------------------
-
     @Test
     fun `exerciseByName retrouve une fiche du programme, null sinon`() {
         val ex = exerciseByName("Fentes bulgares haltères")
@@ -65,9 +60,6 @@ class ProgramTest {
         assertNull(exerciseByName(null))
         assertNull(exerciseByName(""))
     }
-
-    // --- planForDay ----------------------------------------------------------
-    // Convention : 0=dimanche (Date.getDay()), index interne 0=lundi.
 
     @Test
     fun `lundi (1) - vélo`() {
@@ -103,8 +95,6 @@ class ProgramTest {
         assertEquals(7, WEEK_PLAN.size)
         assertEquals("Vélo 1h", (DEFAULT_WEEK_PLAN[0] as PlannedSession.Outing).label)
     }
-
-    // --- targetHint ----------------------------------------------------------
 
     private val base = TemplateExercise(
         name = "X",
@@ -145,8 +135,6 @@ class ProgramTest {
         )
     }
 
-    // --- isValidWeekPlan -----------------------------------------------------
-
     @Test
     fun `accepte le planning par défaut`() {
         assertTrue(isValidWeekPlan(DEFAULT_WEEK_PLAN))
@@ -156,8 +144,8 @@ class ProgramTest {
     fun `rejette autre chose qu'un tableau de 7 entrées`() {
         assertFalse(isValidWeekPlan(null))
         assertFalse(isValidWeekPlan("repos"))
-        assertFalse(isValidWeekPlan(listOf(repos))) // trop court
-        assertFalse(isValidWeekPlan(List(8) { repos })) // trop long
+        assertFalse(isValidWeekPlan(listOf(repos)))
+        assertFalse(isValidWeekPlan(List(8) { repos }))
     }
 
     @Test
@@ -195,8 +183,6 @@ class ProgramTest {
         assertNull(weekPlanFrom(plan(mapOf("kind" to "natation"))))
     }
 
-    // --- defaultReps ---------------------------------------------------------
-
     @Test
     fun `milieu de fourchette, arrondi`() {
         assertEquals(10, defaultReps(base))
@@ -204,15 +190,13 @@ class ProgramTest {
 
     @Test
     fun `plage symétrique impaire arrondie au plus proche`() {
-        assertEquals(7, defaultReps(base.copy(repsMin = 5, repsMax = 8))) // 6.5 → 7
+        assertEquals(7, defaultReps(base.copy(repsMin = 5, repsMax = 8)))
     }
 
     @Test
     fun `min = max - renvoie cette valeur`() {
         assertEquals(10, defaultReps(base.copy(repsMin = 10, repsMax = 10)))
     }
-
-    // --- isValidWeekPlan — activités à pied ----------------------------------
 
     @Test
     fun `accepte la course et la marche comme le vélo`() {

@@ -5,19 +5,11 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Gradients, type GradientName } from '@/constants/theme';
 
 type Props = ViewProps & {
-  /** Nom d'un dégradé du thème, ou liste de couleurs explicite. */
   colors?: GradientName | readonly string[];
-  /** Point de départ en fractions 0–1 (défaut : coin haut-gauche). */
   start?: { x: number; y: number };
-  /** Point d'arrivée en fractions 0–1 (défaut : coin bas-droit, diagonale). */
   end?: { x: number; y: number };
 };
 
-/**
- * Fond en dégradé linéaire rendu via `react-native-svg` (aucune dépendance
- * réseau, 100 % local). Le contenu se pose par-dessus. Pensez à donner un
- * `borderRadius` + `overflow:'hidden'` via `style`.
- */
 export function Gradient({
   colors = 'accent',
   start = { x: 0, y: 0 },
@@ -26,14 +18,9 @@ export function Gradient({
   children,
   ...rest
 }: Props) {
-  // useId() renvoie des deux-points (":r0:") qui cassent `url(#…)` sur web.
   const id = `grad-${useId().replace(/:/g, '')}`;
   const stops = typeof colors === 'string' ? Gradients[colors] : colors;
 
-  // Les pourcentages SVG (`width="100%"`) ne s'étirent pas fiablement en React
-  // Native : le dégradé gardait une largeur par défaut et laissait la couleur
-  // de fond apparaître à droite. On mesure le conteneur et on passe des
-  // dimensions en pixels (même pattern que line-chart.tsx).
   const [size, setSize] = useState({ width: 0, height: 0 });
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;

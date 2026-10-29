@@ -1,11 +1,5 @@
-// Tailles de pneu courantes et leur circonférence de roue en mm.
-// Valeurs issues du barème standard des compteurs vélo (Garmin/iGPSPORT) ;
-// la circonférence reste l'unité de calcul (vitesse = tours × circonférence).
-
 export type WheelSize = {
-  /** Désignation lisible du pneu (ETRTO / pouces). */
   label: string;
-  /** Circonférence de roue correspondante, en mm. */
   mm: number;
 };
 
@@ -23,7 +17,6 @@ export const WHEEL_SIZES: readonly WheelSize[] = [
   { label: '29×2.25', mm: 2326 },
 ] as const;
 
-/** Renvoie le preset dont la circonférence correspond exactement, le cas échéant. */
 export function matchWheelSize(mm: number): WheelSize | undefined {
   return WHEEL_SIZES.find((w) => w.mm === mm);
 }

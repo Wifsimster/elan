@@ -1,6 +1,3 @@
-// Tests des helpers d'échantillons capteurs (lib/samples.ts) : agrégation
-// FC/cadence, down-sampling des paliers et appariement temporel par recherche
-// dichotomique. Pur (aucun accès base/React).
 import {
   meanMax,
   nearestSample,
@@ -17,7 +14,6 @@ describe('meanMax', () => {
 
   it('arrondit la moyenne et garde le max réel', () => {
     expect(meanMax([100, 101, 102])).toEqual({ avg: 101, max: 102 });
-    // moyenne 100.5 -> arrondi 101 (arrondi mathématique)
     expect(meanMax([100, 101])).toEqual({ avg: 101, max: 101 });
   });
 
@@ -47,7 +43,6 @@ describe('summarizeCadence', () => {
   });
 
   it('exclut la roue libre (0) de la moyenne mais pas du max', () => {
-    // moyenne sur {90,100} = 95 ; max sur toutes = 100
     expect(summarizeCadence([0, 90, 0, 100, 0])).toEqual({ avgCadence: 95, maxCadence: 100 });
   });
 
@@ -64,29 +59,29 @@ describe('pushDownsampled', () => {
   it('ignore une valeur identique reçue trop tôt (< minGapMs)', () => {
     const buf: HrSample[] = [];
     pushDownsampled(buf, { ts: 0, hr: 120 }, (s) => s.hr);
-    pushDownsampled(buf, { ts: 500, hr: 120 }, (s) => s.hr); // même valeur, < 1 s
+    pushDownsampled(buf, { ts: 500, hr: 120 }, (s) => s.hr);
     expect(buf).toHaveLength(1);
   });
 
   it('garde une valeur identique reçue après minGapMs', () => {
     const buf: HrSample[] = [];
     pushDownsampled(buf, { ts: 0, hr: 120 }, (s) => s.hr);
-    pushDownsampled(buf, { ts: 1000, hr: 120 }, (s) => s.hr); // même valeur, >= 1 s
+    pushDownsampled(buf, { ts: 1000, hr: 120 }, (s) => s.hr);
     expect(buf).toHaveLength(2);
   });
 
   it('garde toujours une valeur différente, même rapprochée', () => {
     const buf: HrSample[] = [];
     pushDownsampled(buf, { ts: 0, hr: 120 }, (s) => s.hr);
-    pushDownsampled(buf, { ts: 100, hr: 121 }, (s) => s.hr); // valeur différente
+    pushDownsampled(buf, { ts: 100, hr: 121 }, (s) => s.hr);
     expect(buf).toHaveLength(2);
   });
 
   it('respecte un minGapMs personnalisé', () => {
     const buf: { ts: number; v: number }[] = [];
     pushDownsampled(buf, { ts: 0, v: 5 }, (s) => s.v, 5000);
-    pushDownsampled(buf, { ts: 3000, v: 5 }, (s) => s.v, 5000); // < 5 s, ignoré
-    pushDownsampled(buf, { ts: 6000, v: 5 }, (s) => s.v, 5000); // >= 5 s, gardé
+    pushDownsampled(buf, { ts: 3000, v: 5 }, (s) => s.v, 5000);
+    pushDownsampled(buf, { ts: 6000, v: 5 }, (s) => s.v, 5000);
     expect(buf.map((s) => s.ts)).toEqual([0, 6000]);
   });
 });
@@ -108,8 +103,8 @@ describe('nearestSample', () => {
   });
 
   it('choisit le plus proche entre deux voisins', () => {
-    expect(nearestSample(samples, 1400, (s) => s.hr)).toBe(110); // plus près de 1000
-    expect(nearestSample(samples, 1600, (s) => s.hr)).toBe(120); // plus près de 2000
+    expect(nearestSample(samples, 1400, (s) => s.hr)).toBe(110);
+    expect(nearestSample(samples, 1600, (s) => s.hr)).toBe(120);
   });
 
   it('borne avant le premier et après le dernier', () => {
@@ -118,9 +113,7 @@ describe('nearestSample', () => {
   });
 
   it('renvoie null au-delà de la tolérance', () => {
-    // 3000 est à 1 s de 2000 et 2 s de 5000 -> plus proche 2000 (diff 1000 <= 10 s)
     expect(nearestSample(samples, 3000, (s) => s.hr)).toBe(120);
-    // tolérance réduite à 500 ms : 3000 est à 1 s du plus proche -> null
     expect(nearestSample(samples, 3000, (s) => s.hr, 500)).toBeNull();
   });
 });

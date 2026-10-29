@@ -12,11 +12,6 @@ import ovh.battistella.elan.tracking.BackupTrigger
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Branche la sauvegarde automatique (`BackupTrigger`) sur WorkManager : la
- * liaison optionnelle déclarée dans `TrackingModule` reçoit désormais une
- * implémentation, sans rien changer au contrôleur de suivi.
- */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class BackupModule {
@@ -25,7 +20,6 @@ abstract class BackupModule {
     abstract fun bindBackupTrigger(impl: WorkManagerBackupTrigger): BackupTrigger
 }
 
-/** Déclencheur : met la tâche `auto_backup` en file (best-effort, ne lève jamais). */
 @Singleton
 class WorkManagerBackupTrigger @Inject constructor(
     @ApplicationContext private val context: Context,

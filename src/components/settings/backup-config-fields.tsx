@@ -10,17 +10,6 @@ import { describeQrPatch, parseBackupQr } from '@/lib/backup-qr';
 import { useBackup } from '@/hooks/use-backup';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Champs de connexion S3, liés au contexte de sauvegarde. Partagés entre la
- * carte Réglages et la feuille de restauration du premier lancement pour que
- * les deux saisies restent identiques (mêmes libellés, mêmes placeholders,
- * même persistance).
- *
- * Quatre champs suffisent (endpoint, bucket, clés) : région et nom d'objet sont
- * pré-remplis avec des défauts qui conviennent à MinIO/SeaweedFS/Garage et
- * restent modifiables sous « Options avancées », dépliées d'office si la valeur
- * stockée s'écarte du défaut.
- */
 export function BackupConfigFields() {
   const theme = useTheme();
   const backup = useBackup();
@@ -33,8 +22,6 @@ export function BackupConfigFields() {
   const showAdvanced = advancedOpen || hasAdvanced;
   const [scanning, setScanning] = useState(false);
 
-  // QR lu : on applique le fragment (les champs absents du QR sont conservés)
-  // et on dit lesquels ont été remplis — le secret reste masqué à l'écran.
   const onScanned = (data: string) => {
     setScanning(false);
     const patch = parseBackupQr(data);
@@ -51,7 +38,6 @@ export function BackupConfigFields() {
 
   return (
     <View style={{ gap: 14 }}>
-      {/* Éviter de taper une clé secrète au clavier : QR généré sur le serveur. */}
       <Button
         title="Scanner un QR code de configuration"
         icon="qrcode-scan"

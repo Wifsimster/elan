@@ -40,18 +40,12 @@ const PERIOD_OPTIONS: { value: GoalPeriod; label: string }[] = [
   { value: 'month', label: 'Mois' },
 ];
 
-/** Bornes et pas du sélecteur de cible selon la métrique. */
 const TARGET_SPEC: Record<GoalMetric, { unit: string; step: number; min: number; max: number; def: number }> = {
   sessions: { unit: '×', step: 1, min: 1, max: 30, def: 3 },
   distance: { unit: 'km', step: 5, min: 5, max: 1000, def: 100 },
   tonnage: { unit: 'kg', step: 100, min: 100, max: 100_000, def: 5000 },
 };
 
-/**
- * Carte Réglages : définition des objectifs d'entraînement (création / suppression).
- * 100 % local — les définitions vivent dans la table `settings` (incluses dans
- * la sauvegarde S3), la progression est calculée à la volée et affichée sur l'Accueil.
- */
 export function GoalsCard() {
   const theme = useTheme();
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -65,16 +59,12 @@ export function GoalsCard() {
     loadGoals().then(setGoals);
   }, []);
 
-  // Change de métrique : réinitialise la cible sur une valeur sensée pour l'unité.
-  // La musculation n'ayant pas de distance, un objectif de distance qui la visait
-  // retombe sur « toutes » plutôt que de se figer à zéro.
   const pickMetric = (m: GoalMetric) => {
     setMetric(m);
     setTarget(TARGET_SPEC[m].def);
     if (m === 'distance' && activity !== 'all' && !isGpsActivity(activity)) setActivity('all');
   };
 
-  // Un objectif de distance ne peut viser qu'une activité tracée au GPS.
   const activityOptions =
     metric === 'distance'
       ? ACTIVITY_OPTIONS.filter((o) => o.value === 'all' || isGpsActivity(o.value))
@@ -99,7 +89,6 @@ export function GoalsCard() {
         {'Fixe des objectifs simples (séances, distance, tonnage) par semaine ou par mois. Leur progression s’affiche sur l’accueil. 100 % local.'}
       </Text>
 
-      {/* Objectifs définis */}
       {goals.map((g) => (
         <View
           key={g.id}
@@ -125,7 +114,6 @@ export function GoalsCard() {
         </View>
       ))}
 
-      {/* Formulaire d'ajout */}
       <View
         style={{
           gap: 10,
@@ -147,7 +135,6 @@ export function GoalsCard() {
           ))}
         </View>
 
-        {/* Type d'activité : séances et distance. Le tonnage n'existe qu'en muscu. */}
         {metric === 'sessions' || metric === 'distance' ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {activityOptions.map((o) => (

@@ -1,5 +1,3 @@
-// Tests des agrégats de séance muscu (lib/muscu-stats.ts) : comptage séries,
-// séries effectuées, volume soulevé et résumé textuel. Pur.
 import { muscuStats, muscuSummary, type StatsExercise } from '@/lib/muscu-stats';
 
 describe('muscuStats', () => {
@@ -25,7 +23,6 @@ describe('muscuStats', () => {
         sets: [{ reps: 12, weightKg: 20, done: false }],
       },
     ];
-    // volume = 10*50 + 8*50 + 8*50 + 12*20 = 500+400+400+240 = 1540
     expect(muscuStats(exercises)).toEqual({
       exerciseCount: 2,
       totalSets: 4,

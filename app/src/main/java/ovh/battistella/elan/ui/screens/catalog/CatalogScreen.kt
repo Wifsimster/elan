@@ -18,10 +18,6 @@ import ovh.battistella.elan.ui.components.screenContent
 import ovh.battistella.elan.ui.screens.common.SubScreenHeader
 import ovh.battistella.elan.ui.theme.ElanTheme
 
-/**
- * Magasin d'exercices hors séance : parcourir, voir le détail et les charges
- * conseillées, puis démarrer une séance avec l'exercice choisi (`muscu?add=`).
- */
 @Composable
 fun CatalogScreen(
     contentPadding: PaddingValues,

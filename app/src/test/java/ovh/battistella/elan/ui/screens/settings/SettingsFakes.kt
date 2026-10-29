@@ -1,5 +1,3 @@
-// Doublures des ports de l'écran Réglages : état en mémoire, appels
-// journalisés, pannes injectables.
 package ovh.battistella.elan.ui.screens.settings
 
 import android.content.Context
@@ -81,7 +79,6 @@ class FakeStravaImportPort(var report: ImportReport = ImportReport(imported = 2,
     }
 }
 
-/** Contrat inerte : aucune activité lancée, résultat vide immédiat. */
 object NoOpPermissionContract : ActivityResultContract<Set<String>, Set<String>>() {
     override fun createIntent(context: Context, input: Set<String>): Intent = Intent()
     override fun parseResult(resultCode: Int, intent: Intent?): Set<String> = emptySet()

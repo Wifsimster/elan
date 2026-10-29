@@ -1,6 +1,3 @@
-// Import de fichiers Strava (GPX/TCX/FIT, y compris .gz de l'export en masse) :
-// sélection, lecture locale, décodage, déduplication et insertion.
-// 100 % hors-ligne — aucun appel réseau.
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { useCallback, useState } from 'react';
@@ -8,7 +5,6 @@ import { useCallback, useState } from 'react';
 import { getProfile, insertImportedSession } from '@/lib/db';
 import { buildDrafts } from '@/lib/strava/import';
 
-/** Plafond de taille par fichier (octets) — garde-fou mémoire / DoS. */
 const MAX_BYTES = 30 * 1024 * 1024;
 
 export type ImportResult = {
@@ -16,7 +12,6 @@ export type ImportResult = {
   duplicates: number;
   skipped: number;
   errors: number;
-  /** Détails par fichier/activité (motifs d'ignorés et erreurs). */
   details: string[];
 };
 

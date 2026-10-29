@@ -60,11 +60,6 @@ import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import ovh.battistella.elan.ui.theme.forKey
 
-/**
- * Historique des séances : liste paginée (50 par page) avec recherche, filtre
- * par activité et plage de dates. En-tête = titre, lien progression, champ de
- * recherche et puces de filtre, comme le `ListHeaderComponent` d'origine.
- */
 @Composable
 fun HistoryScreen(
     contentPadding: PaddingValues,
@@ -79,7 +74,6 @@ fun HistoryScreen(
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
 
-    // `onEndReached` : à mi-chemin des derniers éléments visibles, on charge la suite.
     val nearEnd by remember {
         derivedStateOf {
             val info = listState.layoutInfo
@@ -161,7 +155,6 @@ fun HistoryScreen(
     }
 }
 
-/** Champ pilule (h 44, loupe, croix d'effacement). */
 @Composable
 private fun SearchField(value: String, onValueChange: (String) -> Unit) {
     val colors = ElanTheme.colors

@@ -12,13 +12,6 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import ovh.battistella.elan.ui.icons.MdiIcons
 
-/**
- * Bouton « Scanner un QR code » adossé au scanner de codes de Google Play
- * Services : l'interface de capture appartient aux services Play, l'app ne
- * déclare aucune permission CAMERA et ne voit que le texte décodé. Masqué
- * quand les services Play sont absents (appareil sans GMS) — la saisie
- * manuelle reste possible.
- */
 @Composable
 fun QrScanButton(
     title: String,
@@ -45,7 +38,6 @@ fun QrScanButton(
             GmsBarcodeScanning.getClient(context, options)
                 .startScan()
                 .addOnSuccessListener { barcode -> barcode.rawValue?.let(onScanned) }
-            // Annulation ou échec : rien à faire, l'utilisateur garde les champs.
         },
     )
 }

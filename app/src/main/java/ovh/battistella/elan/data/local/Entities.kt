@@ -1,12 +1,3 @@
-// Entités Room = tables SQLite de l'app d'origine, à l'identique : mêmes noms
-// de tables, de colonnes (camelCase) et d'index, mêmes types et nullabilités,
-// même ordre de colonnes que le schéma v7 après migrations. Ce contrat est
-// gardé par SchemaTest : une sauvegarde S3 ou un export coach produit par
-// l'ancienne app doit rester relisible, colonne pour colonne.
-//
-// Les colonnes gardent leurs types bruts (`type`/`difficulty` en TEXT) ; la
-// conversion vers les enums du domaine se fait dans les mappers ci-dessous,
-// pas via des TypeConverters, pour que le schéma exporté reste celui d'origine.
 package ovh.battistella.elan.data.local
 
 import androidx.room.ColumnInfo
@@ -21,19 +12,14 @@ import ovh.battistella.elan.domain.Session
 import ovh.battistella.elan.domain.TrackPoint
 import ovh.battistella.elan.domain.toActivityType
 
-/** Une séance. `endedAt IS NULL` = en cours (exclue de l'historique et des stats). */
 @Entity(
     tableName = "sessions",
     indices = [
         Index(value = ["startedAt"], orders = [Index.Order.DESC], name = "idx_sessions_startedAt"),
-        // L'index partiel d'origine (`WHERE externalId IS NOT NULL`) n'est pas
-        // exprimable en Room ; un index unique plein a la même sémantique car
-        // SQLite considère chaque NULL comme distinct.
         Index(value = ["externalId"], unique = true, name = "idx_sessions_external"),
     ],
 )
 data class SessionEntity(
-    /** 0 = « pas encore attribué » : Room laisse alors SQLite auto-incrémenter. */
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val type: String,
     val startedAt: Long,
@@ -113,16 +99,11 @@ data class BodyMeasurementEntity(
     val weightKg: Double,
 )
 
-/** Réglages clé/valeur (profil, capteurs appairés, planning, brouillon…). */
 @Entity(tableName = "settings")
 data class SettingEntity(
     @PrimaryKey val key: String,
     val value: String,
 )
-
-// ---------------------------------------------------------------------------
-// Mappers entité <-> domaine
-// ---------------------------------------------------------------------------
 
 fun SessionEntity.toDomain(setCount: Int? = null, exerciseCount: Int? = null): Session = Session(
     id = id,

@@ -1,12 +1,3 @@
-// Programme muscu perso « Maison (haltères) » — prise de muscle.
-// Deux séances full-body espacées dans la semaine (mardi A, vendredi B).
-// Sert à pré-remplir une séance depuis l'écran muscu : exercices, nombre de
-// séries et fourchette de reps en indice. Les charges restent à ajuster à la main
-// (c'est le moteur de la progression). Charges de départ volontairement modestes
-// pour la montée en charge douce des premières semaines.
-//
-// La persistance du planning personnalisé (clé `week_plan`) est laissée à la
-// couche données ; seule la validation d'une valeur désérialisée vit ici.
 package ovh.battistella.elan.domain
 
 import kotlin.math.roundToInt
@@ -17,35 +8,15 @@ data class TemplateExercise(
     val repsMin: Int,
     val repsMax: Int,
     val startWeightKg: Double,
-    /** Explication simple : comment exécuter le mouvement. */
     val howTo: String,
-    /** Groupes musculaires principalement sollicités (affichés en pastilles). */
     val muscles: List<String>,
-    /**
-     * Glyphe MaterialCommunityIcons illustrant le mouvement, posé sur le héros de
-     * la fiche d'exercice. Simple chaîne pour garder ce module sans dépendance UI.
-     */
     val icon: String,
-    /** Clé d'illustration photo (paire départ → fin). Images domaine public bundlées localement. */
     val imageKey: String? = null,
-    /** « bras » / « jambe » / « côté » — affiché dans la cible et le travail unilatéral. */
     val perSideLabel: String? = null,
-    /** Exercice chronométré (gainage) : les « reps » sont des secondes. */
     val timed: Boolean = false,
-    /**
-     * Type de progression automatique appliquée d'une semaine sur l'autre selon le
-     * ressenti (cf. `AutoProgression.kt`) :
-     *  - LOAD : on monte la charge (haltères) par paliers de 2,5 kg ;
-     *  - TIME : on allonge le gainage chronométré (secondes), plafonné ;
-     *  - null : l'exercice n'est JAMAIS auto-progressé (rééducation, mobilité,
-     *           posture — dos/lombaire et cervicales), on garde la prescription.
-     * Seuls les deux full-body chargés portent ce drapeau : la progression auto ne
-     * touche pas les exercices de renfort doux, par sécurité.
-     */
     val autoProgress: ProgressKind? = null,
 )
 
-/** Identifiants des 4 programmes intégrés (valeur texte = id persisté dans le planning). */
 enum class TemplateId(val key: String) {
     FULLBODY_A("fullbody-a"),
     FULLBODY_B("fullbody-b"),
@@ -257,13 +228,9 @@ val TEMPLATES: List<WorkoutTemplate> = listOf(
     ),
 )
 
-// Planning hebdomadaire (télétravail lun/mar/ven). Mardi et vendredi pour la
-// muscu (3-4 jours d'écart), vélo le lundi en récup active. Index 0 = lundi.
 sealed class PlannedSession {
-    /** Valeur texte du `kind` telle que persistée (`velo`, `course`, `marche`, `muscu`, `repos`). */
     abstract val kind: String
 
-    /** Sortie GPS planifiée (`velo` / `course` / `marche`). */
     data class Outing(override val kind: String, val label: String) : PlannedSession() {
         init {
             require(kind in OUTING_KINDS) { "kind de sortie inconnu : $kind" }
@@ -283,7 +250,6 @@ sealed class PlannedSession {
     }
 }
 
-/** Planning par défaut, utilisé tant que l'utilisateur n'en a pas défini un. */
 val DEFAULT_WEEK_PLAN: List<PlannedSession> = listOf(
     PlannedSession.Outing("velo", "Vélo 1h"),
     PlannedSession.Muscu("Full-body A", TemplateId.FULLBODY_A),
@@ -294,28 +260,18 @@ val DEFAULT_WEEK_PLAN: List<PlannedSession> = listOf(
     PlannedSession.Repos,
 )
 
-/** Conservé pour compat ascendante (export brut et anciens appels). */
 val WEEK_PLAN: List<PlannedSession> = DEFAULT_WEEK_PLAN
 
-/** Clé de réglage sous laquelle la couche données persiste le planning personnalisé. */
 const val WEEK_PLAN_SETTING_KEY = "week_plan"
 
-/** Vrai si `id` correspond à un template muscu connu (les 4 programmes). */
 private fun isKnownTemplateId(id: Any?): Boolean =
     id is String && TEMPLATES.any { it.id.key == id }
 
-/**
- * Valide une valeur désérialisée (liste de dictionnaires `kind`/`label`/`templateId`,
- * ou déjà des `PlannedSession`) : 7 entrées, chacune bien formée. Pour la muscu,
- * on accepte n'importe quel template connu (pas seulement full-body A/B) afin
- * qu'un plan restauré depuis une sauvegarde ne soit pas silencieusement rejeté.
- */
 fun isValidWeekPlan(value: Any?): Boolean {
     if (value !is List<*> || value.size != 7) return false
     return value.all { entry -> plannedSessionFrom(entry) != null }
 }
 
-/** Convertit une entrée désérialisée en `PlannedSession`, ou `null` si mal formée. */
 fun plannedSessionFrom(entry: Any?): PlannedSession? {
     if (entry is PlannedSession) return entry
     if (entry !is Map<*, *>) return null
@@ -337,7 +293,6 @@ fun plannedSessionFrom(entry: Any?): PlannedSession? {
     }
 }
 
-/** Plan typé à partir d'une valeur désérialisée, ou `null` si elle est invalide. */
 fun weekPlanFrom(value: Any?): List<PlannedSession>? {
     if (value !is List<*> || value.size != 7) return null
     val out = ArrayList<PlannedSession>(7)
@@ -345,21 +300,13 @@ fun weekPlanFrom(value: Any?): List<PlannedSession>? {
     return out
 }
 
-/** Séance prévue pour un jour `Date.getDay()` JS (0 = dimanche … 6 = samedi). */
 fun planForDay(jsDay: Int, plan: List<PlannedSession> = DEFAULT_WEEK_PLAN): PlannedSession =
-    plan[(jsDay + 6) % 7] // bascule vers lundi = 0
+    plan[(jsDay + 6) % 7]
 
-/** Retrouve un template par son id texte (pour le pré-chargement depuis l'accueil). */
 fun templateById(id: String?): WorkoutTemplate? = TEMPLATES.firstOrNull { it.id.key == id }
 
-/** Variante typée de [templateById]. */
 fun templateById(id: TemplateId): WorkoutTemplate = TEMPLATES.first { it.id == id }
 
-/**
- * Retrouve la fiche d'un exercice du programme par son nom (illustration,
- * muscles, exécution). Utilisé par la page de progression pour enrichir le
- * détail d'un exercice issu d'une séance enregistrée.
- */
 fun exerciseByName(name: String?): TemplateExercise? {
     if (name.isNullOrEmpty()) return null
     for (t in TEMPLATES) {
@@ -369,7 +316,6 @@ fun exerciseByName(name: String?): TemplateExercise? {
     return null
 }
 
-/** Indice de cible affiché sous le nom de l'exercice, ex. « 3 × 8-12 / bras ». */
 fun targetHint(ex: TemplateExercise): String {
     val reps = if (ex.repsMin == ex.repsMax) "${ex.repsMin}" else "${ex.repsMin}-${ex.repsMax}"
     val unit = if (ex.timed) " s" else ""
@@ -377,5 +323,4 @@ fun targetHint(ex: TemplateExercise): String {
     return "${ex.sets} × $reps$unit$side"
 }
 
-/** Valeur de départ pré-remplie pour les reps (milieu de la fourchette). */
 fun defaultReps(ex: TemplateExercise): Int = ((ex.repsMin + ex.repsMax) / 2.0).roundToInt()

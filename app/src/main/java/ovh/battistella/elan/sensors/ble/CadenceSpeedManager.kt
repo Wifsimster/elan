@@ -1,10 +1,3 @@
-// Capteurs vélo BLE « Cycling Speed and Cadence » (profil GATT CSC) : cadence
-// (pédalier) et vitesse (roue). Gère un ou deux capteurs simultanés —
-// typiquement un iGPSPORT CAD70 (cadence) + un SPD70 (vitesse), deux
-// périphériques distincts (miroir de `CadenceSpeedProvider`).
-//
-// Comme [HeartRateManager], toute la machine d'états tourne sur [BleScope]
-// (parallélisme 1) ; les appels publics y postent du travail.
 package ovh.battistella.elan.sensors.ble
 
 import kotlinx.coroutines.CancellationException
@@ -34,38 +27,26 @@ import kotlin.math.roundToInt
 
 data class CscState(
     val status: SensorStatus,
-    /** Cadence instantanée en tours/min, `null` sans capteur de cadence. */
     val cadenceRpm: Int? = null,
-    /** Vitesse roue instantanée en km/h, `null` sans capteur de vitesse. */
     val speedKmh: Double? = null,
-    /** Capteurs actuellement connectés. */
     val devices: List<ScannedDevice> = emptyList(),
-    /** Capteurs détectés pendant le scan (hors capteurs déjà connectés). */
     val scanned: List<ScannedDevice> = emptyList(),
     val error: String? = null,
-    /** Circonférence de roue en mm (convertit les tours en distance). */
     val wheelCircumferenceMm: Int = DEFAULT_WHEEL_MM,
 )
 
-/** 700×25c, valeur par défaut courante. */
 const val DEFAULT_WHEEL_MM = 2105
 
-/** Nombre max de capteurs CSC simultanés. */
 const val MAX_CSC_DEVICES = 2
 
-/** Unité de temps CSC : 1/1024 s. */
 internal const val TIME_UNIT = 1024.0
 
-/** Au-delà, on considère le capteur silencieux et on retombe à zéro. */
 internal const val STALE_MS = 3_000L
 
-/** Cadence max plausible (tr/min) ; au-delà, la mesure est ignorée. */
 internal const val MAX_RPM = 250
 
-/** Vitesse max plausible (km/h) ; au-delà, la mesure est ignorée. */
 internal const val MAX_KMH = 120.0
 
-/** Différence de compteurs cumulés avec bouclage (`mod` = 2¹⁶ ou 2³²). */
 internal fun delta(curr: Long, prev: Long, mod: Long): Long = (curr - prev + mod) % mod
 
 @Singleton
@@ -84,19 +65,12 @@ class CadenceSpeedManager @Inject constructor(
     private val _state = MutableStateFlow(CscState(if (supported) SensorStatus.Idle else SensorStatus.Unsupported))
     val state: StateFlow<CscState> = _state.asStateFlow()
 
-    /**
-     * Mesures brutes : une émission par trame exploitable, même à valeur
-     * identique (nécessaire pour ne pas perdre d'échantillons sur un palier
-     * de cadence/vitesse).
-     */
     private val _frames = MutableSharedFlow<CscFrame>(
         extraBufferCapacity = 256,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
     override fun frames(): SharedFlow<CscFrame> = _frames.asSharedFlow()
-
-    // ---- état interne, touché uniquement depuis `scope` ------------------
 
     private class Connection(val link: GattLink, val name: String) {
         var notifyJob: Job? = null
@@ -105,13 +79,10 @@ class CadenceSpeedManager @Inject constructor(
 
     private val connections = LinkedHashMap<String, Connection>()
 
-    /** Dernière mesure brute par capteur (pour les deltas). */
     private val lastRaw = HashMap<String, CscRaw>()
 
-    /** Connexions en vol (garde anti-double-connexion, par capteur). */
     private val connecting = HashSet<String>()
 
-    /** Capteurs déconnectés volontairement : reconnexion auto désarmée. */
     private val intentional = HashSet<String>()
     private val reconnectJobs = HashMap<String, Job>()
     private val reconnectAttempts = HashMap<String, Int>()
@@ -120,22 +91,18 @@ class CadenceSpeedManager @Inject constructor(
     private var staleJob: Job? = null
     private var crankMoveTs = 0L
 
-    /** Circonférence choisie par l'utilisateur avant la fin du chargement initial : ne pas l'écraser. */
     private var wheelSetByUser = false
     private var wheelMoveTs = 0L
 
     init {
         if (supported) {
             scope.launch {
-                // Circonférence mémorisée, puis reconnexion pilotée par l'adaptateur.
                 val mm = SettingsJson.parseWheelMm(settings.getSetting(SettingsRepository.Keys.CSC_WHEEL_MM))
                 if (!wheelSetByUser) _state.update { it.copy(wheelCircumferenceMm = mm.roundToInt()) }
                 adapter.states.collect { on -> if (on) onAdapterOn() else onAdapterOff() }
             }
         }
     }
-
-    // ---- API publique ----------------------------------------------------
 
     fun startScan() {
         if (!supported) return
@@ -147,28 +114,23 @@ class CadenceSpeedManager @Inject constructor(
         scope.launch { doStopScan() }
     }
 
-    /** Connecte un capteur et le mémorise (`csc_devices`). */
     fun connect(deviceId: String) {
         if (!supported) return
         scope.launch { doConnect(deviceId) }
     }
 
-    /** Déconnecte un capteur et l'oublie. */
     fun disconnect(deviceId: String) {
         if (!supported) return
         scope.launch { doDisconnect(listOf(deviceId)) }
     }
 
-    /** Déconnecte et oublie tous les capteurs. */
     fun disconnectAll() {
         if (!supported) return
-        scope.launch { doDisconnect(connections.keys.toList()) } // lu sur `scope`, pas ici
+        scope.launch { doDisconnect(connections.keys.toList()) }
     }
 
-    /** Alias de [connect] : vocabulaire « liste de capteurs » des réglages. */
     fun addDevice(deviceId: String) = connect(deviceId)
 
-    /** Alias de [disconnect]. */
     fun removeDevice(deviceId: String) = disconnect(deviceId)
 
     fun setWheelCircumference(mm: Int) {
@@ -179,8 +141,6 @@ class CadenceSpeedManager @Inject constructor(
         }
     }
 
-    // ---- scan ------------------------------------------------------------
-
     private fun doStartScan() {
         _state.update { it.copy(error = null) }
         if (!permissions.granted()) {
@@ -188,8 +148,6 @@ class CadenceSpeedManager @Inject constructor(
             return
         }
         scanJob?.cancel()
-        // Coordination du scan partagé : notifie/arrête le scan de la ceinture
-        // s'il tournait ; « scan volé » nous ramène à l'arrêt dans le cas inverse.
         val flow = scanner.acquire(this, BleUuids.CSC_SERVICE) { restIfScanning() }
         _state.update { it.copy(status = SensorStatus.Scanning, scanned = emptyList()) }
         scanJob = scope.launch {
@@ -197,7 +155,7 @@ class CadenceSpeedManager @Inject constructor(
                 flow.collect { dev ->
                     if (!connections.containsKey(dev.id)) _state.update { it.copy(scanned = it.scanned + dev) }
                 }
-                restIfScanning() // arrêt automatique (20 s) ou scan volé
+                restIfScanning()
             } catch (e: BleException) {
                 _state.update { it.copy(status = SensorStatus.Error, error = e.message) }
             }
@@ -211,7 +169,6 @@ class CadenceSpeedManager @Inject constructor(
         restIfScanning()
     }
 
-    /** Statut de repos : `Connected` si au moins un capteur est relié, sinon `Idle`. */
     private fun restingStatus(): SensorStatus =
         if (connections.isNotEmpty()) SensorStatus.Connected else SensorStatus.Idle
 
@@ -220,17 +177,13 @@ class CadenceSpeedManager @Inject constructor(
         _state.update { if (it.status == SensorStatus.Scanning) it.copy(status = resting) else it }
     }
 
-    /** Recalcule `devices` et le statut à partir des connexions actives. */
     private fun syncDevices() {
         val devices = connections.values.map { ScannedDevice(it.link.address, it.name) }
         _state.update { it.copy(devices = devices, status = restingStatus()) }
         if (connections.isEmpty()) stopStaleWatch() else startStaleWatch()
     }
 
-    // ---- connexion -------------------------------------------------------
-
     private suspend fun doConnect(deviceId: String) {
-        // Garde anti-double-connexion : déjà connecté OU tentative en vol.
         if (connections.containsKey(deviceId) || deviceId in connecting) return
         if (connections.size >= MAX_CSC_DEVICES) {
             _state.update { it.copy(error = "Deux capteurs maximum.") }
@@ -238,8 +191,6 @@ class CadenceSpeedManager @Inject constructor(
         }
         connecting += deviceId
         _state.update { it.copy(error = null) }
-        // Tentative volontaire : réarme la reconnexion auto et annule une
-        // tentative différée pour ce capteur.
         intentional -= deviceId
         reconnectJobs.remove(deviceId)?.cancel()
         doStopScan()
@@ -255,7 +206,6 @@ class CadenceSpeedManager @Inject constructor(
             l.discoverServices()
             val frames = l.enableNotifications(BleUuids.CSC_SERVICE, BleUuids.CSC_MEASUREMENT)
             if (deviceId in intentional) {
-                // « Oublier » touché pendant la connexion : ni lien ni appareil mémorisé.
                 l.close()
                 connecting -= deviceId
                 syncDevices()
@@ -269,7 +219,7 @@ class CadenceSpeedManager @Inject constructor(
                 onLost(deviceId, l, status)
             }
             conn.notifyJob = scope.launch { frames.collect { onFrame(deviceId, it) } }
-            reconnectAttempts.remove(deviceId) // connexion établie
+            reconnectAttempts.remove(deviceId)
             connecting -= deviceId
             syncDevices()
             persistDevices()
@@ -277,24 +227,20 @@ class CadenceSpeedManager @Inject constructor(
             throw e
         } catch (e: Exception) {
             _state.update { it.copy(error = e.message ?: CONNECT_FAILED) }
-            // Découverte/notification échouée (GATT 133) : ferme le GATT
-            // semi-connecté, sinon l'appareil devient indétectable au scan.
             candidate?.close()
             connecting -= deviceId
-            // Replanifie tant que le budget de tentatives n'est pas épuisé.
             scheduleReconnect(deviceId)
         }
     }
 
-    @Suppress("UNUSED_PARAMETER") // statut GATT : utile au débogage, pas exposé
+    @Suppress("UNUSED_PARAMETER")
     private fun onLost(deviceId: String, l: GattLink, status: Int) {
         val conn = connections[deviceId] ?: return
         if (conn.link !== l) return
         dropConnection(deviceId)
-        scheduleReconnect(deviceId) // coupure involontaire : back-off borné
+        scheduleReconnect(deviceId)
     }
 
-    /** Retire une connexion (jobs, lien, dernière mesure) ; remet les mesures à `null` si plus aucun capteur. */
     private fun dropConnection(deviceId: String) {
         val conn = connections.remove(deviceId) ?: return
         conn.notifyJob?.cancel()
@@ -338,7 +284,6 @@ class CadenceSpeedManager @Inject constructor(
 
     private suspend fun doDisconnect(ids: List<String>) {
         for (id in ids) {
-            // Déconnexion volontaire : désarme la reconnexion auto de ce capteur.
             intentional += id
             reconnectJobs.remove(id)?.cancel()
             reconnectAttempts.remove(id)
@@ -354,18 +299,14 @@ class CadenceSpeedManager @Inject constructor(
         settings.setCscDevices(list)
     }
 
-    // ---- mesures ---------------------------------------------------------
-
-    /** Traite une mesure CSC d'un capteur donné et met à jour cadence/vitesse. */
     private fun onFrame(deviceId: String, bytes: ByteArray) {
         val raw = parseCsc(bytes) ?: return
-        val prev = lastRaw.put(deviceId, raw) ?: return // il faut deux mesures pour un delta
+        val prev = lastRaw.put(deviceId, raw) ?: return
         val now = clock.millis()
         var cadence = _state.value.cadenceRpm
         var speed = _state.value.speedKmh
         var updated = false
 
-        // Cadence (pédalier).
         if (raw.crankRevs != null && prev.crankRevs != null && raw.crankTime != null && prev.crankTime != null) {
             val dRev = delta(raw.crankRevs.toLong(), prev.crankRevs.toLong(), 0x10000L)
             val dT = delta(raw.crankTime.toLong(), prev.crankTime.toLong(), 0x10000L)
@@ -382,7 +323,6 @@ class CadenceSpeedManager @Inject constructor(
             }
         }
 
-        // Vitesse (roue).
         if (raw.wheelRevs != null && prev.wheelRevs != null && raw.wheelTime != null && prev.wheelTime != null) {
             val dRev = delta(raw.wheelRevs, prev.wheelRevs, 0x1_0000_0000L)
             val dT = delta(raw.wheelTime.toLong(), prev.wheelTime.toLong(), 0x10000L)
@@ -402,11 +342,9 @@ class CadenceSpeedManager @Inject constructor(
 
         if (!updated) return
         _state.update { it.copy(cadenceRpm = cadence, speedKmh = speed) }
-        // Notifie à chaque trame exploitable (même valeur égale).
         _frames.tryEmit(CscFrame(now, cadence, speed))
     }
 
-    /** Retombe à zéro quand un capteur cesse d'émettre (arrêt prolongé). */
     private fun startStaleWatch() {
         if (staleJob?.isActive == true) return
         staleJob = scope.launch {
@@ -432,8 +370,6 @@ class CadenceSpeedManager @Inject constructor(
         staleJob = null
     }
 
-    // ---- adaptateur Bluetooth --------------------------------------------
-
     private fun onAdapterOff() {
         _state.update {
             val status = when (it.status) {
@@ -444,10 +380,6 @@ class CadenceSpeedManager @Inject constructor(
         }
     }
 
-    /**
-     * BT allumé (ou déjà allumé au lancement) : reconnexion aux capteurs
-     * mémorisés, en PARALLÈLE pour ne pas cumuler les délais capteur par capteur.
-     */
     private suspend fun onAdapterOn() {
         _state.update { it.copy(error = null) }
         val saved = SettingsJson.parseCscDevices(settings.getSetting(SettingsRepository.Keys.CSC_DEVICES))

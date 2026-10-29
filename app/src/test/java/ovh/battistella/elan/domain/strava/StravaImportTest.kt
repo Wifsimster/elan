@@ -10,14 +10,12 @@ import ovh.battistella.elan.domain.ActivityType
 import ovh.battistella.elan.domain.estimateCalories
 import java.time.Instant
 
-/** Port de `__tests__/lib/strava/import.test.ts`, plus les règles de normalisation non couvertes. */
 class StravaImportTest {
 
     private val weightKg = 75.0
     private fun bytes(s: String) = s.toByteArray(Charsets.UTF_8)
     private fun ms(iso: String) = Instant.parse(iso).toEpochMilli()
 
-    // GPX minimal valide : 3 points horodatés et géolocalisés sur 20 s.
     private val gpx = """<?xml version="1.0" encoding="UTF-8"?>
 <gpx creator="StravaGPX" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><time>2025-06-02T08:00:00Z</time></metadata>
@@ -38,7 +36,6 @@ class StravaImportTest {
   </trkseg></trk>
 </gpx>"""
 
-    // Le 2e point saute de ~1000 km en 10 s : vitesse absurde, segment écarté.
     private val gpxTeleport = """<?xml version="1.0" encoding="UTF-8"?>
 <gpx creator="StravaGPX" xmlns="http://www.topografix.com/GPX/1/1">
   <trk><trkseg>
@@ -73,11 +70,9 @@ class StravaImportTest {
         assertTrue(session.distanceM!! > 0)
         assertTrue(session.avgSpeedKmh!! > 0)
         assertNotNull(session.maxSpeedKmh)
-        // Montée 35 → 36 → 40 = +5 m (le bruit < 0,5 m est filtré).
         assertEquals(5.0, session.elevationGainM)
         assertNull(session.avgHr)
         assertNull(session.maxCadence)
-        // Calories estimées (pas de calories dans le GPX) sur le temps effectif.
         val effective = session.movingTimeSec ?: session.durationSec
         assertEquals(estimateCalories(ActivityType.VELO, weightKg, effective, session.avgSpeedKmh), session.calories)
     }
@@ -112,7 +107,6 @@ class StravaImportTest {
         val a = StravaImport.buildDrafts(bytes(gpx), 60.0).drafts[0].session.externalId
         val b = StravaImport.buildDrafts(bytes(gpx), 95.0).drafts[0].session.externalId
         assertEquals(a, b)
-        // Le poids change bien les calories, lui.
         assertNotEquals(
             StravaImport.buildDrafts(bytes(gpx), 60.0).drafts[0].session.calories,
             StravaImport.buildDrafts(bytes(gpx), 95.0).drafts[0].session.calories,
@@ -121,8 +115,6 @@ class StravaImportTest {
 
     @Test
     fun `externalId — valeur de référence (formatage JS des composants)`() {
-        // sha256("1748851200000|20|<round(distance)>|48.8566|2.3522") : on vérifie
-        // que la clé se recalcule à l'identique depuis ses composants.
         val s = StravaImport.buildDrafts(bytes(gpx), weightKg).drafts[0].session
         val expected = "strava-" + sha256Hex("${s.startedAt}|${s.durationSec}|${Math.round(s.distanceM!!)}|48.8566|2.3522").take(24)
         assertEquals(expected, s.externalId)
@@ -150,7 +142,6 @@ class StravaImportTest {
         assertEquals(ActivityType.COURSE, s.type)
         assertEquals(12_000.0, s.distanceM)
         assertEquals(320.0, s.calories)
-        // Moyennes : les zéros de dropout sont exclus, le max aussi ignore les zéros.
         assertEquals(118.0, s.avgHr)
         assertEquals(118.0, s.maxHr)
         assertEquals(82.0, s.avgCadence)
@@ -169,7 +160,6 @@ class StravaImportTest {
         val d = StravaImport.buildDrafts(bytes(tcx), weightKg).drafts.single()
         assertEquals(ActivityType.MARCHE, d.session.type)
         assertEquals(1, d.points.size)
-        // Dénivelé calculé sur tous les points horodatés (35 → 36 = +1).
         assertEquals(1.0, d.session.elevationGainM)
         assertNull(d.session.movingTimeSec)
 
@@ -186,7 +176,6 @@ class StravaImportTest {
         assertEquals(101.0 to 120.0, StravaImport.avgMax(listOf(82.0, 120.0, null, 0.0)))
         assertNull(StravaImport.computeGain(listOf(ParsedPoint(1, null, null, null, null, null))))
         val pts = listOf(10.0, 10.4, 12.0, 11.0, 13.6).map { ParsedPoint(1, null, null, it, null, null) }
-        // +0.4 (bruit) ignoré, +1.6 crédité, -1 ignoré, +2.6 crédité → 4.2 → 4.
         assertEquals(4.0, StravaImport.computeGain(pts))
         assertTrue(StravaImport.isValidLatLon(48.0, 2.0))
         assertTrue(!StravaImport.isValidLatLon(0.0, 0.0))

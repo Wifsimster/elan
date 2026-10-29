@@ -1,7 +1,3 @@
-// Liaisons Hilt de la couche BLE : implémentations Android des abstractions
-// (scan, lien GATT, adaptateur, permissions), portée dédiée, et exposition des
-// gestionnaires au suivi de sortie via `HeartRateSamples` / `CadenceSamples`
-// (déclarées optionnelles dans `TrackingModule` : ce `@Binds` les satisfait).
 package ovh.battistella.elan.sensors.ble
 
 import android.content.Context
@@ -20,12 +16,6 @@ import ovh.battistella.elan.tracking.HeartRateSamples
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
-/**
- * Portée des gestionnaires BLE : liée au processus, à PARALLÉLISME 1. Toute
- * la machine d'états (connexions, reconnexions, scan partagé) s'y exécute, ce
- * qui remplace la boucle d'événements JS d'origine : pas de verrou, pas de
- * course entre un rappel GATT et une action utilisateur.
- */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class BleScope

@@ -33,11 +33,6 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import kotlin.math.roundToInt
 
-/**
- * Carte Réglages : profil utilisateur (poids, taille, FC max, objectif, sexe).
- * Pilote calories, zones cardio et reps/charge conseillées. Sauvegarde
- * immédiate à chaque changement ; le lien mène au journal de poids.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProfileCard(
@@ -57,7 +52,6 @@ fun ProfileCard(
 
         SettingStepper(label = stringResource(R.string.onboarding_weight), value = profile.weightKg.roundToInt(), unit = "kg", min = 30, max = 200, onChange = onWeight)
 
-        // Journal de poids : historique des pesées + courbe (page dédiée).
         Hairline()
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -79,7 +73,6 @@ fun ProfileCard(
         SettingStepper(label = stringResource(R.string.onboarding_height), value = profile.heightCm.roundToInt(), unit = "cm", min = 120, max = 220, onChange = onHeight)
         SettingStepper(label = stringResource(R.string.onboarding_max_hr), value = profile.maxHr.roundToInt(), unit = "bpm", min = 120, max = 220, onChange = onMaxHr)
 
-        // Objectif d'entraînement : pilote reps/charge conseillées.
         Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
             Text(stringResource(R.string.settings_profile_goal_label), style = ElanType.label, color = colors.textSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -90,7 +83,6 @@ fun ProfileCard(
             CardText(goalSpec(profile.goal).blurb, muted = true, size = 12)
         }
 
-        // Sexe : affine les charges conseillées (optionnel).
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.settings_profile_sex_label), style = ElanType.label, color = colors.textSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

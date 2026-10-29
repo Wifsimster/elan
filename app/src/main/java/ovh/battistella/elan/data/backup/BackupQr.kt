@@ -1,14 +1,9 @@
-// Import de la configuration S3 par QR code (port de `src/lib/backup-qr.ts`) :
-// on ne tape pas une clé secrète de 40 caractères sur un clavier de téléphone.
-// Le QR est généré côté serveur (cf. docs/SAUVEGARDE.md) et lu avec la
-// caméra ; il ne transite par aucun service — le décodage est local.
 package ovh.battistella.elan.data.backup
 
 import org.json.JSONException
 import org.json.JSONObject
 import java.net.URLDecoder
 
-/** Champs de config qu'un QR peut renseigner (jamais `enabled`), avec leur libellé FR. */
 enum class BackupField(val label: String) {
     ENDPOINT("endpoint"),
     BUCKET("bucket"),
@@ -18,13 +13,8 @@ enum class BackupField(val label: String) {
     OBJECT_KEY("nom de l'objet"),
 }
 
-/**
- * Fragment de configuration lu dans un QR : champs renseignés, dans l'ordre
- * où le QR les donne (le message de confirmation les liste dans cet ordre).
- */
 typealias BackupQrPatch = Map<BackupField, String>
 
-/** Alias tolérés dans le JSON (conventions AWS / MinIO / snake_case), clés en minuscules. */
 private val ALIASES: Map<String, BackupField> = mapOf(
     "endpoint" to BackupField.ENDPOINT,
     "url" to BackupField.ENDPOINT,
@@ -47,23 +37,11 @@ private val ALIASES: Map<String, BackupField> = mapOf(
     "object" to BackupField.OBJECT_KEY,
 )
 
-// s3://ACCESS:SECRET@host[:port]/bucket[/objet] — identifiants encodés en URL
-// (un secret peut contenir « / » ou « + »).
 private val S3_URL_RE = Regex(
     "^s3://(?:([^:@/]+)(?::([^@/]*))?@)?([^/?#]+)(?:/([^/?#]+))?(?:/([^?#]*))?$",
     RegexOption.IGNORE_CASE,
 )
 
-/**
- * Décode le contenu d'un QR code en fragment de configuration. Deux formats :
- *
- * - JSON : `{"endpoint":"https://s3.x.tld","bucket":"elan","accessKeyId":"…","secretAccessKey":"…"}`
- *   (clés insensibles à la casse, alias snake_case/AWS acceptés, champs partiels OK) ;
- * - URL : `s3://ACCESS:SECRET@s3.x.tld/bucket[/objet]` (hôte en HTTPS implicite).
- *
- * Renvoie `null` si rien d'exploitable (QR étranger). Les valeurs sont nettoyées
- * des espaces ; les champs vides sont ignorés pour ne pas écraser une saisie.
- */
 fun parseBackupQr(data: String): BackupQrPatch? {
     val text = data.trim()
     if (text.isEmpty()) return null
@@ -97,7 +75,6 @@ private fun parseUrl(text: String): Map<BackupField, String?>? {
     fun dec(s: String): String? {
         if (s.isEmpty()) return null
         return try {
-            // decodeURIComponent : « + » reste un plus (URLDecoder le changerait en espace).
             URLDecoder.decode(s.replace("+", "%2B"), "UTF-8")
         } catch (e: Exception) {
             s
@@ -112,5 +89,4 @@ private fun parseUrl(text: String): Map<BackupField, String?>? {
     )
 }
 
-/** Libellés français des champs remplis, pour le message de confirmation. */
 fun describeQrPatch(patch: BackupQrPatch): String = patch.keys.joinToString(", ") { it.label }

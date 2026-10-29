@@ -1,15 +1,3 @@
-// Export opt-in des séances vers Android Health Connect — la base de données
-// santé ON-DEVICE d'Android (aucun cloud, aucun compte, dans la ligne du projet).
-// Désactivé par défaut ; l'utilisateur l'active dans Réglages, ce qui déclenche
-// la demande de permissions Health Connect (écriture seule). À la fin d'une
-// séance, `exportSessionToHealthConnect()` écrit l'ExerciseSession (+ distance,
-// calories, série FC si dispo) en best-effort : toute erreur est avalée, la
-// séance locale reste la source de vérité.
-//
-// Le module natif (react-native-health-connect) n'existe que sur Android et
-// uniquement en development build — il est donc chargé paresseusement via
-// `import()` et chaque fonction dégrade proprement (no-op) ailleurs.
-
 import { Platform } from 'react-native';
 
 import { getSetting, setSetting } from '@/lib/db';
@@ -18,28 +6,19 @@ import type { HealthConnectRecord, Permission } from 'react-native-health-connec
 
 const KEY = 'health_connect';
 
-// Constantes Health Connect (androidx) — recopiées ici pour garder
-// `buildHealthRecords` pur et testable sans charger le module natif.
-// Voir `ExerciseType` dans react-native-health-connect/constants.
 const EXERCISE_TYPE_BIKING = 8;
 const EXERCISE_TYPE_RUNNING = 56;
 const EXERCISE_TYPE_STRENGTH_TRAINING = 70;
 const EXERCISE_TYPE_WALKING = 79;
 
-/** Type d'exercice Health Connect et titre de l'enregistrement, par activité. */
 const HEALTH_EXERCISE: Record<ActivityType, { type: number; title: string }> = {
   velo: { type: EXERCISE_TYPE_BIKING, title: 'Sortie vélo' },
   course: { type: EXERCISE_TYPE_RUNNING, title: 'Course à pied' },
   marche: { type: EXERCISE_TYPE_WALKING, title: 'Marche' },
   muscu: { type: EXERCISE_TYPE_STRENGTH_TRAINING, title: 'Séance musculation' },
 };
-const SDK_AVAILABLE = 3; // SdkAvailabilityStatus.SDK_AVAILABLE
+const SDK_AVAILABLE = 3;
 
-/**
- * Enregistrements écrits pour une séance, avec le suffixe de leur identifiant
- * client. Sert à l'écriture comme à la suppression : une seule liste, donc pas
- * de miroir orphelin qu'on aurait oublié d'effacer.
- */
 const SESSION_RECORDS: { recordType: Permission['recordType']; suffix: string }[] = [
   { recordType: 'ExerciseSession', suffix: 'session' },
   { recordType: 'Distance', suffix: 'distance' },
@@ -47,12 +26,6 @@ const SESSION_RECORDS: { recordType: Permission['recordType']; suffix: string }[
   { recordType: 'HeartRate', suffix: 'hr' },
 ];
 
-/**
- * Identifiant stable d'un enregistrement : (séance × type d'enregistrement). Le
- * type d'activité en fait partie — changer le type d'une séance change donc ses
- * identifiants, d'où la suppression de l'ancien miroir avant réécriture
- * (cf. `removeSessionFromHealthConnect`).
- */
 export function healthClientRecordId(
   type: ActivityType,
   startedAt: number,
@@ -61,7 +34,6 @@ export function healthClientRecordId(
   return `elan-${type}-${startedAt}-${suffix}`;
 }
 
-// Écriture seule : Élan n'a pas besoin de lire les données des autres apps.
 const WRITE_PERMISSIONS: Permission[] = [
   { accessType: 'write', recordType: 'ExerciseSession' },
   { accessType: 'write', recordType: 'Distance' },
@@ -73,7 +45,6 @@ type HealthConnectModule = typeof import('react-native-health-connect');
 
 let modulePromise: Promise<HealthConnectModule | null> | null = null;
 
-/** Charge le module natif, ou null hors Android / si le module est absent. */
 function getModule(): Promise<HealthConnectModule | null> {
   if (Platform.OS !== 'android') return Promise.resolve(null);
   if (!modulePromise) {
@@ -82,12 +53,10 @@ function getModule(): Promise<HealthConnectModule | null> {
   return modulePromise;
 }
 
-/** Health Connect n'existe que sur Android (8.0+). */
 export function isHealthConnectSupported(): boolean {
   return Platform.OS === 'android';
 }
 
-/** Opt-in mémorisé dans `settings` — false par défaut, jamais vrai hors Android. */
 export async function getHealthConnectEnabled(): Promise<boolean> {
   if (!isHealthConnectSupported()) return false;
   return (await getSetting(KEY)) === '1';
@@ -99,12 +68,6 @@ export async function disableHealthConnect(): Promise<void> {
 
 export type EnableResult = 'granted' | 'denied' | 'unavailable';
 
-/**
- * Active l'export : vérifie la disponibilité de Health Connect puis demande les
- * permissions d'écriture (l'UI système ne s'affiche qu'à ce moment-là, jamais
- * avant — c'est le contrat de l'opt-in). N'enregistre l'activation que si
- * toutes les permissions sont accordées.
- */
 export async function enableHealthConnect(): Promise<EnableResult> {
   const hc = await getModule();
   if (!hc) return 'unavailable';
@@ -124,32 +87,21 @@ export async function enableHealthConnect(): Promise<EnableResult> {
   }
 }
 
-/** Données minimales d'une séance terminée, prêtes à écrire dans Health Connect. */
 export type HealthSessionData = {
   type: ActivityType;
-  startedAt: number; // ms epoch
-  endedAt: number; // ms epoch
+  startedAt: number;
+  endedAt: number;
   distanceM?: number | null;
   calories?: number | null;
   hrSamples?: HrSample[];
 };
 
-/**
- * Construit les enregistrements Health Connect d'une séance. Fonction pure
- * (testée dans __tests__/lib/health-connect.test.ts) : aucun accès natif.
- * Retourne [] si l'intervalle est invalide — Health Connect rejette les
- * enregistrements dont startTime >= endTime.
- */
 export function buildHealthRecords(data: HealthSessionData): HealthConnectRecord[] {
   if (!Number.isFinite(data.startedAt) || !Number.isFinite(data.endedAt)) return [];
   if (data.endedAt <= data.startedAt) return [];
   const startTime = new Date(data.startedAt).toISOString();
   const endTime = new Date(data.endedAt).toISOString();
 
-  // Identifiant stable par (séance × type d'enregistrement) : un ré-export de la
-  // MÊME séance réécrit l'enregistrement au lieu de le dupliquer (Health Connect
-  // déduplique sur `clientRecordId`). La séance est identifiée par son instant de
-  // début, unique. Sans lui, chaque ré-export doublait sessions et calories.
   const meta = (suffix: string) => ({
     metadata: { clientRecordId: healthClientRecordId(data.type, data.startedAt, suffix) },
   });
@@ -185,8 +137,6 @@ export function buildHealthRecords(data: HealthSessionData): HealthConnectRecord
     });
   }
 
-  // Health Connect exige des échantillons dans [startTime, endTime] — on écarte
-  // ce qui déborde (horloge BLE en avance, échantillons reçus après l'arrêt).
   const samples = (data.hrSamples ?? [])
     .filter((s) => s.ts >= data.startedAt && s.ts <= data.endedAt && s.hr > 0 && s.hr < 300)
     .map((s) => ({ time: new Date(s.ts).toISOString(), beatsPerMinute: Math.round(s.hr) }));
@@ -197,13 +147,6 @@ export function buildHealthRecords(data: HealthSessionData): HealthConnectRecord
   return records;
 }
 
-/**
- * Écrit une séance terminée dans Health Connect. Best-effort et fire-and-forget
- * (même contrat qu'`autoBackup()`) : no-op si l'opt-in est désactivé, si Health
- * Connect est indisponible ou si une permission a été révoquée entre-temps.
- * Ne lève jamais — l'enregistrement local a déjà réussi, on ne bloque ni ne
- * casse la navigation pour un miroir santé.
- */
 export async function exportSessionToHealthConnect(data: HealthSessionData): Promise<void> {
   try {
     if (!(await getHealthConnectEnabled())) return;
@@ -212,33 +155,19 @@ export async function exportSessionToHealthConnect(data: HealthSessionData): Pro
     if ((await hc.getSdkStatus()) !== SDK_AVAILABLE) return;
     if (!(await hc.initialize())) return;
 
-    // Permissions revérifiées à chaque export : l'utilisateur peut les révoquer
-    // depuis Health Connect sans passer par Élan.
     const granted = await hc.getGrantedPermissions();
     const can = (recordType: Permission['recordType']) =>
       granted.some((g) => g.accessType === 'write' && g.recordType === recordType);
     if (!can('ExerciseSession')) return;
 
     const records = buildHealthRecords(data).filter((r) => can(r.recordType));
-    // insertRecords exige des enregistrements d'un seul type par appel
-    // (« All records must have the same type ») → un appel par enregistrement,
-    // chacun en best-effort pour qu'un échec n'empêche pas les suivants.
     for (const record of records) {
       await hc.insertRecords([record]).catch(() => {});
     }
   } catch {
-    // Best-effort : jamais bloquant pour l'utilisateur.
   }
 }
 
-/**
- * Supprime le miroir Health Connect d'une séance enregistrée sous `type`.
- *
- * Appelé avant de réécrire une séance dont le TYPE a changé : l'identifiant
- * client porte le type, donc sans cette suppression la réécriture créerait un
- * doublon au lieu de remplacer. Best-effort et silencieux, comme l'export :
- * Health Connect n'est qu'un miroir, la base locale reste la source de vérité.
- */
 export async function removeSessionFromHealthConnect(
   type: ActivityType,
   startedAt: number,
@@ -251,13 +180,10 @@ export async function removeSessionFromHealthConnect(
     if (!(await hc.initialize())) return;
 
     for (const { recordType, suffix } of SESSION_RECORDS) {
-      // Suppression par identifiant client : aucun UUID à retenir de notre côté,
-      // et l'appel est inoffensif quand l'enregistrement n'existe pas.
       await hc
         .deleteRecordsByUuids(recordType, [], [healthClientRecordId(type, startedAt, suffix)])
         .catch(() => {});
     }
   } catch {
-    // Best-effort : jamais bloquant pour l'utilisateur.
   }
 }

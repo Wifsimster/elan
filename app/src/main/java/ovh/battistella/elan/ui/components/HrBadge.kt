@@ -25,18 +25,12 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
-/**
- * Pastille de fréquence cardiaque. Connectée : bpm (chiffres condensés) sur
- * aplat tonal heart ; sinon « Connecter » et [onClick] mène aux réglages (la pastille
- * connectée n'est pas cliquable, comme dans l'app d'origine).
- */
 @Composable
 fun HrBadge(
     bpm: Int?,
     connected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    /** Ceinture en cours de connexion (affiche « ... »). */
     connecting: Boolean = false,
 ) {
     val colors = ElanTheme.colors
@@ -55,7 +49,6 @@ fun HrBadge(
     val tint = if (connected) colors.heart else colors.textSecondary
 
     val surface = if (connected) {
-        // Aplat cardiaque tonal quand la ceinture émet.
         Modifier.background(colors.heart.copy(alpha = 0.16f), shape)
     } else {
         Modifier.background(colors.backgroundSelected, shape)

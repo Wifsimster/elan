@@ -49,11 +49,6 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import kotlin.math.roundToInt
 
-/**
- * Fiche d'un exercice : guide (illustration, muscles, exécution), résumé
- * Record / Actuel / Depuis le début, 1RM, conseil de progression, courbe des
- * charges max et liste des séances (plus récente d'abord).
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ExerciseScreen(
@@ -150,7 +145,6 @@ fun ExerciseScreen(
     }
 }
 
-/** Conseil de progression d'après le ressenti des dernières séances. */
 @Composable
 private fun AdviceCard(ui: ExerciseUi) {
     val colors = ElanTheme.colors

@@ -103,7 +103,6 @@ class SessionDetailViewModelTest {
         assertEquals(ActivityType.VELO, ui.session?.type)
         assertEquals(3, ui.points.size)
         assertTrue(ui.sets.isEmpty())
-        // Seule séance vélo : records absolus sur chaque métrique connue.
         assertTrue(ui.records.contains(SessionRecord(RecordKind.DISTANCE, RecordScope.ALL)))
         assertTrue(ui.records.contains(SessionRecord(RecordKind.SPEED, RecordScope.ALL)))
         assertEquals(190.0, ui.maxHr, 0.0)
@@ -159,7 +158,6 @@ class SessionDetailViewModelTest {
 
         vm.requestRetype(ActivityType.COURSE)
         assertEquals(SessionDialog.Retype(ActivityType.COURSE), vm.ui.value.dialog)
-        // Double appui : pas de second dialogue empilé (garde de réentrance).
         vm.requestRetype(ActivityType.MARCHE)
         assertEquals(SessionDialog.Retype(ActivityType.COURSE), vm.ui.value.dialog)
 
@@ -174,7 +172,6 @@ class SessionDetailViewModelTest {
         assertEquals(ActivityType.COURSE, repos.sessions.getSession(id)?.type)
         assertFalse(vm.ui.value.busy)
         assertEquals(listOf<SessionEvent>(SessionEvent.RetypeSucceeded), events)
-        // Les records sont recalculés pour le nouveau type.
         assertNotNull(vm.ui.value.records.firstOrNull { it.kind == RecordKind.DISTANCE })
         eventsJob.cancel()
     }
@@ -199,8 +196,6 @@ class SessionDetailViewModelTest {
         vm.confirmRetype()
         advanceUntilIdle()
 
-        // L'ancien type d'abord (l'identifiant client porte le type), puis la
-        // séance réécrite sous le nouveau, avec ses échantillons FC.
         assertEquals(listOf("remove:velo:$t0", "export:course:$t0:3"), calls)
     }
 
@@ -219,7 +214,7 @@ class SessionDetailViewModelTest {
 
         vm.requestDelete()
         vm.confirmDelete()
-        vm.confirmDelete() // double appui : ignoré
+        vm.confirmDelete()
         advanceUntilIdle()
         assertNull(repos.sessions.getSession(id))
         assertTrue(repos.sessions.getTrackPoints(id).isEmpty())
@@ -272,7 +267,6 @@ class SessionDetailViewModelTest {
         assertFalse(vm.ui.value.exporting)
         assertTrue(messages.isEmpty())
 
-        // Sortie sans tracé exploitable : ni fichier ni partage, un message.
         val short = db.sessionDao().insert(TestSupport.session(type = ActivityType.VELO, startedAt = t0 + 1))
         db.trackPointDao().insertAll(listOf(TestSupport.trackPoint(short, ts = t0 + 1)))
         val vm2 = SessionDetailViewModel(SavedStateHandle(mapOf("id" to short)), repos.sessions, repos.settings, snackbar, context, finalizer, export)
@@ -319,9 +313,7 @@ class SessionDetailViewModelTest {
         vm.share()
         assertTrue(vm.ui.value.sharePreview)
 
-        // Bitmap 3 arguments : la seule fabrique simulée par Robolectric (mode graphique hérité).
         vm.shareImage(Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).asImageBitmap())
-        // L'écriture du PNG passe par Dispatchers.IO : on attend la fin réelle.
         vm.ui.first { !it.sharing }
 
         val (file, mime, _) = export.shared.single()

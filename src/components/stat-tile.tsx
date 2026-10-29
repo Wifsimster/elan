@@ -4,10 +4,8 @@ import { Text, View } from 'react-native';
 import { Radius, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Évolution affichée sous la valeur (ex. comparaison à la période précédente). */
 export type Trend = {
   label: string;
-  /** `positive` = vert, `negative` = atténué, `neutral` = stable. */
   tone: 'positive' | 'negative' | 'neutral';
 };
 
@@ -17,18 +15,11 @@ type Props = {
   unit?: string;
   icon?: keyof typeof MaterialCommunityIcons.glyphMap;
   color?: string;
-  /** Affichage compact (police plus petite). */
   compact?: boolean;
-  /** Métrique mise en avant (chiffre plus grand) — usage : valeur clé à lire en effort. */
   hero?: boolean;
-  /** Petite ligne d'évolution sous la valeur. */
   trend?: Trend;
 };
 
-/**
- * Tuile de métrique « bento » : pastille d'icône teintée + grand chiffre tabulaire.
- * Conçue pour s'aligner en grille fluide (flexWrap) dans une Card.
- */
 export function StatTile({ label, value, unit, icon, color, compact, hero, trend }: Props) {
   const theme = useTheme();
   const tint = color ?? theme.text;

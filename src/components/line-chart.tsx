@@ -7,38 +7,20 @@ import { useTheme } from '@/hooks/use-theme';
 export type ChartPoint = { x: number; y: number };
 
 type Props = {
-  /** Série triée par `x` croissant. Rendu nul en dessous de 2 points. */
   data: ChartPoint[];
-  /** Couleur du tracé et du dégradé de remplissage. */
   color: string;
   height?: number;
-  /** Trace une ligne pointillée horizontale (la moyenne, façon Strava). */
   avg?: number | null;
-  /** Formatte les libellés de l'axe Y (défaut : entier). */
   formatY?: (y: number) => string;
-  /** Formatte les libellés de l'axe X (défaut : entier). */
   formatX?: (x: number) => string;
-  /**
-   * Nom de la métrique (ex. « Vitesse »). Sert à construire le résumé lu par les
-   * lecteurs d'écran (le tracé SVG est sinon invisible — WCAG 1.4.1).
-   */
   label?: string;
 };
 
-// Marges réservées aux libellés d'axes (en pixels).
 const PAD_L = 40;
 const PAD_R = 10;
 const PAD_T = 12;
 const PAD_B = 22;
 
-/**
- * Graphe d'aire façon Strava : tracé + remplissage en dégradé vertical (couleur
- * → transparent), grille discrète, ligne de moyenne pointillée et libellés
- * d'axes. 100 % SVG local — aucune dépendance réseau (invariant produit).
- *
- * La largeur est mesurée au `onLayout` ; on dessine ensuite en pixels réels pour
- * des libellés nets (pas de mise à l'échelle d'un `viewBox`).
- */
 export function LineChart({ data, color, height = 168, avg, formatY, formatX, label }: Props) {
   const theme = useTheme();
   const gradId = `chart-${useId().replace(/:/g, '')}`;
@@ -56,7 +38,6 @@ export function LineChart({ data, color, height = 168, avg, formatY, formatX, la
     minY -= 1;
     maxY += 1;
   }
-  // Un peu de marge verticale pour ne pas coller le tracé aux bords.
   const headroom = (maxY - minY) * 0.08;
   minY -= headroom;
   maxY += headroom;
@@ -79,8 +60,6 @@ export function LineChart({ data, color, height = 168, avg, formatY, formatX, la
   const fmtY = formatY ?? ((v: number) => String(Math.round(v)));
   const fmtX = formatX ?? ((v: number) => String(Math.round(v)));
 
-  // Résumé lu par les lecteurs d'écran : le tracé SVG est invisible pour eux,
-  // on annonce donc min / moyenne / max à partir des valeurs brutes.
   const rawMin = Math.min(...ys);
   const rawMax = Math.max(...ys);
   const a11ySummary =
@@ -135,8 +114,6 @@ export function LineChart({ data, color, height = 168, avg, formatY, formatX, la
             ) : null}
           </Svg>
 
-          {/* Étiquette « moy. » sur la ligne de moyenne pointillée (sinon le trait
-              n'est lisible que par sa position, signal visuel seul). */}
           {avg != null ? (
             <Text
               style={{
@@ -151,7 +128,6 @@ export function LineChart({ data, color, height = 168, avg, formatY, formatX, la
             </Text>
           ) : null}
 
-          {/* Libellés d'axe Y (haut / milieu / bas). */}
           {yTicks.map((t, i) => (
             <Text
               key={`y${i}`}
@@ -170,7 +146,6 @@ export function LineChart({ data, color, height = 168, avg, formatY, formatX, la
             </Text>
           ))}
 
-          {/* Libellés d'axe X (alignés aux extrémités pour ne pas déborder). */}
           {xTicks.map((t, i) => {
             const first = i === 0;
             const last = i === xTicks.length - 1;

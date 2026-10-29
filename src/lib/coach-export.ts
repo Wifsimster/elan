@@ -1,8 +1,3 @@
-// Export des données vers un format lisible par une IA (« coach »).
-// Deux artefacts, 100 % hors-ligne :
-//   - un bilan Markdown : programme, planning, stats, progression et historique,
-//     pensé pour être déposé dans un projet Claude Code qui suit la programmation ;
-//   - un export JSON brut : profil + programme + instantané complet de la base.
 import {
   exerciseHistory,
   exportAll,
@@ -40,19 +35,16 @@ import type { BodyMeasurement, MuscuSet, Profile, Session } from '@/lib/types';
 const DAY = 86_400_000;
 const JOURS_SEMAINE = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
-/** Nombre en français, sans décimale superflue (3 -> « 3 », 12.5 -> « 12,5 »). */
 function num(n: number | null | undefined, digits = 1): string {
   if (n == null) return '—';
   const r = Math.round(n * 10 ** digits) / 10 ** digits;
   return (Number.isInteger(r) ? `${r}` : r.toFixed(digits)).replace('.', ',');
 }
 
-/** Échappe le caractère pipe pour ne pas casser les tableaux Markdown. */
 function cell(s: string): string {
   return s.replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim();
 }
 
-/** Regroupe les séries d'une séance par exercice, dans l'ordre d'apparition. */
 function groupByExercise(sets: MuscuSet[]): { exercise: string; sets: MuscuSet[] }[] {
   const order: string[] = [];
   const byEx = new Map<string, MuscuSet[]>();
@@ -79,7 +71,6 @@ function profileSection(profile: Profile): string {
   ].join('\n');
 }
 
-/** Courbe de poids corporel — section omise tant que le journal est vide. */
 function weightSection(measurements: BodyMeasurement[]): string | null {
   if (measurements.length === 0) return null;
   const lines: string[] = [
@@ -152,7 +143,6 @@ async function statsSection(): Promise<string> {
   ].join('\n');
 }
 
-/** Objectifs et leur avancement sur la période courante — omis si aucun défini. */
 function goalsSection(progress: GoalProgress[]): string | null {
   if (progress.length === 0) return null;
   const lines: string[] = [
@@ -229,11 +219,6 @@ function muscuDetailSection(
   return lines.join('\n');
 }
 
-/**
- * Historique des sorties tracées au GPS — vélo, course et marche réunis. Une
- * colonne « Activité » les distingue, et l'allure remplace la vitesse pour les
- * activités à pied, où c'est l'unité qui parle.
- */
 function gpsSection(sessions: Session[]): string {
   if (sessions.length === 0) {
     return '## Historique des sorties\n\n_Aucune sortie enregistrée._';
@@ -258,10 +243,6 @@ function gpsSection(sessions: Session[]): string {
   return lines.join('\n');
 }
 
-/**
- * Construit le bilan Markdown complet : un seul document auto-suffisant à
- * déposer dans un projet pour qu'une IA suive la programmation et coache.
- */
 export async function buildCoachMarkdown(): Promise<string> {
   const [profile, sessions, measurements, goals] = await Promise.all([
     getProfile(),
@@ -273,13 +254,10 @@ export async function buildCoachMarkdown(): Promise<string> {
   const muscuSessions = sessions.filter((s) => s.type === 'muscu');
   const gpsSessions = sessions.filter((s) => isGpsActivity(s.type));
 
-  // Séries par séance muscu (déjà triées de la plus récente à la plus ancienne).
   const muscuDetail = await Promise.all(
     muscuSessions.map(async (session) => ({ session, sets: await getMuscuSets(session.id) })),
   );
 
-  // Progression par exercice : on prend la liste des exercices distincts vus
-  // dans l'historique muscu, puis leur courbe complète.
   const exerciseNames: string[] = [];
   for (const { sets } of muscuDetail) {
     for (const s of sets) if (!exerciseNames.includes(s.exercise)) exerciseNames.push(s.exercise);
@@ -310,10 +288,6 @@ export async function buildCoachMarkdown(): Promise<string> {
     .join('\n\n');
 }
 
-/**
- * Export JSON brut : profil + programme + instantané complet de la base
- * (séances, points GPS, séries, réglages non secrets). Pour réimport/analyse.
- */
 export async function buildCoachJson(): Promise<string> {
   const [profile, data] = await Promise.all([getProfile(), exportAll()]);
   return JSON.stringify(

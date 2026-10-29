@@ -11,13 +11,10 @@ import { formatDateTime } from '@/lib/format';
 import { useBackup } from '@/hooks/use-backup';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Carte Réglages : sauvegarde/restauration vers un stockage S3 auto-hébergé (opt-in). */
 export function BackupCard() {
   const theme = useTheme();
   const backup = useBackup();
 
-  // Relit le statut de la dernière sauvegarde au retour sur l'écran : un échec
-  // d'auto-backup (après une séance) était sinon invisible jusqu'au redémarrage.
   const { refreshLast } = backup;
   useFocusEffect(
     useCallback(() => {
@@ -90,7 +87,6 @@ export function BackupCard() {
   );
 }
 
-/** Ligne d'état de la dernière sauvegarde : pastille colorée + libellé daté. */
 function BackupStatusLine() {
   const theme = useTheme();
   const { last, status } = useBackup();

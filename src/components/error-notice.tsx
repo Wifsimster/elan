@@ -4,11 +4,6 @@ import { Text, View } from 'react-native';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Encart d'erreur intégré à une carte (fond teinté, icône, texte lisible) —
- * pour les échecs qui demandent une action de l'utilisateur (identifiants S3
- * refusés, serveur injoignable…), à la place d'une ligne rouge brute.
- */
 export function ErrorNotice({ message }: { message: string }) {
   const theme = useTheme();
   return (

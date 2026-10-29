@@ -29,28 +29,23 @@ sealed interface BackupDialog {
     data object ConfirmRestore : BackupDialog
     data class RestoreDone(val count: Int) : BackupDialog
 
-    /** QR décodé : liste des champs remplis. */
     data class QrImported(val fields: String) : BackupDialog
     data object QrUnrecognized : BackupDialog
 }
 
 data class BackupUi(
-    /** Configuration lue : avant, les saisies sont ignorées (`update` ignoré avant hydratation). */
     val loaded: Boolean = false,
     val config: BackupFormConfig = BackupFormConfig(),
     val last: BackupLast? = null,
     val status: BackupStatus = BackupStatus.Idle,
     val error: String? = null,
-    /** Identifiants S3 non repris de l'app d'origine : inviter à les ressaisir. */
     val secretsMissing: Boolean = false,
     val dialog: BackupDialog = BackupDialog.None,
 ) {
-    /** La config permet de contacter le serveur. */
     val ready: Boolean get() = loaded && config.complete
 }
 
 sealed interface BackupEvent {
-    /** Restauration réussie depuis la feuille du premier lancement. */
     data class Restored(val count: Int) : BackupEvent
 }
 
@@ -58,19 +53,10 @@ private data class BackupLocal(
     val status: BackupStatus = BackupStatus.Idle,
     val error: String? = null,
     val dialog: BackupDialog = BackupDialog.None,
-    /**
-     * Saisies pas encore reflétées par la config persistée : appliquées
-     * par-dessus dans [BackupUi.config] pour que les champs texte suivent la
-     * frappe sans attendre l'aller-retour Room (sinon des caractères tapés
-     * pendant l'écriture sont perdus). Vidées, dans le `combine` de l'état,
-     * dès que le persisté les a rejointes.
-     */
     val draft: BackupPatch = BackupPatch(),
-    /** Écritures en cours (le brouillon n'est pas vidé tant qu'il en reste). */
     val pending: Int = 0,
 )
 
-/** Fusion de deux patchs : les champs de [top] priment. */
 private fun BackupPatch.under(top: BackupPatch) = BackupPatch(
     enabled = top.enabled ?: enabled,
     endpoint = top.endpoint ?: endpoint,
@@ -81,12 +67,6 @@ private fun BackupPatch.under(top: BackupPatch) = BackupPatch(
     secretAccessKey = top.secretAccessKey ?: secretAccessKey,
 )
 
-/**
- * Sauvegarde S3 auto-hébergée (carte Réglages + feuille de restauration du
- * premier lancement) : configuration, QR, sauvegarde immédiate, restauration
- * avec confirmation, statut de la dernière sauvegarde. Les erreurs des
- * opérations réseau sont affichées telles que le port les décrit.
- */
 @HiltViewModel
 class BackupViewModel @Inject constructor(
     private val backup: BackupPort,
@@ -95,23 +75,16 @@ class BackupViewModel @Inject constructor(
 
     private val local = MutableStateFlow(BackupLocal())
 
-    /** Sérialise les écritures de config : chaque patch lit-modifie-écrit la config complète. */
     private val persistLock = Mutex()
 
     private val _events = MutableSharedFlow<BackupEvent>(extraBufferCapacity = 4)
     val events: SharedFlow<BackupEvent> = _events.asSharedFlow()
 
-    // Pas d'accès base dans le `combine` : chaque frappe passe par `local` et
-    // doit atteindre l'écran avant la frame suivante, sinon le champ texte est
-    // recomposé avec l'ancienne valeur et le curseur recule.
     private val secretsMissing: Flow<Boolean> =
         settings.observeSetting(SettingsRepository.Keys.BACKUP_SECRETS_MISSING).map { it == "1" }
 
     val ui: StateFlow<BackupUi> = combine(backup.config, settings.settings, secretsMissing, local) { config, s, missing, l ->
         val effective = l.draft.applyTo(config)
-        // Le persisté a rejoint le brouillon : on le vide ici, contre la valeur
-        // exacte que ce `combine` détient — un collecteur séparé verrait une
-        // autre émission et pourrait faire réapparaître un texte périmé.
         if (l.pending == 0 && !l.draft.isEmpty && effective == config) {
             local.update { cur -> if (cur.draft == l.draft && cur.pending == 0) cur.copy(draft = BackupPatch()) else cur }
         }
@@ -128,7 +101,6 @@ class BackupViewModel @Inject constructor(
 
     fun dismissDialog() = local.update { it.copy(dialog = BackupDialog.None) }
 
-    /** Fusion partielle persistée ; ignorée tant que la config n'est pas lue. */
     fun update(patch: BackupPatch) {
         if (!ui.value.loaded || patch.isEmpty) return
         local.update { it.copy(draft = it.draft.under(patch), pending = it.pending + 1) }
@@ -136,7 +108,6 @@ class BackupViewModel @Inject constructor(
             try {
                 persistLock.withLock {
                     backup.updateConfig(patch)
-                    // Une clé ressaisie lève l'invitation héritée de la migration.
                     if (patch.accessKeyId != null || patch.secretAccessKey != null) {
                         settings.deleteSetting(SettingsRepository.Keys.BACKUP_SECRETS_MISSING)
                     }
@@ -147,7 +118,6 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    /** QR de configuration : applique le fragment et dit quels champs ont été remplis. */
     fun onQrScanned(text: String) {
         val patch = backup.parseQr(text)
         if (patch == null) {
@@ -176,17 +146,11 @@ class BackupViewModel @Inject constructor(
 
     fun requestRestore() = local.update { it.copy(dialog = BackupDialog.ConfirmRestore) }
 
-    /** Restauration confirmée depuis la carte Réglages : alerte avec le nombre de séances. */
     fun confirmRestore() {
         dismissDialog()
         restore(activateAutoBackup = false)
     }
 
-    /**
-     * Restauration depuis la feuille du premier lancement : rien à écraser,
-     * donc pas de confirmation ; la sauvegarde automatique est activée dans la
-     * foulée vers ce serveur, et [BackupEvent.Restored] est émis.
-     */
     fun restoreNow() = restore(activateAutoBackup = true)
 
     private fun restore(activateAutoBackup: Boolean) {

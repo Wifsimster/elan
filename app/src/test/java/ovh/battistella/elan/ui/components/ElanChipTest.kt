@@ -29,8 +29,6 @@ class ElanChipTest {
 
     @Test
     fun selectedInkIsTheMostReadableOnTheTint() {
-        // Teintes vives du thème sombre et Volt de marque → encre sombre ;
-        // teintes profondes du thème clair (accent olive, muscu) → blanc.
         val light = ElanColors.Light
         val dark = ElanColors.Dark
         assertEquals(ElanGradients.OnBright, chipInk(dark.marche))

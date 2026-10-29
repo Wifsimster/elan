@@ -28,9 +28,7 @@ export default function ProgressionScreen() {
   const insets = useSafeAreaInsets();
   const contentStyle = useScreenContentStyle();
   const router = useRouter();
-  // null = chargement en cours (évite un flash d'état vide avant la 1re requête).
   const [items, setItems] = useState<ExerciseSummary[] | null>(null);
-  // Changements de la progression auto pour la semaine en cours (revue).
   const [changes, setChanges] = useState<ProgressionChange[]>([]);
 
   useFocusEffect(
@@ -129,9 +127,6 @@ export default function ProgressionScreen() {
                     {fmtKg(it.lastWeightKg)} kg
                   </Text>
                 </View>
-                {/* Indice rapide d'après le dernier ressenti : facile = on peut
-                    monter, dur = on lève le pied. Le conseil complet (sur tout
-                    l'historique) est sur la fiche de l'exercice. */}
                 {it.lastDifficulty === 'facile' ? (
                   <MaterialCommunityIcons
                     name="arrow-up-bold"

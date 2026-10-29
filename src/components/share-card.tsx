@@ -1,6 +1,3 @@
-// Carte partageable d'une séance, façon Strava : tracé (ou héros d'activité) +
-// stats + marque « Élan ». Rendue hors écran puis capturée en PNG par
-// `useSessionShare`, sans aucun appel réseau (le partage est délégué à l'OS).
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { forwardRef } from 'react';
 import { Image, Text, View } from 'react-native';
@@ -27,7 +24,6 @@ import type { MuscuSet, Session, TrackPoint } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
 
 export const SHARE_CARD_WIDTH = 360;
-/** Hauteur du visuel d'en-tête (tracé / fond de carte). */
 export const SHARE_HERO_HEIGHT = 200;
 
 type Props = {
@@ -36,7 +32,6 @@ type Props = {
   sets: MuscuSet[];
   records: SessionRecord[];
   effort: Effort;
-  /** Fond de carte pré-rendu (tuiles homelab) ; absent → tracé sur fond uni. */
   mapSnapshot?: RouteSnapshot | null;
 };
 
@@ -63,7 +58,6 @@ export const ShareCard = forwardRef<View, Props>(function ShareCard(
   const stats: StatItem[] = [];
   if (isGps) {
     stats.push({ label: 'Distance', value: formatDistance(session.distanceM), color });
-    // Temps en mouvement (hors arrêts) s'il est connu, sinon durée totale.
     stats.push({ label: 'Durée', value: formatDuration(session.movingTimeSec ?? session.durationSec) });
     stats.push(
       pace
@@ -83,7 +77,6 @@ export const ShareCard = forwardRef<View, Props>(function ShareCard(
     stats.push({ label: 'Calories', value: formatCalories(session.calories), color: theme.warning });
   }
 
-  // Badge : un record si la séance en détient un, sinon le niveau d'effort.
   const topRecord = [...records].sort((a, b) => (a.scope === b.scope ? 0 : a.scope === 'all' ? -1 : 1))[0];
   const badge = topRecord
     ? {
@@ -172,8 +165,6 @@ function RouteHero({
   theme: ReturnType<typeof useTheme>;
   snapshot?: RouteSnapshot | null;
 }) {
-  // Un fond de carte a pu être pré-rendu (tuiles homelab) : on superpose alors
-  // le tracé dessus. Sinon, tracé seul sur fond uni (mode 100 % hors-ligne).
   if (snapshot) return <MapHero points={points} color={color} theme={theme} snapshot={snapshot} />;
 
   const W = SHARE_CARD_WIDTH;
@@ -204,11 +195,6 @@ function RouteHero({
   );
 }
 
-/**
- * En-tête avec vrai fond de carte : le PNG des tuiles (rendu par MapLibre) en
- * fond, le tracé GPS superposé en SVG. Le SVG utilise le même repère pixel que
- * le PNG (`viewBox` = dimensions du PNG) pour un calage exact sur les tuiles.
- */
 function MapHero({
   points,
   color,
@@ -222,7 +208,6 @@ function MapHero({
 }) {
   const W = SHARE_CARD_WIDTH;
   const H = SHARE_HERO_HEIGHT;
-  // Échelle PNG → affichage : épaissit trait et marqueurs en conséquence.
   const k = snapshot.width / W;
   const pts = points.length > 400 ? decimateByDistance(points, 10) : points;
   const str = pts.map((p) => snapshot.project(p).map((n) => n.toFixed(1)).join(',')).join(' ');
@@ -245,7 +230,6 @@ function MapHero({
           strokeLinejoin="round"
           strokeLinecap="round"
         />
-        {/* Bordure blanche sur les marqueurs pour les détacher du fond de carte. */}
         <Circle cx={sx} cy={sy} r={7 * k} fill={theme.success} stroke="#FFFFFF" strokeWidth={2.5 * k} />
         <Circle cx={ex} cy={ey} r={7 * k} fill={color} stroke="#FFFFFF" strokeWidth={2.5 * k} />
       </Svg>
@@ -263,7 +247,6 @@ function IconHero({
   return (
     <Gradient colors={gradient} style={{ width: SHARE_CARD_WIDTH, height: 140 }}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        {/* Encre sombre sur les dégradés clairs (vélo, marche) : le blanc y est illisible. */}
         <MaterialCommunityIcons
           name={icon}
           size={56}

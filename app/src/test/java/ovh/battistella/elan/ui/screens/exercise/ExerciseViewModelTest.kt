@@ -86,7 +86,6 @@ class ExerciseViewModelTest {
         assertEquals(22.5, ui.last, 1e-9)
         assertEquals(2.5, ui.delta, 1e-9)
 
-        // 1RM Epley : record 25 × (1 + 6/30) = 30 ; actuel 22,5 × (1 + 10/30) = 30.
         assertEquals(30.0, ui.best1rm, 1e-9)
         assertEquals(30.0, ui.last1rm, 1e-9)
 

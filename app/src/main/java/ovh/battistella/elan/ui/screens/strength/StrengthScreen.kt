@@ -107,12 +107,6 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/**
- * Séance de musculation : résumé, sélecteur de programme (séance vide),
- * cartes d'exercices (séries cochables, steppers, ressenti), carte d'ajout
- * (catalogue plein écran, saisie libre, chips rapides), minuteur de repos et
- * barre de contrôle flottants. Écran allumé ; retour matériel = croix.
- */
 @Composable
 fun StrengthScreen(
     contentPadding: PaddingValues,
@@ -144,13 +138,10 @@ fun StrengthScreen(
         }
     }
 
-    // Retour matériel = même chemin que la croix.
     BackHandler { viewModel.requestExit() }
 
-    // Brouillon réécrit au passage en arrière-plan (chrono live + FC).
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
 
-    // Écran allumé pendant la séance.
     DisposableEffect(context) {
         val window = context.findActivity()?.window
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -198,7 +189,6 @@ fun StrengthScreen(
         }
 
         Column(modifier = Modifier.align(Alignment.BottomCenter)) {
-            // Remonté à chaque (re)programmation pour repartir d'un état frais.
             key(ui.restEndsAt) {
                 RestTimerBar(
                     endsAt = ui.restEndsAt,
@@ -288,7 +278,6 @@ private fun InfoDialog(title: Int, text: Int, onDismiss: () -> Unit) {
     )
 }
 
-/** Résumé Durée / Séries done/total / Cardio / Volume. */
 @Composable
 private fun SummaryCard(ui: StrengthUi) {
     val colors = ElanTheme.colors
@@ -315,7 +304,6 @@ private fun Summary(label: String, value: String, color: Color? = null) {
     }
 }
 
-/** Sélecteur de programme (séance vide) : tuiles sur deux colonnes. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TemplatePicker(onPick: (WorkoutTemplate) -> Unit) {
@@ -350,7 +338,6 @@ private fun TemplatePicker(onPick: (WorkoutTemplate) -> Unit) {
     }
 }
 
-/** Carte d'un exercice : en-tête, séries, « Ajouter une série », ressenti. */
 @Composable
 private fun ExerciseCard(ex: StrengthExercise, viewModel: StrengthViewModel) {
     val colors = ElanTheme.colors
@@ -428,7 +415,6 @@ private fun ExerciseCard(ex: StrengthExercise, viewModel: StrengthViewModel) {
     }
 }
 
-/** Une série : cercle cochable, steppers reps et charge (atténués si cochée), suppression. */
 @Composable
 private fun SetRowView(
     index: Int,
@@ -489,7 +475,6 @@ private fun SetRowView(
     }
 }
 
-/** Carte d'ajout : catalogue, champ libre + bouton, chips rapides. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AddExerciseCard(onBrowse: () -> Unit, onAdd: (String) -> Unit) {
@@ -560,7 +545,6 @@ private fun AddExerciseCard(onBrowse: () -> Unit, onAdd: (String) -> Unit) {
     }
 }
 
-/** Magasin d'exercices en modale plein écran. */
 @Composable
 private fun CatalogDialog(ui: StrengthUi, viewModel: StrengthViewModel) {
     val colors = ElanTheme.colors
@@ -597,7 +581,6 @@ private fun CatalogDialog(ui: StrengthUi, viewModel: StrengthViewModel) {
     }
 }
 
-/** Barre de contrôle flottante : Pause/Reprendre (flex 1) + Terminer (flex 1.4). */
 @Composable
 private fun ControlBar(
     paused: Boolean,

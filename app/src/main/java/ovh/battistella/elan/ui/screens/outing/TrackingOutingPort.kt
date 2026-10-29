@@ -14,12 +14,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import ovh.battistella.elan.tracking.OutingPhase as TrackingPhase
 
-/**
- * Adaptateur du [TrackingController] vers le contrat de l'écran Sortie : l'état
- * du contrôleur est recopié champ pour champ dans [OutingUi], et les commandes
- * `suspend` du contrôleur sont lancées sur la portée applicative (une
- * transition ne meurt pas avec le ViewModel qui l'a demandée).
- */
 @Singleton
 class TrackingOutingPort @Inject constructor(
     private val controller: TrackingController,
@@ -55,15 +49,12 @@ class TrackingOutingPort @Inject constructor(
     }
 }
 
-/** Projection de l'état du contrôleur vers celui de l'écran. */
 fun OutingState.toUi(): OutingUi = OutingUi(
     phase = phase.toUi(),
     type = type,
     sessionId = sessionId,
     elapsedSec = elapsedSec,
     distanceM = distanceM,
-    // Le contrôleur vaut 0.0 avant le premier point ; l'écran attend `null`
-    // tant qu'aucun fix n'a été accepté (tuile « — » plutôt que « 0 »).
     speedKmh = if (pointCount == 0) null else speedKmh,
     maxSpeedKmh = if (pointCount == 0) null else maxSpeedKmh,
     elevationGainM = elevationGainM,

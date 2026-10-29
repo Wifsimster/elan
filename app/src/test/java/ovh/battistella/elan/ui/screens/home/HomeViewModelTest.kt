@@ -50,7 +50,6 @@ class HomeViewModelTest {
     private lateinit var repos: TestSupport.Repositories
     private val zone: ZoneId = ZoneId.systemDefault()
 
-    // Mercredi 16 septembre 2026, midi (heure locale) : jour de repos du planning par défaut.
     private val wednesday: Long = LocalDate.of(2026, 9, 16).atStartOfDay(zone).plusHours(12).toInstant().toEpochMilli()
     private val tuesday: Long = LocalDate.of(2026, 9, 15).atStartOfDay(zone).plusHours(12).toInstant().toEpochMilli()
 
@@ -85,7 +84,6 @@ class HomeViewModelTest {
 
     @Test
     fun `stats de la semaine et de la semaine précédente`() = runTest(mainDispatcher.dispatcher) {
-        // Cette semaine : lundi 14 et mardi 15 ; semaine dernière : jeudi 10.
         seed(ActivityType.VELO, wednesday - 2 * day, distanceM = 20_000.0, calories = 400.0)
         seed(ActivityType.MUSCU, wednesday - day)
         seed(ActivityType.VELO, wednesday - 6 * day, distanceM = 30_000.0, calories = 700.0)
@@ -100,11 +98,9 @@ class HomeViewModelTest {
         assertEquals(20_000.0, ui.stats?.totalDistanceM)
         assertEquals(1, ui.lastStats?.sessionCount)
         assertEquals(30_000.0, ui.lastStats?.totalDistanceM)
-        // 7 barres, aujourd'hui (mercredi) à droite.
         assertEquals(7, ui.bars.size)
         assertEquals("M", ui.bars.last().label)
         assertEquals(1800, ui.bars[ui.bars.lastIndex - 1].value)
-        // 3 séances récentes au plus, la plus récente d'abord.
         assertEquals(3, ui.recent.size)
         assertEquals(ActivityType.MUSCU, ui.recent.first().type)
     }
@@ -181,7 +177,7 @@ class HomeViewModelTest {
             ),
         )
         seed(ActivityType.VELO, wednesday - day, distanceM = 12_345.0)
-        seed(ActivityType.VELO, wednesday - 8 * day, distanceM = 50_000.0) // semaine dernière : hors période
+        seed(ActivityType.VELO, wednesday - 8 * day, distanceM = 50_000.0)
 
         val vm = vm()
         backgroundScope.launch { vm.ui.collect {} }

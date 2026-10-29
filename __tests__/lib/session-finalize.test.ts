@@ -1,6 +1,3 @@
-// Vérifie le contrat de l'orchestrateur post-enregistrement (lib/session-finalize.ts) :
-// il déclenche la sauvegarde homelab ET le miroir Health Connect, en transmettant
-// les données de séance. Les deux dépendances sont moquées (effets best-effort).
 import { finalizeSavedSession } from '@/lib/session-finalize';
 import { autoBackup } from '@/lib/backup';
 import { exportSessionToHealthConnect } from '@/lib/health-connect';

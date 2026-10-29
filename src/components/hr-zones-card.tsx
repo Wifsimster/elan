@@ -7,21 +7,12 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatDuration, formatDurationShort } from '@/lib/format';
 import { dominantZone, type ZoneDistribution, type ZoneSlice } from '@/lib/hr-zones';
 
-/** Fourchette de bpm d'une zone, en texte court (« < 114 », « 133–151 », « 171+ »). */
 function rangeLabel(slice: ZoneSlice): string {
   if (slice.maxBpm == null) return `${slice.minBpm}+`;
   if (slice.minBpm <= 0) return `< ${slice.maxBpm + 1}`;
   return `${slice.minBpm}–${slice.maxBpm}`;
 }
 
-/**
- * Temps passé dans chaque zone cardiaque : barre empilée + détail par zone.
- *
- * Les zones étant ordonnées, la barre suit une rampe d'une seule teinte
- * (`HrZoneColors`) et non cinq couleurs catégorielles ; deux pixels de fond
- * séparent les segments, et chaque zone est nommée en toutes lettres pour que
- * l'information ne repose jamais sur la couleur seule.
- */
 export function HrZonesCard({ distribution }: { distribution: ZoneDistribution }) {
   const theme = useTheme();
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
@@ -49,10 +40,7 @@ export function HrZonesCard({ distribution }: { distribution: ZoneDistribution }
           <View
             key={slice.zone}
             style={{
-              // × 100 : la somme des parts vaut 1, mais un total de `flexGrow`
-              // inférieur à 1 ne distribuerait qu'une fraction de la largeur.
               flex: slice.ratio * 100,
-              // Un passage très court reste visible plutôt que de disparaître.
               minWidth: 3,
               borderRadius: Radius.pill,
               borderCurve: 'continuous',

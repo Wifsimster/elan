@@ -1,5 +1,3 @@
-// Tests des métadonnées d'activité (lib/activity.ts) : la table qui décide
-// partout ailleurs si une séance a un tracé GPS et si l'effort se lit en allure.
 import {
   ACTIVITY_META,
   ACTIVITY_TYPES,
@@ -65,7 +63,6 @@ describe('toActivityType', () => {
     expect(toActivityType(undefined)).toBe('velo');
     expect(toActivityType('natation')).toBe('velo');
     expect(toActivityType(42)).toBe('velo');
-    // Une clé héritée d'Object.prototype ne doit pas passer pour un type.
     expect(toActivityType('toString')).toBe('velo');
   });
 

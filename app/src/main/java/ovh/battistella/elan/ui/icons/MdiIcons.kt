@@ -3,11 +3,6 @@ package ovh.battistella.elan.ui.icons
 import androidx.annotation.DrawableRes
 import ovh.battistella.elan.R
 
-/**
- * Icônes Material Design Icons (MDI) disponibles dans l'app, sous forme de
- * vector drawables générés par scripts/gen-mdi-icons.mjs. Ne pas éditer à la
- * main : ajouter le nom MDI dans le script et le relancer.
- */
 object MdiIcons {
     @DrawableRes val AccountOutline: Int = R.drawable.mdi_account_outline
     @DrawableRes val AlertCircleOutline: Int = R.drawable.mdi_alert_circle_outline
@@ -125,7 +120,6 @@ object MdiIcons {
     @DrawableRes val WeightLifter: Int = R.drawable.mdi_weight_lifter
     @DrawableRes val Yoga: Int = R.drawable.mdi_yoga
 
-    /** Résolution par nom MDI (ex. « bike-fast »), pour les catalogues sérialisés. */
     fun byName(name: String): Int? = BY_NAME[name]
 
     private val BY_NAME: Map<String, Int> = mapOf(

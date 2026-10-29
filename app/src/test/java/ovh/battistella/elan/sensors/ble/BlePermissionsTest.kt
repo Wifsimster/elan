@@ -1,5 +1,3 @@
-// Permissions BLE : jeu requis selon l'API (Robolectric tourne en API 34) et
-// vérification d'octroi via le shadow de l'application.
 package ovh.battistella.elan.sensors.ble
 
 import android.Manifest

@@ -1,8 +1,3 @@
-// Planification des rappels de séance sur AlarmManager (port de
-// `applyNotifications` dans lib/notifications.ts). Une alarme par jour planifié
-// non-repos, à `hour:00` heure locale, prochaine occurrence ; chaque alarme
-// se réarme pour la semaine suivante en se déclenchant (`ReminderReceiver`),
-// et le redémarrage de l'appareil rejoue la planification (`BootReceiver`).
 package ovh.battistella.elan.sync
 
 import android.app.AlarmManager
@@ -38,12 +33,6 @@ class ReminderScheduler @Inject constructor(
     private val alarmManager: AlarmManager
         get() = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    /**
-     * Re-planifie tous les rappels selon la config et le planning effectif. À
-     * appeler après tout changement de config ou de planning, au démarrage et
-     * après un redémarrage. Idempotent : annule les 7 alarmes possibles avant
-     * de re-créer celles des jours planifiés. Best-effort.
-     */
     suspend fun apply() {
         try {
             for (day in 0..6) alarmManager.cancel(pendingIntent(day))
@@ -62,17 +51,10 @@ class ReminderScheduler @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // Alarmes refusées, planning corrompu… : pas de rappel = défaut acceptable.
             Log.w(TAG, "planification des rappels ignorée", e)
         }
     }
 
-    /**
-     * Déclenchement de l'alarme du jour [day] : poste le rappel recalculé
-     * depuis le planning EFFECTIF au moment du déclenchement (un planning
-     * modifié entre-temps ne rejoue pas l'ancien contenu), puis réarme la
-     * semaine suivante.
-     */
     suspend fun onAlarm(day: Int) {
         try {
             val snapshot = settings.snapshot()
@@ -103,14 +85,8 @@ class ReminderScheduler @Inject constructor(
     companion object {
         private const val TAG = "ReminderScheduler"
 
-        /** Codes de requête des 7 alarmes : 100 (lundi) … 106 (dimanche). */
         const val REQUEST_CODE_BASE = 100
 
-        /**
-         * Prochaine occurrence STRICTEMENT future du jour de planning [day] à
-         * `hour:00` local : aujourd'hui si l'heure n'est pas passée, sinon la
-         * semaine d'après.
-         */
         fun nextOccurrence(now: ZonedDateTime, day: Int, hour: Int): ZonedDateTime {
             val target = ReminderNotifications.planIndexToDayOfWeek(day)
             val daysAhead = ((target.value - now.dayOfWeek.value) + 7) % 7
@@ -123,7 +99,6 @@ class ReminderScheduler @Inject constructor(
     }
 }
 
-/** Accès Hilt depuis les récepteurs (pas d'injection de champ : testables sans graphe). */
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface ReminderEntryPoint {
@@ -131,14 +106,12 @@ interface ReminderEntryPoint {
     @ApplicationScope fun scope(): CoroutineScope
 }
 
-/** Récepteur des alarmes de rappel : poste la notification du jour et réarme. */
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_FIRE) return
         val day = intent.getIntExtra(EXTRA_DAY, -1)
         if (day !in 0..6) return
         val (scheduler, scope) = resolve(context) ?: return
-        // `goAsync()` rend null quand le récepteur n'est pas livré par le système (tests).
         val pending: PendingResult? = goAsync()
         scope.launch {
             try {
@@ -153,7 +126,6 @@ class ReminderReceiver : BroadcastReceiver() {
         const val ACTION_FIRE = "ovh.battistella.elan.action.REMINDER_FIRE"
         const val EXTRA_DAY = "day"
 
-        /** Substitut de test : le graphe Hilt n'existe pas sous Robolectric. */
         @VisibleForTesting
         internal var override: Pair<ReminderScheduler, CoroutineScope>? = null
 
@@ -170,7 +142,6 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 }
 
-/** Les alarmes ne survivent pas au redémarrage : on les re-planifie. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return

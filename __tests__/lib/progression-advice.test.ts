@@ -1,5 +1,3 @@
-// Tests du conseil de progression muscu (lib/progression-advice.ts) : mapping du
-// ressenti vers un score, heuristique augmente/maintiens/réduis, libellés. Pur.
 import {
   adviceLabel,
   difficultyLabel,
@@ -56,10 +54,7 @@ describe('suggestProgression', () => {
   });
 
   it('respecte la fenêtre : un « dur » ancien sort du calcul', () => {
-    // window=2 : seules ['facile','facile'] comptent -> augmente.
     expect(suggestProgression(['dur', 'facile', 'facile'], 2)).toBe('augmente');
-    // window=3 : le « dur » revient dans la fenêtre, dernière reste facile mais
-    // un « dur » est présent -> on retombe sur la moyenne (1+1+3)/3 ≈ 1.67 -> maintiens.
     expect(suggestProgression(['dur', 'facile', 'facile'], 3)).toBe('maintiens');
   });
 });

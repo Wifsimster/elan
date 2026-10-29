@@ -53,7 +53,6 @@ class ElanNavigationTest {
     fun setUp() {
         db = TestSupport.inMemoryDb()
         repos = TestSupport.repositories(db)
-        // Pas d'onboarding par-dessus les écrans dans ces tests.
         runBlocking { repos.settings.setOnboardingDone(true) }
     }
 
@@ -71,7 +70,6 @@ class ElanNavigationTest {
     fun rootShowsTheThreeTabs() {
         setRoot()
 
-        // L'accueil est la destination de départ : son en-tête et les trois onglets.
         compose.onNodeWithText(label(R.string.home_greeting)).assertIsDisplayed()
         compose.onAllNodesWithText(label(R.string.nav_home)).assertCountEquals(1)
         compose.onAllNodesWithText(label(R.string.nav_history)).assertCountEquals(1)
@@ -85,7 +83,6 @@ class ElanNavigationTest {
         compose.onNodeWithText(label(R.string.nav_history)).performClick()
         compose.waitForIdle()
 
-        // Titre de l'écran + onglet ; l'accueil n'est plus affiché.
         compose.onAllNodesWithText(label(R.string.nav_history)).assertCountEquals(2)
         compose.onNodeWithText(label(R.string.home_greeting)).assertDoesNotExist()
     }
@@ -100,7 +97,6 @@ class ElanNavigationTest {
         compose.onNodeWithText(label(R.string.outing_start)).assertIsDisplayed()
         compose.onAllNodesWithText(label(R.string.nav_history)).assertCountEquals(0)
 
-        // Sortie jamais démarrée : la croix quitte sans confirmation.
         compose.onNodeWithContentDescription(label(R.string.outing_quit)).performClick()
         compose.waitForIdle()
         compose.onNodeWithText(label(R.string.home_greeting)).assertIsDisplayed()
@@ -124,14 +120,11 @@ class ElanNavigationTest {
         compose.onNodeWithText(label(R.string.home_greeting)).assertIsDisplayed()
         assertEquals(0, consumed)
 
-        // Notification de sortie : l'écran de sortie s'ouvre, la route est consommée.
         pending = Routes.outing(ActivityType.VELO)
         compose.waitForIdle()
         compose.onNodeWithText(label(R.string.outing_start)).assertIsDisplayed()
         assertEquals(1, consumed)
 
-        // Nouvel appui alors que la sortie est déjà ouverte : pas d'empilement,
-        // la croix ramène directement à l'accueil.
         pending = Routes.outing(ActivityType.VELO)
         compose.waitForIdle()
         assertEquals(2, consumed)
@@ -150,7 +143,6 @@ class ElanNavigationTest {
         outing.update { copy(phase = OutingPhase.Idle, savedSessionId = id) }
         compose.waitForIdle()
 
-        // Détail de la séance course (titre + corps), puis retour direct à l'accueil.
         compose.onAllNodesWithText("Course à pied").assertCountEquals(2)
         compose.onNodeWithContentDescription(label(R.string.common_back)).performClick()
         compose.waitForIdle()
@@ -171,8 +163,6 @@ class ElanNavigationTest {
         }
         setRoot()
 
-        // La ligne récente est en fin de page : on fait défiler jusqu'au bout pour
-        // qu'elle sorte de sous la barre d'onglets avant de la toucher.
         compose.onNodeWithText("15,0 km").performScrollTo()
         compose.onNode(hasScrollAction() and hasAnyDescendant(hasText("15,0 km")))
             .performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, 1000f) }
@@ -192,21 +182,18 @@ class ElanNavigationTest {
     fun catalogAndMuscuAreReachable() {
         setRoot()
 
-        // Catalogue autonome, puis retour.
         compose.onNodeWithText(label(R.string.home_catalog_title)).performScrollTo().performClick()
         compose.waitForIdle()
         compose.onNodeWithText(label(R.string.catalog_title)).assertIsDisplayed()
         compose.onNodeWithContentDescription(label(R.string.common_back)).performClick()
         compose.waitForIdle()
 
-        // Séance muscu plein écran (pas de barre d'onglets), sélecteur de programme visible.
         compose.onNodeWithText("Muscu").performScrollTo().performClick()
         compose.waitForIdle()
         compose.onNodeWithText(label(R.string.muscu_title)).assertIsDisplayed()
         compose.onNodeWithText(label(R.string.muscu_load_program)).assertIsDisplayed()
         compose.onAllNodesWithText(label(R.string.nav_history)).assertCountEquals(0)
 
-        // Séance vide : la croix ramène à l'accueil sans dialogue.
         compose.onNodeWithContentDescription(label(R.string.muscu_quit)).performClick()
         compose.waitForIdle()
         compose.onNodeWithText(label(R.string.home_greeting)).assertIsDisplayed()

@@ -72,19 +72,12 @@ import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.forKey
 import kotlin.math.roundToInt
 
-/** Remonte la chaîne de contextes jusqu'à l'activité hôte (pour la fenêtre). */
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
 }
 
-/**
- * Sortie GPS (vélo, course, marche) : chrono, statut GPS, statistiques live,
- * tracé en temps réel et barre de contrôle flottante. L'écran reste allumé,
- * intercepte le retour matériel (confirmation d'abandon) et porte la demande
- * de permission de localisation avant de démarrer.
- */
 @Composable
 fun OutingScreen(
     contentPadding: PaddingValues,
@@ -106,10 +99,8 @@ fun OutingScreen(
         }
     }
 
-    // Retour matériel = même chemin que la croix (confirmation d'abandon).
     BackHandler { viewModel.requestDiscard() }
 
-    // Écran allumé pendant la sortie (`useKeepAwake`).
     DisposableEffect(context) {
         val window = context.findActivity()?.window
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -129,8 +120,6 @@ fun OutingScreen(
             viewModel.onLocationPermission(fine = true, coarse = true)
         } else {
             val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-            // Notifications (Android 13+) en best-effort : sans elles, la
-            // notification du service GPS est masquée mais l'enregistrement continue.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) perms += Manifest.permission.POST_NOTIFICATIONS
             permissionLauncher.launch(perms.toTypedArray())
         }
@@ -172,7 +161,6 @@ fun OutingScreen(
                 Spacer(Modifier.width(38.dp))
             }
 
-            // Chrono : police plafonnée à ×1,2 pour rester sur une ligne.
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 Text(stringResource(R.string.outing_duration).uppercase(), style = ElanType.overline, color = color)
                 val density = LocalDensity.current
@@ -190,7 +178,6 @@ fun OutingScreen(
 
             LiveStatsCard(ui = ui, color = color)
 
-            // Tracé live dès 2 points, sinon cadre d'attente (jamais « rien »).
             if (ui.phase != OutingPhase.Idle) {
                 if (ui.outing.livePath.size >= 2) {
                     RouteMap(points = ui.outing.livePath, color = color, height = 220.dp, live = true)
@@ -250,11 +237,6 @@ fun OutingScreen(
     }
 }
 
-/**
- * Statistiques live : Vitesse ou Allure en héros (valeur clé à lire d'un coup
- * d'œil), puis Distance et Cardio, le reste en compact. Les tuiles capteur
- * (roue, cadence) n'apparaissent qu'à vélo avec un capteur.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LiveStatsCard(ui: OutingScreenUi, color: androidx.compose.ui.graphics.Color) {
@@ -351,7 +333,6 @@ private fun LiveStatsCard(ui: OutingScreenUi, color: androidx.compose.ui.graphic
     }
 }
 
-/** Barre flottante : Démarrer / (Abandonner + Réessayer) / (Pause|Reprendre + Terminer). */
 @Composable
 private fun ControlBar(
     controls: OutingControls,
@@ -369,7 +350,6 @@ private fun ControlBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            // Seule ombre de l'écran : la barre flotte au-dessus de la carte.
             .shadow(Elevation.lg)
             .background(colors.backgroundElement)
             .padding(bottom = bottomInset),
@@ -390,8 +370,6 @@ private fun ControlBar(
                     onClick = onStart,
                     modifier = Modifier.weight(1f),
                 )
-                // Écriture échouée : ni Pause ni Reprendre — le GPS est arrêté,
-                // seule l'écriture a raté.
                 OutingControls.SaveFailed -> {
                     ElanButton(
                         title = stringResource(R.string.outing_abandon),
@@ -419,8 +397,6 @@ private fun ControlBar(
                         onClick = if (controls.paused) onResume else onPause,
                         modifier = Modifier.weight(1f),
                     )
-                    // Terminer (action engageante) pèse plus que Pause pour
-                    // réduire le risque d'appui par erreur en plein effort.
                     ElanButton(
                         title = stringResource(R.string.outing_finish),
                         icon = MdiIcons.FlagCheckered,

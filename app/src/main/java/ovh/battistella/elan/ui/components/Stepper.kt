@@ -46,11 +46,6 @@ import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-/**
- * Valeur saisie au clavier → valeur retenue, ou `null` si vide / invalide (on
- * garde alors l'ancienne). Virgule acceptée ; arrondi au dixième en décimal,
- * à l'entier sinon ; jamais sous [min].
- */
 internal fun parseStepperInput(text: String, decimal: Boolean, min: Double): Double? {
     val parsed = text.trim().replace(',', '.').toDoubleOrNull() ?: return null
     if (!parsed.isFinite()) return null
@@ -58,11 +53,6 @@ internal fun parseStepperInput(text: String, decimal: Boolean, min: Double): Dou
     return max(min, rounded)
 }
 
-/**
- * Incrémenteur d'une série muscu (reps ou charge) : boutons −/+ par paliers,
- * et saisie directe en tapant la valeur (champ en ligne, clavier numérique,
- * virgule acceptée). Reps : pas 1, min 1 ; charge : pas 2,5, min 0, décimal.
- */
 @Composable
 fun Stepper(
     value: Double,
@@ -71,7 +61,6 @@ fun Stepper(
     modifier: Modifier = Modifier,
     step: Double = 1.0,
     min: Double = 0.0,
-    /** Autorise la saisie décimale (poids : réglage au kg, voire 0,5 kg près). */
     decimal: Boolean = false,
 ) {
     val colors = ElanTheme.colors
@@ -118,11 +107,8 @@ fun Stepper(
                 )
                 .semantics { contentDescription = valueDescription },
         ) {
-            // Valeur chiffrée : condensé tabulaire, couleur et centrage portés par le style (champ de saisie).
             val valueStyle = ElanType.metricSm.copy(color = colors.text, textAlign = TextAlign.Center)
             if (editing) {
-                // Le premier événement de focus est « non focalisé » (avant la
-                // demande) : on ne valide qu'à une vraie perte de focus.
                 var hadFocus by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) { focusRequester.requestFocus() }
                 BasicTextField(

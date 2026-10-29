@@ -15,15 +15,9 @@ import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 
-/**
- * En-tête d'une carte de réglages : icône colorée 22 dp + titre de section.
- * Uniformise le motif répété dans l'écran Réglages pour garder une
- * présentation cohérente d'une carte à l'autre.
- */
 @Composable
 fun SettingCardHeader(
     @DrawableRes icon: Int,
-    /** Couleur de l'icône (accent thématique de la section). */
     color: Color,
     title: String,
     modifier: Modifier = Modifier,

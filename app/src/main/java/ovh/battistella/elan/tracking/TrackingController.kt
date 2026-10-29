@@ -1,22 +1,3 @@
-// Contrôleur de la sortie GPS en cours — l'unique état vivant d'une sortie
-// (fusion de use-gps-tracker.ts, du chrono et du cycle de vie de sortie.tsx).
-//
-// Singleton de processus : l'écran n'en est qu'une vue. Il survit à la
-// recréation de l'activité, et son cycle de vie est adossé au service de
-// premier plan (`TrackingService`) qui maintient le GPS écran éteint.
-//
-// Garanties reproduites de l'app d'origine (port-spec 02-interface §10.1) :
-//   - la séance est créée en base dès `begin()` (endedAt NULL = en cours) ;
-//   - les points sont flushés toutes les 20 s et à la pause (survie au crash) ;
-//   - `finish()` fige le résultat GPS une fois pour toutes : un réessai après
-//     un échec d'écriture réutilise le même tracé et le même id de séance ;
-//   - en pause le filtre reste alimenté (pas de saut à la reprise) mais rien
-//     n'est cumulé ni enregistré ; un fix rejeté ne met à jour que la précision.
-//
-// Toutes les méthodes publiques sont `suspend` mais leur travail tourne sur la
-// portée applicative (`scope.launch { … }.join()`) : l'appelant peut attendre
-// le résultat, mais la disparition de sa propre portée (ViewModel détruit en
-// plein enregistrement) n'interrompt pas la transition.
 package ovh.battistella.elan.tracking
 
 import android.content.Context
@@ -63,84 +44,51 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.min
 
-/** Phases de l'écran de sortie (`idle | active | paused | saving | save-failed` + `requesting`). */
 enum class OutingPhase {
     IDLE,
-    /** `begin()` en cours : permission vérifiée, séance créée. */
     REQUESTING,
     ACTIVE,
     PAUSED,
     SAVING,
-    /** L'écriture finale a échoué : Réessayer (`retrySave`) ou Abandonner (`discard`). */
     SAVE_FAILED,
 }
 
-/** Résultat d'un `begin()`. */
 enum class BeginResult {
     STARTED,
-    /** Localisation refusée. */
     DENIED,
-    /** Seule la position approximative est accordée : inexploitable pour un tracé. */
     COARSE,
-    /** La séance n'a pas pu être créée en base : rien n'a démarré. */
     FAILED,
-    /** Une sortie est déjà en cours. */
     BUSY,
 }
 
-/** Message d'erreur à présenter (titre + corps), tel que les alertes de l'app d'origine. */
 data class OutingError(val title: String, val message: String)
 
-/**
- * État observable de la sortie en cours. Les valeurs capteurs (`bpm`,
- * `cadenceRpm`, `wheelSpeedKmh`) reflètent la dernière trame reçue, quelle que
- * soit la phase ; les cumuls ne bougent qu'en phase `ACTIVE`.
- */
 data class OutingState(
     val phase: OutingPhase = OutingPhase.IDLE,
     val type: ActivityType = ActivityType.VELO,
-    /** Id de la séance en base (créée dès `begin()`), `null` hors sortie. */
     val sessionId: Long? = null,
-    /** Début de la sortie (ms epoch), `null` hors sortie. */
     val startedAt: Long? = null,
-    /** Temps actif écoulé (hors pauses), rafraîchi à ~4 Hz. */
     val elapsedSec: Int = 0,
     val distanceM: Double = 0.0,
-    /** Vitesse instantanée du dernier point accepté (km/h). */
     val speedKmh: Double = 0.0,
     val maxSpeedKmh: Double = 0.0,
     val elevationGainM: Double = 0.0,
-    /** Points consolidés retenus depuis le départ. */
     val pointCount: Int = 0,
-    /** Précision horizontale du dernier fix reçu (m), accepté ou non ; `null` avant le premier. */
     val accuracyM: Double? = null,
     val gpsStatus: GpsStatus = GpsStatus.IDLE,
-    /**
-     * Tracé allégé pour la carte live : ancres figées tous les 8 m + curseur de
-     * tête provisoire ré-émis au plus toutes les 2,5 s.
-     */
     val livePath: List<ConsolidatedPoint> = emptyList(),
-    /** Dernière FC reçue de la ceinture, `null` sans capteur. */
     val bpm: Int? = null,
-    /** Dernière cadence reçue du capteur (tr/min), `null` sans capteur. */
     val cadenceRpm: Int? = null,
-    /** Dernière vitesse roue reçue du capteur (km/h), `null` sans capteur. */
     val wheelSpeedKmh: Double? = null,
-    /** Calories estimées sur la vitesse MOYENNE (distance / temps actif), pas l'instantanée. */
     val caloriesLive: Double = 0.0,
-    /** Dernière erreur à présenter ; effacée au prochain `begin()`. */
     val error: OutingError? = null,
-    /** Id de la dernière séance enregistrée avec succès (pour naviguer vers son détail). */
     val savedSessionId: Long? = null,
 ) {
-    /** Une sortie est en cours (le service de premier plan doit tourner). */
     val isLive: Boolean get() = phase == OutingPhase.ACTIVE || phase == OutingPhase.PAUSED
 
-    /** Corps du message d'erreur, raccourci pratique pour les snackbars. */
     val errorMessage: String? get() = error?.message
 }
 
-/** Résultat GPS figé au premier `finish()` (équivalent de `gps.stop()`). */
 data class GpsResult(
     val points: List<ConsolidatedPoint>,
     val distanceM: Double,
@@ -151,7 +99,6 @@ data class GpsResult(
     val accuracyM: Double?,
 )
 
-/** Échantillon de cadence horodaté (tr/min), accumulé pendant la sortie. */
 data class CadenceSample(override val ts: Long, val cadence: Double) : Timestamped
 
 @Singleton
@@ -171,28 +118,19 @@ class TrackingController @Inject constructor(
 
     private val stopwatch = Stopwatch(clock, scope)
 
-    /** Sérialise transitions de phase et accès aux tampons ci-dessous. */
     private val mutex = Mutex()
 
-    // ---- tampons de la sortie (protégés par `mutex`) ---------------------
     private var consolidator: GpsConsolidator? = null
     private val points = ArrayList<ConsolidatedPoint>()
-    /** Curseur du flush incrémental : index du premier point pas encore écrit. */
     private var flushedCount = 0
     private val livePath = ArrayList<ConsolidatedPoint>()
     private var lastLive: ConsolidatedPoint? = null
     private var lastLiveEmitTs = 0L
     private val hrSamples = ArrayList<HrSample>()
     private val cadenceSamples = ArrayList<CadenceSample>()
-    /** Résultat figé au premier `finish()` : un réessai n'arrête pas le GPS deux fois. */
     private var frozen: GpsResult? = null
     private var profile = Profile()
 
-    /**
-     * Tenu pendant toute l'écriture d'un flush incrémental. `save()` le prend
-     * autour de l'écriture finale : un flush en vol ne peut plus réinsérer ses
-     * points après la réécriture complète du tracé (doublons).
-     */
     private val flushMutex = Mutex()
     private var gpsJob: Job? = null
     private var flushJob: Job? = null
@@ -201,7 +139,6 @@ class TrackingController @Inject constructor(
         scope.launch {
             stopwatch.elapsedSec.collect { sec -> _state.update { withLiveCalories(it.copy(elapsedSec = sec)) } }
         }
-        // Trames brutes plutôt que valeur dédupliquée (voir SensorSamples.kt).
         scope.launch {
             heartRate.orElse(HeartRateSamples.None).frames()
                 .catch { Log.w(TAG, "flux FC interrompu", it) }
@@ -214,14 +151,6 @@ class TrackingController @Inject constructor(
         }
     }
 
-    // ---- cycle de vie -----------------------------------------------------
-
-    /**
-     * Démarre une sortie : vérifie la permission, crée la séance (endedAt NULL),
-     * remet les tampons à zéro, lance le chrono, le service de premier plan, le
-     * flux GPS et le flush périodique. En cas de refus ou d'échec, `state.error`
-     * porte le message à présenter et rien n'a démarré.
-     */
     suspend fun begin(type: ActivityType): BeginResult = scope.async { beginNow(type) }.await()
 
     private suspend fun beginNow(type: ActivityType): BeginResult = mutex.withLock {
@@ -246,9 +175,6 @@ class TrackingController @Inject constructor(
             Profile()
         }
 
-        // Séance créée immédiatement (déjà exclue de l'historique et des stats).
-        // Si la base échoue, on ne démarre pas : mieux vaut un refus clair
-        // qu'une sortie qu'on croit enregistrer sans filet.
         val startedAt = clock.millis()
         val id = try {
             sessions.createSession(type, startedAt)
@@ -276,7 +202,6 @@ class TrackingController @Inject constructor(
         BeginResult.STARTED
     }
 
-    /** Met en pause : chrono figé, cumuls gelés, flush immédiat des points. */
     suspend fun pause() = scope.launch {
         val paused = mutex.withLock {
             if (_state.value.phase != OutingPhase.ACTIVE) return@withLock false
@@ -286,7 +211,7 @@ class TrackingController @Inject constructor(
             _state.update { it.copy(phase = OutingPhase.PAUSED) }
             true
         }
-        if (paused) flush() // persiste sans attendre le prochain tick
+        if (paused) flush()
     }.join()
 
     suspend fun resume() = scope.launch {
@@ -298,22 +223,10 @@ class TrackingController @Inject constructor(
         }
     }.join()
 
-    /**
-     * Termine et enregistre la sortie (la confirmation est à la charge de
-     * l'écran). Renvoie l'id de la séance enregistrée, ou `null` si
-     * l'enregistrement a échoué (phase `SAVE_FAILED`, réessai possible) ou si
-     * aucune sortie n'était en cours.
-     */
     suspend fun finish(): Long? = scope.async { save(from = setOf(OutingPhase.ACTIVE, OutingPhase.PAUSED)) }.await()
 
-    /** Réessaie l'enregistrement après un échec, avec le même id et le même tracé figé. */
     suspend fun retrySave(): Long? = scope.async { save(from = setOf(OutingPhase.SAVE_FAILED)) }.await()
 
-    /**
-     * Abandonne la sortie : GPS coupé, service arrêté (il suit l'état), séance
-     * en cours supprimée pour qu'elle ne soit pas « récupérée » au prochain
-     * lancement. Ignoré pendant un enregistrement.
-     */
     suspend fun discard() = scope.launch {
         val id = mutex.withLock {
             val s = _state.value
@@ -333,13 +246,7 @@ class TrackingController @Inject constructor(
         }
     }.join()
 
-    /**
-     * Points accumulés depuis le dernier appel (le curseur avance). Sert au
-     * flush incrémental ; exposé pour les tests et un flush à la demande.
-     */
     suspend fun takeUnflushed(): List<ConsolidatedPoint> = mutex.withLock { takeUnflushedLocked() }
-
-    // ---- enregistrement ---------------------------------------------------
 
     private class SavePrep(
         val id: Long,
@@ -355,19 +262,13 @@ class TrackingController @Inject constructor(
             val id = s.sessionId ?: return@withLock null
             _state.update { it.copy(phase = OutingPhase.SAVING, error = null) }
 
-            // Figé au premier appel : un réessai réutilise le même tracé/agrégats.
             val result = frozen ?: stopGpsLocked()
             frozen = result
-            // L'écriture finale réécrit tout le tracé : plus rien à flusher.
             flushedCount = points.size
             stopwatch.pause()
-            // Durée lue en direct au moment du « Terminer » (chrono figé ensuite :
-            // un réessai obtient la même valeur).
             val durationSec = stopwatch.getElapsedSec()
             val (avgHr, maxHr) = summarizeHr(hrSamples)
             val (avgCadence, maxCadence) = summarizeCadence(cadenceSamples.map { it.cadence })
-            // Temps en mouvement (hors arrêts) borné à la durée totale : base de
-            // la vitesse moyenne et des calories. À défaut de tracé, la durée.
             val moving = min(movingTimeSec(result.points), durationSec)
             val effectiveSec = if (moving > 0) moving else durationSec
             val avgSpeedKmh = if (effectiveSec > 0) result.distanceM / 1000 / (effectiveSec / 3600.0) else 0.0
@@ -411,8 +312,6 @@ class TrackingController @Inject constructor(
         } ?: return null
 
         return try {
-            // Écriture atomique : tout le tracé + agrégats + endedAt en une
-            // transaction, sur l'id créé au démarrage (pas de doublon au réessai).
             flushMutex.withLock { sessions.finalizeSession(prep.id, prep.patch, prep.points) }
             finalizer.onSaved(prep.data)
             mutex.withLock {
@@ -424,16 +323,11 @@ class TrackingController @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // Phase dédiée (Réessayer / Abandonner) — surtout PAS de « Reprendre » :
-            // le GPS est arrêté. La séance reste en base (endedAt NULL), donc
-            // récupérable au pire au prochain lancement.
             Log.w(TAG, "enregistrement de la sortie impossible", e)
             _state.update { it.copy(phase = OutingPhase.SAVE_FAILED, error = ERROR_SAVE) }
             null
         }
     }
-
-    // ---- GPS ----------------------------------------------------------------
 
     private suspend fun collectGps() {
         try {
@@ -452,19 +346,15 @@ class TrackingController @Inject constructor(
         val result = consolidator.process(fix)
         val point = result.point
         if (point == null) {
-            // Fix rejeté (imprécis ou aberrant) : seul l'indicateur de précision bouge.
             _state.update { it.copy(accuracyM = fix.accuracy) }
             return@withLock
         }
-        // En pause : le filtre reste alimenté (pas de saut à la reprise) mais on
-        // ne cumule rien et on n'enregistre pas le point.
         if (_state.value.phase != OutingPhase.ACTIVE) return@withLock
 
         points.add(point)
         val instSpeed = point.speedKmh ?: 0.0
         val path = pushLivePathLocked(point)
         _state.update { s ->
-            // Plafond de plausibilité : un Doppler aberrant ne s'octroie pas la vitesse max.
             val maxSpeed = if (instSpeed > s.maxSpeedKmh && instSpeed <= MAX_PLAUSIBLE_KMH) instSpeed else s.maxSpeedKmh
             withLiveCalories(
                 s.copy(
@@ -480,12 +370,6 @@ class TrackingController @Inject constructor(
         }
     }
 
-    /**
-     * Alimente le tracé live décimé : une ancre est figée dès qu'on s'est
-     * éloigné de 8 m de la précédente (le départ reste immuable) ; entre deux
-     * ancres, la position courante est ré-émise en tête au plus toutes les
-     * 2,5 s. Renvoie la liste à publier, ou `null` si rien ne change.
-     */
     private fun pushLivePathLocked(point: ConsolidatedPoint): List<ConsolidatedPoint>? {
         val last = lastLive
         return if (last == null || haversineMeters(last, point) >= LIVE_DECIMATE_M) {
@@ -501,7 +385,6 @@ class TrackingController @Inject constructor(
         }
     }
 
-    /** Coupe le flux GPS et le flush, et fige le résultat de la sortie. */
     private fun stopGpsLocked(): GpsResult {
         gpsJob?.cancel()
         gpsJob = null
@@ -520,9 +403,6 @@ class TrackingController @Inject constructor(
         )
     }
 
-    // ---- flush incrémental ------------------------------------------------
-
-    /** Flush périodique tant que la sortie est active (la boucle vit avec `flushJob`). */
     private suspend fun flushLoop() {
         while (true) {
             delay(FLUSH_INTERVAL_MS)
@@ -530,11 +410,6 @@ class TrackingController @Inject constructor(
         }
     }
 
-    /**
-     * Écrit les points accumulés depuis le dernier flush. Best-effort — un
-     * échec n'est pas grave, l'enregistrement final réécrit tout le tracé.
-     * Gardé contre le recouvrement (un flush lent ne se superpose pas au suivant).
-     */
     private suspend fun flush() {
         if (!flushMutex.tryLock()) return
         try {
@@ -554,7 +429,6 @@ class TrackingController @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "flush incrémental ignoré", e)
-                // Tranche remise en file : le flush suivant la réessaie.
                 mutex.withLock {
                     if (_state.value.sessionId == id && flushedCount == from + slice.size) flushedCount = from
                 }
@@ -571,7 +445,6 @@ class TrackingController @Inject constructor(
         return slice
     }
 
-    /** Attache la FC et la cadence les plus proches (± 10 s) à un lot de points. */
     private fun attachSensorsLocked(batch: List<ConsolidatedPoint>): List<TrackPointInput> = batch.map { p ->
         TrackPointInput(
             ts = p.ts,
@@ -583,8 +456,6 @@ class TrackingController @Inject constructor(
             cadence = nearestSample(cadenceSamples, p.ts, { it.cadence }),
         )
     }
-
-    // ---- capteurs ---------------------------------------------------------
 
     private suspend fun onHrFrame(frame: HrFrame) = mutex.withLock {
         _state.update { it.copy(bpm = frame.bpm) }
@@ -604,8 +475,6 @@ class TrackingController @Inject constructor(
         pushDownsampled(cadenceSamples, CadenceSample(frame.ts, rpm.toDouble()), { it.cadence })
     }
 
-    // ---- internes -----------------------------------------------------------
-
     private fun resetBuffersLocked() {
         consolidator = GpsConsolidator()
         clearOutingLocked()
@@ -622,7 +491,6 @@ class TrackingController @Inject constructor(
         frozen = null
     }
 
-    /** État remis à neuf en conservant les lectures capteurs (indépendantes de la sortie). */
     private fun OutingState.fresh(
         type: ActivityType,
         phase: OutingPhase = OutingPhase.IDLE,
@@ -644,11 +512,6 @@ class TrackingController @Inject constructor(
         savedSessionId = savedSessionId,
     )
 
-    /**
-     * Calories live sur la vitesse MOYENNE (distance / temps actif), pas
-     * l'instantanée : sinon la tuile bondit sur un simple sprint alors que
-     * l'estimation doit refléter l'effort cumulé.
-     */
     private fun withLiveCalories(s: OutingState): OutingState {
         if (!s.isLive && s.phase != OutingPhase.SAVING) return s.copy(caloriesLive = 0.0)
         val avgKmh = if (s.elapsedSec > 0) s.distanceM / 1000 / (s.elapsedSec / 3600.0) else 0.0
@@ -659,8 +522,6 @@ class TrackingController @Inject constructor(
         try {
             ContextCompat.startForegroundService(context, Intent(context, TrackingService::class.java))
         } catch (e: Exception) {
-            // App en arrière-plan au moment du démarrage (interdit par Android) :
-            // le suivi continue en mémoire tant que le processus vit.
             Log.w(TAG, "service de premier plan indisponible", e)
         }
     }
@@ -668,13 +529,9 @@ class TrackingController @Inject constructor(
     companion object {
         private const val TAG = "TrackingController"
 
-        /** Cadence du flush incrémental des points vers la base (survie au crash). */
         const val FLUSH_INTERVAL_MS = 20_000L
-        /** Distance minimale entre deux ancres du tracé live. */
         const val LIVE_DECIMATE_M = 8.0
-        /** Ré-émission du curseur de tête au plus toutes les 2,5 s. */
         const val LIVE_HEAD_THROTTLE_MS = 2_500L
-        /** Au-delà, un Doppler est un glitch, pas un record (« 173 km/h à vélo »). */
         const val MAX_PLAUSIBLE_KMH = 120.0
 
         val ERROR_DENIED = OutingError(

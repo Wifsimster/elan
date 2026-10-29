@@ -67,13 +67,11 @@ class SettingsViewModelTest {
         db.close()
     }
 
-    /** État courant après propagation des flux (combine sur le dispatcher de test). */
     private fun TestScope.ui(vm: SettingsViewModel): SettingsUi {
         advanceUntilIdle()
         return vm.ui.value
     }
 
-    /** Collecte de `ui` (WhileSubscribed) : annulable pour libérer le flux Room le temps d'une transaction sur `settings`. */
     private var uiJob: Job? = null
 
     private fun TestScope.vm(): SettingsViewModel {
@@ -117,7 +115,6 @@ class SettingsViewModelTest {
 
         vm.setGoalActivity(GoalActivity.MUSCU)
         vm.setGoalMetric(GoalMetric.DISTANCE)
-        // Défaut de la distance, et la muscu (sans distance) retombe sur « toutes ».
         assertEquals(100, ui(vm).goalForm.target)
         assertEquals(GoalActivity.ALL, ui(vm).goalForm.activity)
         vm.setGoalActivity(GoalActivity.MUSCU)
@@ -150,7 +147,6 @@ class SettingsViewModelTest {
         assertEquals(150.0, goal.target, 0.0)
         assertEquals(1, repos.settings.snapshot().goals.size)
 
-        // Le tonnage ignore l'activité choisie.
         vm.setGoalMetric(GoalMetric.TONNAGE)
         vm.addGoal()
         advanceUntilIdle()
@@ -220,7 +216,6 @@ class SettingsViewModelTest {
         vm.setNotificationsEnabled(false)
         advanceUntilIdle()
         assertFalse(ui(vm).notifications.enabled)
-        // Heure changée hors activation : pas de replanification.
         vm.setNotificationHour(8)
         advanceUntilIdle()
         assertEquals(8, repos.settings.snapshot().notifications.hour)
@@ -278,10 +273,6 @@ class SettingsViewModelTest {
     @Test
     fun `tout réinitialiser - profil, poids et réglages effacés, clés de sauvegarde et de migration gardées`() = runTest(mainDispatcher.dispatcher) {
         seedForDataCard()
-        // Le ViewModel n'est abonné qu'après la réinitialisation : avec des
-        // exécuteurs Room synchrones, un flux `settings` collecté pendant la
-        // transaction se rafraîchirait DANS cette transaction suspendue, ce que
-        // Room refuse (artefact du harnais, sans équivalent sur l'appareil).
         val vm = SettingsViewModel(
             repos.settings, repos.sessions, reminders, health, map, export, strava,
             Clock.fixed(Instant.ofEpochMilli(now), ZoneId.systemDefault()), context,
@@ -300,8 +291,6 @@ class SettingsViewModelTest {
         assertFalse(s.onboardingDone)
 
         uiJob = backgroundScope.launch { vm.ui.collect {} }
-        // Même artefact : après cette transaction, la première requête du flux
-        // `settings` n'arrive qu'à l'invalidation suivante ; une écriture anodine la provoque.
         vm.setPrivacyZone(0)
         assertEquals(context.getString(R.string.settings_data_reset_title), (ui(vm).dialog as SettingsDialog.Info).title)
     }
@@ -318,7 +307,6 @@ class SettingsViewModelTest {
         assertEquals(map.openFreeMapStyleUrl, ui(vm).mapStyleUrl)
         assertEquals("", ui(vm).mapUrlField)
 
-        // Saisie progressive : « http » est un préfixe de https://, rien n'est persisté.
         vm.setCustomMapUrl("http")
         advanceUntilIdle()
         assertEquals("http", ui(vm).mapUrlField)
@@ -336,7 +324,6 @@ class SettingsViewModelTest {
         assertEquals("https://tiles.example/style.json", ui(vm).mapStyleUrl)
         vm.dismissDialog()
 
-        // Champ vidé, carte active → retour au preset.
         vm.setCustomMapUrl("")
         advanceUntilIdle()
         assertEquals(map.openFreeMapStyleUrl, ui(vm).mapStyleUrl)
@@ -409,7 +396,6 @@ class SettingsViewModelTest {
         assertEquals(2, last.imported)
         assertEquals(1, last.duplicates)
         assertEquals(now, last.at)
-        // Les motifs détaillés sont montrés pour cet import, mais pas persistés.
         assertEquals(listOf("natation.tcx : ignorée"), last.details)
         assertTrue(SettingsRepository.Keys.STRAVA_LAST_IMPORT in SettingsRepository.Keys.BACKUP_EXCLUDED)
         assertEquals(

@@ -52,11 +52,6 @@ import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 import kotlin.math.roundToLong
 
-/**
- * Journal de poids : nouvelle pesée, métriques (actuel / 30 jours / depuis le
- * début), courbe d'évolution et journal en bloc continu avec suppression
- * confirmée. Le journal est virtualisé (des centaines de lignes possibles).
- */
 @Composable
 fun WeightScreen(
     contentPadding: PaddingValues,
@@ -170,7 +165,6 @@ fun WeightScreen(
     }
 }
 
-/** Champ décimal (6 caractères max), chiffres tabulaires. */
 @Composable
 private fun WeightInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val colors = ElanTheme.colors
@@ -206,7 +200,6 @@ private fun Metric(label: String, value: String, color: Color? = null) {
     }
 }
 
-/** Ligne du journal : bloc continu, coins arrondis en tête et en queue, séparateurs hairline. */
 @Composable
 private fun WeightRow(measurement: BodyMeasurement, delta: Double?, first: Boolean, last: Boolean, onDelete: () -> Unit) {
     val colors = ElanTheme.colors

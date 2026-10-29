@@ -100,13 +100,11 @@ class SessionDetailScreenTest {
         compose.setContent { ElanTheme { SessionDetailScreen(contentPadding = PaddingValues(), viewModel = vm(id), onOpenMap = { map = it }) } }
         compose.waitForIdle()
 
-        // En-tête + corps + puce de type.
         compose.onAllNodesWithText("Vélo").assertCountEquals(3)
         compose.onNodeWithText(text(R.string.records_personal)).assertIsDisplayed()
         compose.onNodeWithContentDescription(text(R.string.session_expand_map)).performClick()
         assertEquals(id, map)
 
-        // Temps en mouvement (50:00) et temps total (1:00:00) car l'écart dépasse 60 s.
         compose.onNodeWithText(text(R.string.session_moving)).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("50:00").assertIsDisplayed()
         compose.onNodeWithText(text(R.string.session_total_time)).assertIsDisplayed()
@@ -150,7 +148,7 @@ class SessionDetailScreenTest {
         compose.onNodeWithText(text(R.string.session_sets)).assertIsDisplayed()
         compose.onNodeWithText("3").assertIsDisplayed()
         compose.onNodeWithText(text(R.string.session_exercises)).assertIsDisplayed()
-        compose.onAllNodesWithText("2").assertCountEquals(2) // exercices + index de la 2e série
+        compose.onAllNodesWithText("2").assertCountEquals(2)
         compose.onNodeWithText(text(R.string.session_moving)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.session_type_title).uppercase()).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.session_export_gpx)).assertDoesNotExist()

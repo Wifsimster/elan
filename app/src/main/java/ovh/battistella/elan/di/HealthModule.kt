@@ -10,10 +10,6 @@ import ovh.battistella.elan.health.HealthConnectManager
 import ovh.battistella.elan.tracking.HealthExport
 import javax.inject.Singleton
 
-/**
- * Liaisons Health Connect : la passerelle SDK et le miroir `HealthExport`
- * attendu (en optionnel) par `SessionFinalizer` — voir `TrackingModule`.
- */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class HealthModule {

@@ -9,11 +9,6 @@ import { describeGoal, formatGoalValue, goalProgressList, type GoalProgress } fr
 import { nowMs } from '@/lib/time';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Carte d'accueil : avancement des objectifs sur la période courante. Recharge
- * à chaque focus (la progression évolue dès qu'une séance est enregistrée).
- * Ne s'affiche pas tant qu'aucun objectif n'est défini.
- */
 export function GoalsProgressCard() {
   const theme = useTheme();
   const [items, setItems] = useState<GoalProgress[]>([]);
@@ -51,7 +46,6 @@ export function GoalsProgressCard() {
               </Text>
             )}
           </View>
-          {/* Barre d'avancement (bornée [0, 1]). */}
           <View
             style={{
               height: 8,

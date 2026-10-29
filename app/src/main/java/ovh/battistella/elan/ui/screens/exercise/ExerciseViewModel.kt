@@ -22,10 +22,8 @@ import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
 
-/** Fiche d'exécution d'un exercice connu (programme, sinon catalogue). */
 data class ExerciseGuide(val imageKey: String?, val icon: String?, val muscles: List<String>, val howTo: String)
 
-/** Résout la fiche depuis les programmes, puis le catalogue, sinon `null` (saisie libre). */
 fun resolveGuide(name: String): ExerciseGuide? {
     exerciseByName(name)?.let { return ExerciseGuide(it.imageKey, it.icon, it.muscles, it.howTo) }
     catalogByName(name)?.let { return ExerciseGuide(it.imageKey, it.icon, it.muscles, exerciseHowTo(it.id) ?: "") }
@@ -35,7 +33,6 @@ fun resolveGuide(name: String): ExerciseGuide? {
 data class ExerciseUi(
     val name: String = "",
     val guide: ExerciseGuide? = null,
-    /** `null` = chargement en cours. */
     val points: List<ExercisePoint>? = null,
 ) {
     private val list: List<ExercisePoint> get() = points.orEmpty()
@@ -44,11 +41,9 @@ data class ExerciseUi(
     val last: Double get() = list.lastOrNull()?.maxWeightKg ?: 0.0
     val delta: Double get() = last - first
 
-    /** Force estimée (1RM Epley) : 0 pour les exercices sans charge. */
     val best1rm: Double get() = list.maxOfOrNull { epley1RM(it.maxWeightKg, it.topReps) } ?: 0.0
     val last1rm: Double get() = list.lastOrNull()?.let { epley1RM(it.maxWeightKg, it.topReps) } ?: 0.0
 
-    /** Charge max des 10 dernières séances, libellés `J/M`. */
     val bars: List<BarPoint>
         get() = list.takeLast(10).map { p ->
             val d = Instant.ofEpochMilli(p.startedAt).atZone(ZoneId.systemDefault())
@@ -61,7 +56,6 @@ data class ExerciseUi(
     val lastRating: Difficulty? get() = ratings.lastOrNull { it != null }
 }
 
-/** Fiche d'un exercice (port de `exercise/[name].tsx`) : historique, records, 1RM, conseil. */
 @HiltViewModel
 class ExerciseViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,

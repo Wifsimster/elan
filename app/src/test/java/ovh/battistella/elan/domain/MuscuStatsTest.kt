@@ -1,5 +1,3 @@
-// Tests des agrégats de séance muscu (MuscuStats.kt) : comptage séries,
-// séries effectuées, volume soulevé et résumé textuel. Pur.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -23,7 +21,6 @@ class MuscuStatsTest {
             ),
             StatsExercise(listOf(StatsSet(reps = 12, weightKg = 20.0, done = false))),
         )
-        // volume = 10*50 + 8*50 + 8*50 + 12*20 = 500+400+400+240 = 1540
         assertEquals(MuscuStats(exerciseCount = 2, totalSets = 4, doneSets = 2, totalVolume = 1540.0), muscuStats(exercises))
     }
 

@@ -22,10 +22,6 @@ import ovh.battistella.elan.testing.TestSupport.trackPointInput
 import java.time.LocalDate
 import java.time.ZoneId
 
-/**
- * Transposition de `__tests__/lib/db.test.ts`, cas par cas, sur la vraie base
- * Room en mémoire — puis les cas que le harnais Jest ne couvrait pas.
- */
 @RunWith(RobolectricTestRunner::class)
 class SessionRepositoryTest {
 
@@ -45,7 +41,6 @@ class SessionRepositoryTest {
         db.close()
     }
 
-    /** Le jeu de données du `beforeAll` d'origine : une sortie vélo + une séance muscu + réglages. */
     private suspend fun seedLegacyFixture(): Pair<Long, Long> {
         val veloId = sessions.createSession(ActivityType.VELO, 1_700_000_000_000L)
         sessions.updateSession(
@@ -104,8 +99,6 @@ class SessionRepositoryTest {
         externalId = externalId,
     )
 
-    // ---- exportAll ---------------------------------------------------------
-
     @Test
     fun `exportAll exporte séances points et séries et exclut les réglages secrets`() = runTest {
         seedLegacyFixture()
@@ -119,8 +112,6 @@ class SessionRepositoryTest {
         assertFalse("backup_s3" in keys)
         assertFalse("backup_last" in keys)
     }
-
-    // ---- round-trip export → clear → import --------------------------------
 
     @Test
     fun `round-trip restaure des données identiques ids préservés`() = runTest {
@@ -156,7 +147,6 @@ class SessionRepositoryTest {
     fun `importAll ignore les clés exclues et remplace les données existantes`() = runTest {
         seedLegacyFixture()
         val snap = snapshot.exportAll()
-        // Une sauvegarde falsifiée tente d'injecter un fond de carte et une config S3.
         val tampered = snap.copy(
             settings = snap.settings + listOf(
                 SettingEntry("map_style_url", "https://evil.example/style.json"),
@@ -167,7 +157,6 @@ class SessionRepositoryTest {
         assertNull(repos.settings.getSetting("map_style_url"))
         assertEquals("SECRET-CREDENTIALS", repos.settings.getSetting("backup_s3"))
         assertEquals("""{"weightKg":78,"maxHr":188}""", repos.settings.getSetting("profile"))
-        // Pas de doublon : la base a été vidée avant réinsertion.
         assertEquals(2, snapshot.exportAll().sessions.size)
     }
 
@@ -178,8 +167,6 @@ class SessionRepositoryTest {
         snapshot.importAll(snap)
         assertEquals(emptyList<Any>(), repos.bodyWeight.listBodyMeasurements())
     }
-
-    // ---- insertImportedSession -------------------------------------------
 
     @Test
     fun `insertImportedSession insère la première fois puis signale un doublon`() = runTest {
@@ -192,23 +179,18 @@ class SessionRepositoryTest {
         val other = sessions.insertImportedSession(importedRow("strava-def456"), emptyList())
         assertTrue(other is ImportResult.Imported)
 
-        // Le doublon n'a rien écrit : une seule séance abc123, un seul point.
         assertEquals(2, snapshot.exportAll().sessions.size)
         assertEquals(1, sessions.getTrackPoints((first as ImportResult.Imported).id).size)
         assertEquals("strava", sessions.getSession(first.id)?.source)
     }
 
-    // ---- sessionRecords ----------------------------------------------------
-
     @Test
     fun `un chrono oublié à l'arrêt ne rafle pas le record de durée vélo`() = runTest {
-        // Sortie A : 1 h roulée d'affilée (temps en mouvement = temps total).
         val a = sessions.createSession(ActivityType.VELO, 1_800_000_000_000L)
         sessions.updateSession(
             a,
             SessionUpdate { endedAt = 1_800_003_600_000L; durationSec = 3600; movingTimeSec = 3600; distanceM = 30_000.0 },
         )
-        // Sortie B : 3 h de temps total mais 10 min en mouvement.
         val b = sessions.createSession(ActivityType.VELO, 1_800_100_000_000L)
         sessions.updateSession(
             b,
@@ -226,8 +208,6 @@ class SessionRepositoryTest {
         val zone = ZoneId.systemDefault()
         fun at(date: LocalDate) = date.atStartOfDay(zone).plusHours(12).toInstant().toEpochMilli()
 
-        // 2023 : 50 km. 2024 : 40 km puis 30 km. 2024-30 km est record de rien ;
-        // 2024-40 km est record de l'année, pas de tout l'historique.
         val old = sessions.createSession(ActivityType.VELO, at(LocalDate.of(2023, 6, 1)))
         sessions.updateSession(old, SessionUpdate { endedAt = at(LocalDate.of(2023, 6, 1)) + 1; durationSec = 100; distanceM = 50_000.0 })
         val y40 = sessions.createSession(ActivityType.VELO, at(LocalDate.of(2024, 3, 1)))
@@ -248,7 +228,6 @@ class SessionRepositoryTest {
 
     @Test
     fun `sessionRecords ignore les métriques absentes et les séances en cours`() = runTest {
-        // Muscu : durée seule ; une séance en cours plus longue ne compte pas.
         val m = sessions.createSession(ActivityType.MUSCU, 1_800_000_000_000L)
         sessions.updateSession(m, SessionUpdate { endedAt = 1_800_003_000_000L; durationSec = 3000 })
         val inProgress = sessions.createSession(ActivityType.MUSCU, 1_800_100_000_000L)
@@ -258,7 +237,6 @@ class SessionRepositoryTest {
             listOf(SessionRecord(RecordKind.DURATION, RecordScope.ALL)),
             sessions.sessionRecords(sessions.getSession(m)!!),
         )
-        // Vélo sans distance ni dénivelé ni vitesse : seule la durée concourt.
         val v = sessions.createSession(ActivityType.VELO, 1_800_200_000_000L)
         sessions.updateSession(v, SessionUpdate { endedAt = 1_800_203_000_000L; durationSec = 3000 })
         assertEquals(
@@ -266,8 +244,6 @@ class SessionRepositoryTest {
             sessions.sessionRecords(sessions.getSession(v)!!),
         )
     }
-
-    // ---- statsBetween & tonnageBetween ------------------------------------
 
     private val T = 2_000_000_000_000L
 
@@ -279,7 +255,6 @@ class SessionRepositoryTest {
         val m1 = sessions.createSession(ActivityType.MUSCU, T + 2000)
         sessions.updateSession(m1, SessionUpdate { endedAt = T + 2100; durationSec = 100 })
         sessions.replaceMuscuSets(m1, listOf(muscuSetInput("Squat", 1, 10, 20.0), muscuSetInput("Squat", 2, 8, 30.0)))
-        // Séance en cours : ne doit jamais être comptée.
         sessions.createSession(ActivityType.VELO, T + 3000)
     }
 
@@ -321,7 +296,6 @@ class SessionRepositoryTest {
         val s = sessions.statsSince(T - 1)
         assertEquals(1200, s.totalDurationSec)
         assertEquals(250.0, s.totalCalories, 0.0)
-        // Fenêtre vide : zéros, pas d'exception.
         assertEquals(ovh.battistella.elan.domain.PeriodStats(0, 0, 0.0, 0.0), sessions.statsBetween(0, 1))
     }
 
@@ -331,8 +305,6 @@ class SessionRepositoryTest {
         assertEquals(440.0, sessions.tonnageBetween(T, T + 10_000), 0.0)
         assertEquals(0.0, sessions.tonnageBetween(T, T + 2000), 0.0)
     }
-
-    // ---- exerciseHistory ---------------------------------------------------
 
     @Test
     fun `exerciseHistory topReps vient de la série la plus lourde pas de l'échauffement`() = runTest {
@@ -360,15 +332,12 @@ class SessionRepositoryTest {
     fun `exerciseHistory ordonne du plus ancien au plus récent et ignore les séances en cours`() = runTest {
         val late = sessions.saveMuscuSession(null, 2_100_100_000_000L, SessionUpdate { endedAt = 2_100_100_000_001L }, listOf(muscuSetInput("Squat", 1, 8, 40.0)))
         val early = sessions.saveMuscuSession(null, 2_100_000_000_000L, SessionUpdate { endedAt = 2_100_000_000_001L }, listOf(muscuSetInput("Squat", 1, 10, 30.0, Difficulty.DUR)))
-        // En cours (endedAt NULL) : exclue.
         sessions.saveMuscuSession(null, 2_100_200_000_000L, SessionUpdate(), listOf(muscuSetInput("Squat", 1, 5, 99.0)))
 
         val hist = sessions.exerciseHistory("Squat")
         assertEquals(listOf(early, late), hist.map { it.sessionId })
         assertEquals(listOf(Difficulty.DUR, null), hist.map { it.difficulty })
     }
-
-    // ---- listSessions ------------------------------------------------------
 
     @Test
     fun `listSessions neutralise les jokers LIKE de la saisie`() = runTest {
@@ -405,7 +374,6 @@ class SessionRepositoryTest {
         assertEquals(2, muscu.exerciseCount)
         assertEquals(0, velo.setCount)
         assertEquals(0, velo.exerciseCount)
-        // Une ligne par séance malgré la jointure, la plus récente d'abord.
         assertEquals(listOf(veloId, muscuId), rows.map { it.id })
     }
 
@@ -416,7 +384,7 @@ class SessionRepositoryTest {
         val v2 = sessions.createSession(ActivityType.VELO, 2000)
         sessions.updateSession(v2, SessionUpdate { endedAt = 2500 })
         val m1 = sessions.saveMuscuSession(null, 3000, SessionUpdate { endedAt = 3500 }, listOf(muscuSetInput("Goblet squat")))
-        sessions.createSession(ActivityType.COURSE, 4000) // en cours
+        sessions.createSession(ActivityType.COURSE, 4000)
 
         assertEquals(listOf(m1, v2, v1), sessions.listSessions().map { it.id })
         assertEquals(listOf(v2, v1), sessions.listSessions(ListSessionsOptions(type = ActivityType.VELO)).map { it.id })
@@ -424,7 +392,6 @@ class SessionRepositoryTest {
         assertEquals(listOf(v1), sessions.listSessions(ListSessionsOptions(search = "galibier")).map { it.id })
         assertEquals(listOf(m1), sessions.listSessions(ListSessionsOptions(search = "  goblet ")).map { it.id })
         assertEquals(listOf(m1), sessions.listSessions(ListSessionsOptions(search = "MUSCU")).map { it.id })
-        // Recherche vide ou blanche = pas de filtre.
         assertEquals(3, sessions.listSessions(ListSessionsOptions(search = "   ")).size)
     }
 
@@ -440,8 +407,6 @@ class SessionRepositoryTest {
         assertEquals(listOf(ids[0]), sessions.listSessions(ListSessionsOptions(limit = 2, offset = 4)).map { it.id })
     }
 
-    // ---- cycle de vie d'une séance ----------------------------------------
-
     @Test
     fun `createSession puis updateSession n'écrit que les colonnes affectées`() = runTest {
         val id = sessions.createSession(ActivityType.COURSE, 42)
@@ -452,7 +417,7 @@ class SessionRepositoryTest {
 
         sessions.updateSession(id, SessionUpdate { notes = "a"; calories = 12.5 })
         sessions.updateSession(id, SessionUpdate { notes = null })
-        sessions.updateSession(id, SessionUpdate()) // no-op
+        sessions.updateSession(id, SessionUpdate())
         val s = sessions.getSession(id)!!
         assertNull(s.notes)
         assertEquals(12.5, s.calories!!, 0.0)
@@ -462,13 +427,12 @@ class SessionRepositoryTest {
     @Test
     fun `finalizeSession est idempotent et remplace les points flushés`() = runTest {
         val id = sessions.createSession(ActivityType.VELO, 1_000L)
-        // Flush incrémental pendant la sortie.
         sessions.insertTrackPoints(id, listOf(trackPointInput(ts = 1_000L), trackPointInput(ts = 2_000L)))
 
-        val final = (1..250).map { trackPointInput(ts = 1_000L + it * 1000L) } // > 2 lots de 100
+        val final = (1..250).map { trackPointInput(ts = 1_000L + it * 1000L) }
         val patch = SessionUpdate { endedAt = 300_000L; durationSec = 250; distanceM = 1234.0 }
         sessions.finalizeSession(id, patch, final)
-        sessions.finalizeSession(id, patch, final) // réessai
+        sessions.finalizeSession(id, patch, final)
 
         val points = sessions.getTrackPoints(id)
         assertEquals(250, points.size)
@@ -521,11 +485,8 @@ class SessionRepositoryTest {
         assertNull(changed.avgCadence)
         assertNull(changed.maxCadence)
         assertTrue(changed.calories!! > 1.0)
-        // Persisté en base à l'identique, en un seul UPDATE.
         assertEquals(changed, sessions.getSession(v))
     }
-
-    // ---- musculation -------------------------------------------------------
 
     @Test
     fun `saveMuscuSession crée ou réutilise la séance et remplace les séries`() = runTest {
@@ -537,7 +498,6 @@ class SessionRepositoryTest {
         val s = sessions.getSession(id)!!
         assertEquals(ActivityType.MUSCU, s.type)
         assertEquals(2000L, s.endedAt)
-        // Tri par setIndex puis id.
         assertEquals(listOf(1, 2), sessions.getMuscuSets(id).map { it.setIndex })
         assertEquals(Difficulty.MOYEN, sessions.getMuscuSets(id)[0].difficulty)
 
@@ -551,7 +511,6 @@ class SessionRepositoryTest {
     fun `lastWeightByExercise prend la charge max de la dernière séance terminée`() = runTest {
         sessions.saveMuscuSession(null, 1000, SessionUpdate { endedAt = 1500 }, listOf(muscuSetInput("Squat", 1, 10, 60.0), muscuSetInput("Squat", 2, 8, 70.0)))
         sessions.saveMuscuSession(null, 2000, SessionUpdate { endedAt = 2500 }, listOf(muscuSetInput("Squat", 1, 10, 40.0), muscuSetInput("Squat", 2, 8, 50.0), muscuSetInput("Rowing", 1, 10, 20.0)))
-        // Plus récente mais en cours : ignorée.
         sessions.saveMuscuSession(null, 3000, SessionUpdate(), listOf(muscuSetInput("Squat", 1, 10, 99.0)))
 
         assertEquals(mapOf("Squat" to 50.0, "Rowing" to 20.0), sessions.lastWeightByExercise(listOf("Squat", "Rowing", "Inconnu")))
@@ -573,8 +532,6 @@ class SessionRepositoryTest {
         assertNull(list[1].lastDifficulty)
     }
 
-    // ---- dailyDurations ----------------------------------------------------
-
     @Test
     fun `dailyDurations groupe par jour local et utilise le temps en mouvement`() = runTest {
         val zone = ZoneId.systemDefault()
@@ -588,7 +545,6 @@ class SessionRepositoryTest {
         sessions.updateSession(b, SessionUpdate { endedAt = at(today, 13); durationSec = 1800 })
         val c = sessions.createSession(ActivityType.VELO, at(today.minusDays(2), 7))
         sessions.updateSession(c, SessionUpdate { endedAt = at(today.minusDays(2), 8); durationSec = 600 })
-        // Trop ancienne pour une fenêtre de 7 jours, et une séance en cours.
         val old = sessions.createSession(ActivityType.VELO, at(today.minusDays(10), 7))
         sessions.updateSession(old, SessionUpdate { endedAt = at(today.minusDays(10), 8); durationSec = 999 })
         sessions.createSession(ActivityType.VELO, at(today, 15))
@@ -599,8 +555,6 @@ class SessionRepositoryTest {
             daily.map { it.day to it.durationSec },
         )
     }
-
-    // ---- réinitialisation --------------------------------------------------
 
     @Test
     fun `clearAllData garde réglages et journal de poids`() = runTest {
@@ -628,7 +582,6 @@ class SessionRepositoryTest {
         assertEquals(setOf("backup_s3", "backup_last"), db.settingsDao().getAll().map { it.key }.toSet())
     }
 
-    /** Trie les listes d'un snapshot pour comparer indépendamment de l'ordre SQL. */
     private fun DbSnapshot.normalized() = DbSnapshot(
         sessions = sessions.sortedBy { it.id },
         trackPoints = trackPoints.sortedBy { it.id },

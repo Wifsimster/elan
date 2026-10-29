@@ -12,7 +12,6 @@ import ovh.battistella.elan.data.backup.BackupException
 import ovh.battistella.elan.data.backup.BackupManager
 import ovh.battistella.elan.data.settings.BackupLast
 
-/** Le cœur du worker (`execute`) sur un gestionnaire factice : sans WorkManager ni Android. */
 class BackupWorkerTest {
 
     private val manager = mockk<BackupManager>()

@@ -1,6 +1,3 @@
-// Tests de la progression automatique (lib/auto-progression.ts) : cœur pur
-// (nextTarget, targetForExercise, isoWeekKey, descriptions). L'orchestration
-// impure (lecture historique / persistance / notif) n'est pas couverte ici.
 import {
   changeSummaryLine,
   describeChange,
@@ -12,8 +9,6 @@ import {
 } from '@/lib/auto-progression';
 import type { ExercisePoint } from '@/lib/db';
 import type { TemplateExercise } from '@/lib/program';
-
-// --- Fabriques de test -----------------------------------------------------
 
 const point = (
   overrides: Partial<ExercisePoint> & { difficulty: ExercisePoint['difficulty'] },
@@ -61,9 +56,7 @@ const rehabEx: TemplateExercise = {
   icon: 'x',
   muscles: [],
   howTo: '',
-}; // pas d'autoProgress -> jamais progressé
-
-// --- nextTarget ------------------------------------------------------------
+};
 
 describe('nextTarget', () => {
   it('monte d’un pas (2,5 kg) quand le ressenti conseille d’augmenter', () => {
@@ -105,8 +98,6 @@ describe('nextTarget', () => {
   });
 });
 
-// --- targetForExercise -----------------------------------------------------
-
 describe('targetForExercise', () => {
   it('sans historique : charge de départ, aucun bump', () => {
     const t = targetForExercise(loadEx, [], true);
@@ -118,7 +109,7 @@ describe('targetForExercise', () => {
   it('progression désactivée : continuité sur la dernière charge, aucun bump', () => {
     const hist = [point({ maxWeightKg: 24, difficulty: 'facile' })];
     const t = targetForExercise(loadEx, hist, false);
-    expect(t.weightKg).toBe(24); // dernière charge, pas de montée
+    expect(t.weightKg).toBe(24);
     expect(t.bump).toBe(0);
     expect(t.lastWeightKg).toBe(24);
   });
@@ -133,14 +124,13 @@ describe('targetForExercise', () => {
     const hist = [point({ maxWeightKg: 20, topReps: 12, difficulty: 'facile' })];
     const t = targetForExercise(loadEx, hist, true);
     expect(t.weightKg).toBe(22.5);
-    expect(t.reps).toBe(loadEx.repsMin); // double progression : reset au bas de la fourchette
+    expect(t.reps).toBe(loadEx.repsMin);
     expect(t.bump).toBe(2.5);
     expect(t.bumpKind).toBe('load');
     expect(t.lastWeightKg).toBe(20);
   });
 
   it('dernière séance non notée : aucune montée (silence ≠ feu vert)', () => {
-    // Dernière séance sans ressenti, malgré un « facile » plus ancien.
     const hist = [
       point({ maxWeightKg: 20, topReps: 12, difficulty: 'facile' }),
       point({ maxWeightKg: 20, topReps: 12, difficulty: null }),
@@ -169,17 +159,14 @@ describe('targetForExercise', () => {
 
   it('gainage : plafonné à repsMax × 1,5', () => {
     const hist = [point({ maxWeightKg: 0, topReps: 60, difficulty: 'facile' })];
-    const t = targetForExercise(timedEx, hist, true); // repsMax 40 -> plafond 60
+    const t = targetForExercise(timedEx, hist, true);
     expect(t.reps).toBe(60);
     expect(t.bump).toBe(0);
   });
 });
 
-// --- isoWeekKey ------------------------------------------------------------
-
 describe('isoWeekKey', () => {
   it('deux jours d’une même semaine ISO donnent la même clé', () => {
-    // 2026-06-29 (lundi) et 2026-07-03 (vendredi) : même semaine ISO.
     expect(isoWeekKey(new Date(2026, 5, 29))).toBe(isoWeekKey(new Date(2026, 6, 3)));
   });
 
@@ -191,8 +178,6 @@ describe('isoWeekKey', () => {
     expect(isoWeekKey(new Date(2026, 0, 5))).toMatch(/^\d{4}-W\d{2}$/);
   });
 });
-
-// --- Descriptions ----------------------------------------------------------
 
 describe('descriptions', () => {
   const up: ProgressionChange = { exercise: 'Goblet squat', kind: 'load', from: 20, to: 22.5, direction: 'up' };

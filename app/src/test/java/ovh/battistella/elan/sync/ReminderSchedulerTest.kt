@@ -33,7 +33,6 @@ class ReminderSchedulerTest {
     private lateinit var db: ElanDatabase
     private lateinit var repos: TestSupport.Repositories
 
-    /** Mercredi 3 juin 2026, 09:30 heure locale. */
     private val zone: ZoneId = ZoneId.systemDefault()
     private val now: ZonedDateTime = ZonedDateTime.of(2026, 6, 3, 9, 30, 0, 0, zone)
     private val clock: Clock = Clock.fixed(now.toInstant(), zone)
@@ -68,8 +67,6 @@ class ReminderSchedulerTest {
         repos.settings.setNotifications(NotificationConfig(enabled = true, hour = 12))
         scheduler().apply()
 
-        // Défaut : lundi vélo, mardi Full-body A, vendredi Full-body B.
-        // Mercredi 09:30 → vendredi (cette semaine), lundi et mardi (semaine prochaine).
         assertEquals(
             listOf(at(DayOfWeek.FRIDAY, 12), at(DayOfWeek.MONDAY, 12), at(DayOfWeek.TUESDAY, 12)),
             triggers(),
@@ -88,7 +85,7 @@ class ReminderSchedulerTest {
             listOf(
                 PlannedSession.Repos,
                 PlannedSession.Repos,
-                PlannedSession.Outing("course", "Course"), // mercredi : 08:00 déjà passé
+                PlannedSession.Outing("course", "Course"),
                 PlannedSession.Muscu("Full-body B", TemplateId.FULLBODY_B),
                 PlannedSession.Repos,
                 PlannedSession.Repos,
@@ -136,7 +133,7 @@ class ReminderSchedulerTest {
 
     @Test
     fun `nextOccurrence - aujourd'hui si l'heure n'est pas passée, sinon dans une semaine`() {
-        val today = ReminderScheduler.nextOccurrence(now, 2, 12) // mercredi 12:00
+        val today = ReminderScheduler.nextOccurrence(now, 2, 12)
         assertEquals(now.toLocalDate().atTime(12, 0).atZone(zone), today)
         val nextWeek = ReminderScheduler.nextOccurrence(now, 2, 9)
         assertEquals(now.toLocalDate().plusWeeks(1).atTime(9, 0).atZone(zone), nextWeek)

@@ -5,22 +5,8 @@ import android.database.sqlite.SQLiteDatabase
 import java.io.Closeable
 import java.io.File
 
-/**
- * Lecture de `suivi-sport.db`, la base SQLite de l'app d'origine.
- *
- * Le fichier est ouvert en LECTURE-ÉCRITURE : en lecture seule, SQLite refuse
- * d'ouvrir une base en mode WAL dont le `-shm` n'est pas déjà là (3.18 sur
- * Android 8). On en profite pour vider le journal (`wal_checkpoint(TRUNCATE)`)
- * — les lignes écrites juste avant la mise à jour n'ont jamais été fusionnées
- * dans le fichier principal — puis on verrouille la connexion en
- * `query_only` : plus aucune écriture possible, quoi qu'il arrive ensuite.
- *
- * Les lecteurs tolèrent une colonne absente (base en version < 7) : elle vaut
- * `NULL`, l'équivalent de ce que la migration d'origine aurait laissé.
- */
 class LegacyDbReader private constructor(private val db: SQLiteDatabase) : Closeable {
 
-    /** `PRAGMA user_version` : version du schéma d'origine (7 pour une base à jour). */
     val userVersion: Int get() = db.version
 
     fun hasTable(table: String): Boolean =
@@ -29,30 +15,22 @@ class LegacyDbReader private constructor(private val db: SQLiteDatabase) : Close
 
     fun hasColumn(table: String, column: String): Boolean = columns(table).contains(column)
 
-    /** Noms de colonnes d'une table via `PRAGMA table_info`. */
     fun columns(table: String): Set<String> =
         db.rawQuery("PRAGMA table_info($table)", null).use { c ->
             val nameIdx = c.getColumnIndexOrThrow("name")
             buildSet { while (c.moveToNext()) add(c.getString(nameIdx)) }
         }
 
-    /**
-     * Ajoute les colonnes que les migrations v2/v3/v5/v6 de l'app d'origine
-     * auraient créées, si elles manquent (base restée en version < 7). Aucun
-     * rétro-calcul : les valeurs restent `NULL`. À appeler avant [freeze].
-     */
     fun ensureV7Columns() {
         for ((table, column, decl) in V7_COLUMNS) {
             if (!hasColumn(table, column)) db.execSQL("ALTER TABLE $table ADD COLUMN $column $decl")
         }
     }
 
-    /** Verrouille la connexion : toute écriture ultérieure échoue. */
     fun freeze() {
         db.rawQuery("PRAGMA query_only = 1", null).use { it.moveToFirst() }
     }
 
-    /** `PRAGMA integrity_check` répond « ok » sur une seule ligne. */
     fun integrityOk(): Boolean =
         db.rawQuery("PRAGMA integrity_check", null).use { c ->
             c.moveToFirst() && c.count == 1 && c.getString(0).equals("ok", ignoreCase = true)
@@ -61,13 +39,10 @@ class LegacyDbReader private constructor(private val db: SQLiteDatabase) : Close
     fun count(table: String): Long =
         db.rawQuery("SELECT COUNT(*) FROM $table", null).use { c -> c.moveToFirst(); c.getLong(0) }
 
-    /** Contenu de `sqlite_sequence` pour la table (0 si absent). */
     fun sequence(table: String): Long =
         db.rawQuery("SELECT seq FROM sqlite_sequence WHERE name = ?", arrayOf(table)).use { c ->
             if (c.moveToFirst()) c.getLong(0) else 0L
         }
-
-    // ---- lecteurs par table --------------------------------------------
 
     fun readSessions(): List<LegacySession> =
         db.rawQuery("SELECT * FROM sessions ORDER BY id", null).use { c ->
@@ -98,11 +73,6 @@ class LegacyDbReader private constructor(private val db: SQLiteDatabase) : Close
             }
         }
 
-    /**
-     * Parcours des points GPS par curseur (sans les charger en mémoire : une
-     * base réelle en compte des centaines de milliers). [block] est appelé
-     * pour chaque point, dans l'ordre des ids.
-     */
     fun forEachTrackPoint(block: (LegacyTrackPoint) -> Unit) {
         db.rawQuery("SELECT * FROM track_points ORDER BY id", null).use { c ->
             val r = Row(c)
@@ -142,7 +112,6 @@ class LegacyDbReader private constructor(private val db: SQLiteDatabase) : Close
             }
         }
 
-    /** Vide si la table n'existe pas (base en version < 4). */
     fun readBodyMeasurements(): List<LegacyBodyMeasurement> {
         if (!hasTable("body_measurements")) return emptyList()
         return db.rawQuery("SELECT * FROM body_measurements ORDER BY id", null).use { c ->
@@ -166,7 +135,6 @@ class LegacyDbReader private constructor(private val db: SQLiteDatabase) : Close
 
     override fun close() = db.close()
 
-    /** Accès aux colonnes par nom, `null` si la colonne manque ou vaut NULL. */
     private class Row(private val c: Cursor) {
         private val index = HashMap<String, Int>()
         private fun idx(name: String) = index.getOrPut(name) { c.getColumnIndex(name) }
@@ -182,7 +150,6 @@ class LegacyDbReader private constructor(private val db: SQLiteDatabase) : Close
     }
 
     companion object {
-        /** Colonnes ajoutées par les migrations v2, v3, v5 et v6 de `db.ts`. */
         val V7_COLUMNS: List<Triple<String, String, String>> = listOf(
             Triple("sessions", "avgCadence", "REAL"),
             Triple("sessions", "maxCadence", "REAL"),
@@ -193,11 +160,6 @@ class LegacyDbReader private constructor(private val db: SQLiteDatabase) : Close
             Triple("muscu_sets", "difficulty", "TEXT"),
         )
 
-        /**
-         * Ouvre la base, fusionne le journal WAL dans le fichier principal et
-         * le tronque. La connexion reste modifiable jusqu'à [freeze] pour
-         * permettre [ensureV7Columns].
-         */
         fun open(file: File): LegacyDbReader {
             val db = SQLiteDatabase.openDatabase(
                 file.path,
@@ -214,8 +176,6 @@ class LegacyDbReader private constructor(private val db: SQLiteDatabase) : Close
         }
     }
 }
-
-// ---- lignes héritées, brutes (aucune conversion vers le domaine) ---------
 
 data class LegacySession(
     val id: Long,

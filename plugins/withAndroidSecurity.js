@@ -1,32 +1,7 @@
-// Config plugin Expo — durcissement de sécurité Android, ré-appliqué à chaque
-// `expo prebuild` (le dossier android/ est régénéré et gitignoré, donc on ne
-// peut pas éditer le manifeste à la main de façon durable).
-//
-//   1. android:allowBackup="false" sur <application> — la base SQLite locale
-//      (tracés GPS, fréquence cardiaque, et la clé secrète S3 de sauvegarde)
-//      ne doit pas pouvoir être extraite via `adb backup` / l'auto-backup cloud
-//      Android puis restaurée sur un autre appareil.
-//   2. Retrait de SYSTEM_ALERT_WINDOW (« dessiner par-dessus les autres apps »),
-//      tirée transitivement (overlay dev/redbox RN) : inutile en production,
-//      signalée par la revue Play, surface d'attaque superflue.
-//   3. R8 en release : minification + obfuscation + shrink des ressources. La
-//      couche native serait sinon livrée non obfusquée (le JS est déjà du
-//      bytecode Hermes). À vérifier par un build release avant publication.
-//
-// Ce plugin doit rester EN PREMIER dans app.json → plugins : les mods manifest
-// s'exécutent en ordre inverse d'enregistrement, et le dédoublonnage (point 5)
-// doit passer APRÈS react-native-ble-plx qui réinjecte ses permissions.
-
 const { withAndroidManifest, withGradleProperties } = require('@expo/config-plugins');
 
 const SYSTEM_ALERT_WINDOW = 'android.permission.SYSTEM_ALERT_WINDOW';
 
-// Composants Firebase Cloud Messaging / Google datatransport tirés
-// transitivement par expo-notifications. L'app n'utilise QUE des rappels locaux
-// (AlarmManager, cf. lib/notifications.ts) — aucun jeton push, aucun envoi. On
-// les retire du manifeste fusionné pour coller à la posture « aucun réseau /
-// aucun tiers / aucune télémétrie » (formulaire Sécurité Play) et empêcher
-// l'auto-init Firebase au démarrage. Le chemin de notification locale est intact.
 const REMOVE_SERVICES = [
   'expo.modules.notifications.service.ExpoFirebaseMessagingService',
   'com.google.firebase.messaging.FirebaseMessagingService',
@@ -40,12 +15,8 @@ const REMOVE_RECEIVERS = [
 ];
 const REMOVE_PROVIDERS = ['com.google.firebase.provider.FirebaseInitProvider'];
 
-// Permissions Bluetooth héritées (injectées par react-native-ble-plx) : l'app
-// utilise le modèle moderne BLUETOOTH_SCAN/CONNECT dès Android 12 (SDK 31), donc
-// on borne ces legacy à Android 11- (maxSdkVersion=30).
 const CAP_SDK30_PERMISSIONS = ['android.permission.BLUETOOTH', 'android.permission.BLUETOOTH_ADMIN'];
 
-/** Ajoute (ou marque) une directive `tools:node="remove"` pour un composant nommé. */
 function markRemove(list, name) {
   const arr = list || [];
   const existing = arr.find((c) => c.$ && c.$['android:name'] === name);
@@ -67,23 +38,19 @@ const withManifestHardening = (config) =>
   withAndroidManifest(config, (cfg) => {
     const manifest = cfg.modResults.manifest;
 
-    // Namespace `tools` (présent dans le template, mais on le garantit).
     manifest.$ = manifest.$ || {};
     manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
 
-    // 1. allowBackup = false (on écrit l'attribut du manifeste principal, prioritaire).
     const application = manifest.application && manifest.application[0];
     if (application) {
       application.$ = application.$ || {};
       application.$['android:allowBackup'] = 'false';
 
-      // 3. Retrait des composants FCM / datatransport (cf. constantes ci-dessus).
       application.service = REMOVE_SERVICES.reduce(markRemove, application.service || []);
       application.receiver = REMOVE_RECEIVERS.reduce(markRemove, application.receiver || []);
       application.provider = REMOVE_PROVIDERS.reduce(markRemove, application.provider || []);
     }
 
-    // 2. Retrait de SYSTEM_ALERT_WINDOW du manifeste fusionné (tools:node="remove").
     manifest['uses-permission'] = manifest['uses-permission'] || [];
     const perms = manifest['uses-permission'];
     const existing = perms.find((p) => p.$ && p.$['android:name'] === SYSTEM_ALERT_WINDOW);
@@ -93,16 +60,6 @@ const withManifestHardening = (config) =>
       perms.push({ $: { 'android:name': SYSTEM_ALERT_WINDOW, 'tools:node': 'remove' } });
     }
 
-    // 5. Dédoublonnage localisation : la lib react-native-ble-plx déclare des
-    //    <uses-permission-sdk-23> ACCESS_FINE/COARSE_LOCATION (le scan BLE
-    //    exigeait la localisation jusqu'à Android 11) — son config plugin en
-    //    injecte dans notre manifeste ET son AndroidManifest de lib en rajoute
-    //    au merge Gradle. L'app déclare déjà ces permissions en
-    //    <uses-permission> sans borne pour le GPS, et la Play Console rejette
-    //    l'AAB (« déclarations en double avec différentes versions »). On pose
-    //    donc tools:node="remove" sur les variantes sdk-23 : le merger les
-    //    élimine quelle que soit leur provenance, les déclarations pleines
-    //    couvrent tous les SDK.
     const LOCATION_PERMISSIONS = [
       'android.permission.ACCESS_COARSE_LOCATION',
       'android.permission.ACCESS_FINE_LOCATION',
@@ -114,14 +71,10 @@ const withManifestHardening = (config) =>
       manifest['uses-permission-sdk-23'].push({ $: { 'android:name': name, 'tools:node': 'remove' } });
     }
 
-    // 4. Bornage des permissions Bluetooth héritées à maxSdkVersion=30.
     for (const name of CAP_SDK30_PERMISSIONS) {
       const node = perms.find((p) => p.$ && p.$['android:name'] === name);
       if (node) {
         node.$['android:maxSdkVersion'] = '30';
-        // Idempotent : prebuild relit le manifeste déjà modifié, on dédoublonne
-        // donc tools:replace (sinon « android:maxSdkVersion,android:maxSdkVersion »
-        // au 2e prebuild → erreur « Multiple entries with same key » du merger).
         const raw = node.$['tools:replace']
           ? node.$['tools:replace'].split(',').map((s) => s.trim()).filter(Boolean)
           : [];
@@ -135,7 +88,6 @@ const withManifestHardening = (config) =>
 
 const withReleaseR8 = (config) =>
   withGradleProperties(config, (cfg) => {
-    // 3. R8 release (lu par android/app/build.gradle via findProperty).
     setGradleProperty(cfg.modResults, 'android.enableMinifyInReleaseBuilds', 'true');
     setGradleProperty(cfg.modResults, 'android.enableShrinkResourcesInReleaseBuilds', 'true');
     return cfg;

@@ -1,5 +1,3 @@
-// Doublures de la couche BLE : radio, liens GATT, adaptateur, réglages et
-// horloge pilotables depuis un `TestScope` (temps virtuel), sans Bluetooth.
 package ovh.battistella.elan.sensors.ble
 
 import kotlinx.coroutines.delay
@@ -16,11 +14,9 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
 
-/** Radio factice : les annonces sont poussées via [results] pendant qu'un scan est actif. */
 class FakeLeScanner : LeScanner {
     val results = MutableSharedFlow<ScannedDevice>()
 
-    /** Nombre de scans matériels en cours (0 ou 1 si l'arbitrage fonctionne). */
     var active = 0
         private set
     var starts = 0
@@ -28,7 +24,6 @@ class FakeLeScanner : LeScanner {
     var lastServiceUuid: UUID? = null
         private set
 
-    /** Fait échouer le prochain scan (radio coupée, permission manquante…). */
     var failure: BleScanException? = null
 
     override fun scan(serviceUuid: UUID): Flow<ScannedDevice> = flow {
@@ -44,13 +39,11 @@ class FakeLeScanner : LeScanner {
     }
 }
 
-/** Lien GATT factice : chaque étape peut échouer ou traîner, les trames sont injectées via [frames]. */
 class FakeGattLink(override val address: String, override val name: String? = null) : GattLink {
     var connectFailure: Exception? = null
     var discoverFailure: Exception? = null
     var notifyFailure: Exception? = null
 
-    /** Durée simulée de la connexion (temps virtuel). */
     var connectDelayMs = 0L
 
     var connectCalls = 0
@@ -66,10 +59,8 @@ class FakeGattLink(override val address: String, override val name: String? = nu
     private val _disconnected = MutableSharedFlow<Int>()
     override val disconnected: Flow<Int> = _disconnected
 
-    /** Coupure involontaire côté capteur (statut GATT). */
     suspend fun drop(status: Int = 8) = _disconnected.emit(status)
 
-    /** Une trame de notification reçue (attend qu'un collecteur soit abonné). */
     suspend fun notify(bytes: ByteArray) = frames.emit(bytes)
 
     override suspend fun connect(timeoutMs: Long) {
@@ -94,7 +85,6 @@ class FakeGattLink(override val address: String, override val name: String? = nu
     }
 }
 
-/** Fabrique factice : mémorise chaque lien créé ; [configure] règle les pannes par adresse. */
 class FakeGattLinkFactory : GattLinkFactory {
     val created = mutableListOf<FakeGattLink>()
     val names = mutableMapOf<String, String>()
@@ -103,7 +93,6 @@ class FakeGattLinkFactory : GattLinkFactory {
     override fun create(address: String): GattLink =
         FakeGattLink(address, names[address]).also { configure(it); created += it }
 
-    /** Dernier lien créé pour `address`. */
     fun last(address: String): FakeGattLink = created.last { it.address == address }
 }
 
@@ -116,10 +105,8 @@ class FakeBleAdapterState(enabled: Boolean = true, override val supported: Boole
     fun turnOn() { flow.value = true }
 }
 
-/** Réglages sur une vraie base Room en mémoire (Robolectric), E/S inline. */
 fun inMemorySettings(): SettingsRepository = TestSupport.repositories(TestSupport.inMemoryDb()).settings
 
-/** Horloge réglable (ms), indépendante du temps virtuel des coroutines. */
 class MutableClock(var nowMs: Long = 1_700_000_000_000L) : Clock() {
     override fun instant(): Instant = Instant.ofEpochMilli(nowMs)
     override fun getZone(): ZoneId = ZoneOffset.UTC
@@ -127,18 +114,14 @@ class MutableClock(var nowMs: Long = 1_700_000_000_000L) : Clock() {
     fun advance(ms: Long) { nowMs += ms }
 }
 
-// ---- trames --------------------------------------------------------------
-
 fun hrFrame(bpm: Int): ByteArray = byteArrayOf(0x00, bpm.toByte())
 
-/** Trame CSC pédalier seul (drapeau 0x02). */
 fun crankFrame(revs: Int, time: Int): ByteArray = byteArrayOf(
     0x02,
     (revs and 0xFF).toByte(), ((revs shr 8) and 0xFF).toByte(),
     (time and 0xFF).toByte(), ((time shr 8) and 0xFF).toByte(),
 )
 
-/** Trame CSC roue seule (drapeau 0x01). */
 fun wheelFrame(revs: Long, time: Int): ByteArray = byteArrayOf(
     0x01,
     (revs and 0xFF).toByte(), ((revs shr 8) and 0xFF).toByte(),
@@ -146,6 +129,5 @@ fun wheelFrame(revs: Long, time: Int): ByteArray = byteArrayOf(
     (time and 0xFF).toByte(), ((time shr 8) and 0xFF).toByte(),
 )
 
-/** Trame CSC roue + pédalier (drapeaux 0x03). */
 fun cscFrame(wheelRevs: Long, wheelTime: Int, crankRevs: Int, crankTime: Int): ByteArray =
     byteArrayOf(0x03) + wheelFrame(wheelRevs, wheelTime).drop(1) + crankFrame(crankRevs, crankTime).drop(1)

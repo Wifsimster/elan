@@ -35,11 +35,6 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.forKey
 
-/**
- * Carte Réglages : objectifs d'entraînement (liste + formulaire d'ajout).
- * 100 % local — les définitions vivent dans `settings` (incluses dans la
- * sauvegarde), la progression est calculée à la volée sur l'accueil.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GoalsCard(
@@ -86,7 +81,6 @@ fun GoalsCard(
                 ElanChip(stringResource(R.string.settings_goal_metric_tonnage), form.metric == GoalMetric.TONNAGE, { onMetric(GoalMetric.TONNAGE) })
             }
 
-            // Type d'activité : séances et distance ; le tonnage n'existe qu'en muscu.
             if (form.metric != GoalMetric.TONNAGE) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     ElanChip(stringResource(R.string.settings_goal_activity_all), form.activity == GoalActivity.ALL, { onActivity(GoalActivity.ALL) })

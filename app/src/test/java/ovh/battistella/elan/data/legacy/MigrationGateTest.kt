@@ -28,7 +28,6 @@ class MigrationGateTest {
     @Test
     fun `l'avancement de la copie est relayé`() = runTest {
         val gate = MigrationGate(importer, this)
-        // Un StateFlow conflate : on relève l'état à chaque étape plutôt que de collecter.
         val seen = mutableListOf<MigrationState>()
         coEvery { importer.runIfNeeded(any()) } coAnswers {
             seen += gate.state.value
@@ -99,7 +98,6 @@ class MigrationGateTest {
         assertEquals(MigrationState.Ready, gate.state.value)
         coVerify(exactly = 5) { importer.runIfNeeded(any()) }
 
-        // Une fois prête, la barrière ne relance plus rien.
         gate.retry().join()
         gate.start()
         coVerify(exactly = 5) { importer.runIfNeeded(any()) }

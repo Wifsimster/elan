@@ -59,12 +59,10 @@ class ShareCardTest {
         compose.onNodeWithText("Vélo").assertIsDisplayed()
         compose.onNodeWithContentDescription("Tracé GPS de la sortie").assertIsDisplayed()
         compose.onNodeWithText("30,0 km").assertIsDisplayed()
-        // Temps en mouvement plutôt que durée totale.
         compose.onNodeWithText("50:00").assertIsDisplayed()
         compose.onNodeWithText(text(R.string.share_stat_speed)).assertIsDisplayed()
         compose.onNodeWithText("412 m").assertIsDisplayed()
         compose.onNodeWithText("140 bpm").assertIsDisplayed()
-        // Le record absolu passe avant celui de l'année.
         compose.onNodeWithText(text(R.string.share_record_all, "distance")).assertIsDisplayed()
     }
 
@@ -101,7 +99,6 @@ class ShareCardTest {
         compose.onNodeWithText(text(R.string.share_stat_exercises)).assertIsDisplayed()
         compose.onNodeWithText("2").assertIsDisplayed()
         compose.onNodeWithText("400 kg").assertIsDisplayed()
-        // Durée totale (pas de temps en mouvement en muscu).
         compose.onNodeWithText("1:00:00").assertIsDisplayed()
     }
 }

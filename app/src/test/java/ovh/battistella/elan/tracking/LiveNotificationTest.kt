@@ -36,7 +36,7 @@ class LiveNotificationTest {
     @Test
     fun `le canal session est silencieux et d'importance basse`() {
         LiveNotification.ensureChannel(context)
-        LiveNotification.ensureChannel(context) // idempotent
+        LiveNotification.ensureChannel(context)
 
         val channel = realManager.getNotificationChannel(LiveNotification.SESSION_CHANNEL)
         assertNotNull(channel)
@@ -63,14 +63,13 @@ class LiveNotificationTest {
         assertEquals("ovh.battistella.elan.MainActivity", target.component?.className)
         assertEquals("muscu", target.getStringExtra(LiveNotification.EXTRA_OPEN_ROUTE))
 
-        // Ré-appeler met à jour sans dupliquer.
         LiveNotification.showLive(context, LiveKind.OUTING)
         assertEquals(1, manager.size())
         assertEquals("Sortie en cours", manager.getNotification(LiveNotification.LIVE_ID).extras.getString(Notification.EXTRA_TITLE))
 
         LiveNotification.clear(context)
         assertNull(manager.getNotification(LiveNotification.LIVE_ID))
-        LiveNotification.clear(context) // idempotent
+        LiveNotification.clear(context)
     }
 
     @Test

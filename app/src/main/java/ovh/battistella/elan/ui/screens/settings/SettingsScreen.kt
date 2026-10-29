@@ -37,12 +37,6 @@ import ovh.battistella.elan.ui.screens.settings.cards.WeekPlanCard
 import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 
-/**
- * Réglages : assemblage de cartes autonomes, dans l'ordre de l'app d'origine
- * (capteurs, carte, Health Connect, profil, objectifs, planning, progression,
- * rappels, données, exports, import Strava, sauvegarde). Trois ViewModels :
- * réglages, capteurs BLE, sauvegarde S3.
- */
 @Composable
 fun SettingsScreen(
     contentPadding: PaddingValues,

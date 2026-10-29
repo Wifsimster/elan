@@ -44,7 +44,6 @@ class SensorsViewModelTest {
         val h = Harness(this)
         runCurrent()
 
-        // Défaut 700×25c.
         assertEquals(2105, h.vm.csc.value.wheelCircumferenceMm)
         assertEquals("700×25c", h.vm.currentWheelSize()?.label)
 

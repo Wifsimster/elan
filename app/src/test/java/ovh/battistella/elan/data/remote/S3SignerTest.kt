@@ -8,12 +8,6 @@ import java.time.Instant
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-/**
- * Vérifie la signature SigV4 produite contre un calcul indépendant (chaîne
- * HMAC écrite ici, à la main) : la dérivation de clé et la requête canonique
- * doivent être conformes au format AWS — un écart se traduit par un
- * `SignatureDoesNotMatch` côté serveur. Port de `__tests__/lib/s3.test.ts`.
- */
 class S3SignerTest {
 
     private val config = S3Config(
@@ -26,8 +20,6 @@ class S3SignerTest {
     )
     private val body = "{\"format\":1}"
     private val now: Instant = Instant.parse("2026-09-11T10:06:00Z")
-
-    // ---- référence indépendante -------------------------------------------
 
     private fun sha256(s: String): String = hex(MessageDigest.getInstance("SHA-256").digest(s.toByteArray()))
 

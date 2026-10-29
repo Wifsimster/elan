@@ -28,7 +28,6 @@ BRAND = ROOT / "docs/brand"
 INK = "#0D0E0B"
 PAPER = "#F3F4EE"
 VOLT = "#D4F545"
-# Un contour dont le bas dépasse cette hauteur (unités de fonte) est l'accent.
 ACCENT_MIN_Y = 480
 
 font = TTFont(FONT)
@@ -72,7 +71,6 @@ def split_accent(cs):
     return [c for c in cs if c not in accent], accent
 
 
-# --- Icône « é » : 58 unités de haut, centrée dans le carré de 108 dp.
 e_body, e_acc = split_accent(contours("eacute"))
 x0, y0, x1, y1 = bounds(e_body + e_acc)
 scale = 58 / (y1 - y0)
@@ -80,7 +78,6 @@ cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
 mark_tf = lambda x, y: (r2(54 + (x - cx) * scale), r2(54 - (y - cy) * scale))
 mark = {"body": path(e_body, mark_tf), "acc": path(e_acc, mark_tf)}
 
-# --- Logotype « élan ».
 xoff, w_body, w_acc = 0, [], []
 for g in ["eacute", "l", "a", "n"]:
     for c in contours(g):

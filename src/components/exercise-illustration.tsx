@@ -8,21 +8,11 @@ import { Radius, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
-  /** Clé d'illustration photo (paire départ → fin), résolue localement. */
   imageKey?: string;
-  /** Glyphe MaterialCommunityIcons de repli si l'exercice n'a pas de photos. */
   icon?: string;
-  /** Hauteur des vignettes photo (le repli icône garde sa propre hauteur). */
   height?: number;
 };
 
-/**
- * Illustration d'un mouvement de musculation. Quand des photos sont disponibles,
- * affiche les positions de DÉPART puis FINALE côte à côte (flèche centrale pour
- * suggérer le sens du mouvement) ; sinon, retombe sur l'icône posée sur un
- * dégradé. Photos domaine public (free-exercise-db), bundlées dans l'app :
- * aucun accès réseau, conforme à l'approche local-first.
- */
 export function ExerciseIllustration({ imageKey, icon, height = 176 }: Props) {
   const theme = useTheme();
   const photos = exerciseImages(imageKey);
@@ -55,7 +45,6 @@ export function ExerciseIllustration({ imageKey, icon, height = 176 }: Props) {
   );
 }
 
-/** Une vignette de l'illustration : photo cadrée + libellé d'étape en surimpression. */
 function HeroPhoto({
   source,
   label,

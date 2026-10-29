@@ -1,10 +1,3 @@
-// Programme muscu perso « Maison (haltères) » — prise de muscle.
-// Deux séances full-body espacées dans la semaine (mardi A, vendredi B).
-// Sert à pré-remplir une séance depuis l'écran muscu : exercices, nombre de
-// séries et fourchette de reps en indice. Les charges restent à ajuster à la main
-// (c'est le moteur de la progression). Charges de départ volontairement modestes
-// pour la montée en charge douce des premières semaines.
-
 import { deleteSetting, getSetting, setSetting } from '@/lib/db';
 
 export type TemplateExercise = {
@@ -13,34 +6,12 @@ export type TemplateExercise = {
   repsMin: number;
   repsMax: number;
   startWeightKg: number;
-  /** Explication simple : comment exécuter le mouvement. */
   howTo: string;
-  /** Groupes musculaires principalement sollicités (affichés en pastilles). */
   muscles: string[];
-  /**
-   * Glyphe MaterialCommunityIcons illustrant le mouvement, posé sur le héros de
-   * la fiche d'exercice. Simple chaîne pour garder ce module sans dépendance UI.
-   */
   icon: string;
-  /**
-   * Clé d'illustration photo (paire départ → fin), résolue dans
-   * `components/exercise-images.ts`. Images domaine public bundlées localement.
-   */
   imageKey?: string;
-  /** « bras » / « jambe » / « côté » — affiché dans la cible et le travail unilatéral. */
   perSideLabel?: string;
-  /** Exercice chronométré (gainage) : les « reps » sont des secondes. */
   timed?: boolean;
-  /**
-   * Type de progression automatique appliquée d'une semaine sur l'autre selon le
-   * ressenti (cf. `lib/auto-progression.ts`) :
-   *  - `'load'` : on monte la charge (haltères) par paliers de 2,5 kg ;
-   *  - `'time'` : on allonge le gainage chronométré (secondes), plafonné ;
-   *  - absent   : l'exercice n'est JAMAIS auto-progressé (rééducation, mobilité,
-   *               posture — dos/lombaire et cervicales), on garde la prescription.
-   * Seuls les deux full-body chargés portent ce drapeau : la progression auto ne
-   * touche pas les exercices de renfort doux, par sécurité.
-   */
   autoProgress?: 'load' | 'time';
 };
 
@@ -244,14 +215,11 @@ export const TEMPLATES: WorkoutTemplate[] = [
   },
 ];
 
-// Planning hebdomadaire (télétravail lun/mar/ven). Mardi et vendredi pour la
-// muscu (3-4 jours d'écart), vélo le lundi en récup active. Index 0 = lundi.
 export type PlannedSession =
   | { kind: 'velo' | 'course' | 'marche'; label: string }
   | { kind: 'muscu'; label: string; templateId: WorkoutTemplate['id'] }
   | { kind: 'repos' };
 
-/** Planning par défaut, utilisé tant que l'utilisateur n'en a pas défini un. */
 export const DEFAULT_WEEK_PLAN: PlannedSession[] = [
   { kind: 'velo', label: 'Vélo 1h' },
   { kind: 'muscu', label: 'Full-body A', templateId: 'fullbody-a' },
@@ -262,22 +230,14 @@ export const DEFAULT_WEEK_PLAN: PlannedSession[] = [
   { kind: 'repos' },
 ];
 
-/** Conservé pour compat ascendante (export brut et anciens appels). */
 export const WEEK_PLAN: PlannedSession[] = DEFAULT_WEEK_PLAN;
 
 const WEEK_PLAN_KEY = 'week_plan';
 
-/** Vrai si `id` correspond à un template muscu connu (les 4 programmes). */
 function isKnownTemplateId(id: unknown): id is WorkoutTemplate['id'] {
   return typeof id === 'string' && TEMPLATES.some((t) => t.id === id);
 }
 
-/**
- * Valide une valeur lue depuis les réglages : 7 entrées, chacune bien formée.
- * Pour la muscu, on accepte n'importe quel template connu (pas seulement
- * full-body A/B) afin qu'un plan restauré depuis une sauvegarde ne soit pas
- * silencieusement rejeté. Exportée pour les tests.
- */
 export function isValidWeekPlan(value: unknown): value is PlannedSession[] {
   if (!Array.isArray(value) || value.length !== 7) return false;
   return value.every((entry) => {
@@ -294,7 +254,6 @@ export function isValidWeekPlan(value: unknown): value is PlannedSession[] {
   });
 }
 
-/** Plan effectif : plan personnalisé si défini, sinon `DEFAULT_WEEK_PLAN`. */
 export async function getEffectiveWeekPlan(): Promise<PlannedSession[]> {
   const raw = await getSetting(WEEK_PLAN_KEY);
   if (!raw) return DEFAULT_WEEK_PLAN;
@@ -302,39 +261,29 @@ export async function getEffectiveWeekPlan(): Promise<PlannedSession[]> {
     const parsed = JSON.parse(raw);
     if (isValidWeekPlan(parsed)) return parsed;
   } catch {
-    // ignore : valeur corrompue, on retombe sur le défaut
   }
   return DEFAULT_WEEK_PLAN;
 }
 
-/** Persiste un plan personnalisé (7 entrées attendues). */
 export async function saveCustomWeekPlan(plan: PlannedSession[]): Promise<void> {
   await setSetting(WEEK_PLAN_KEY, JSON.stringify(plan));
 }
 
-/** Efface le plan personnalisé : on retombe sur `DEFAULT_WEEK_PLAN`. */
 export async function resetCustomWeekPlan(): Promise<void> {
   await deleteSetting(WEEK_PLAN_KEY);
 }
 
-/** Séance prévue pour un jour `Date.getDay()` (0 = dimanche). */
 export function planForDay(
   jsDay: number,
   plan: PlannedSession[] = DEFAULT_WEEK_PLAN,
 ): PlannedSession {
-  return plan[(jsDay + 6) % 7]; // bascule vers lundi = 0
+  return plan[(jsDay + 6) % 7];
 }
 
-/** Retrouve un template par son id (pour le pré-chargement depuis l'accueil). */
 export function templateById(id: string | undefined): WorkoutTemplate | undefined {
   return TEMPLATES.find((t) => t.id === id);
 }
 
-/**
- * Retrouve la fiche d'un exercice du programme par son nom (illustration,
- * muscles, exécution). Utilisé par la page de progression pour enrichir le
- * détail d'un exercice issu d'une séance enregistrée.
- */
 export function exerciseByName(name: string | undefined): TemplateExercise | undefined {
   if (!name) return undefined;
   for (const t of TEMPLATES) {
@@ -344,7 +293,6 @@ export function exerciseByName(name: string | undefined): TemplateExercise | und
   return undefined;
 }
 
-/** Indice de cible affiché sous le nom de l'exercice, ex. « 3 × 8-12 / bras ». */
 export function targetHint(ex: TemplateExercise): string {
   const reps = ex.repsMin === ex.repsMax ? `${ex.repsMin}` : `${ex.repsMin}-${ex.repsMax}`;
   const unit = ex.timed ? ' s' : '';
@@ -352,7 +300,6 @@ export function targetHint(ex: TemplateExercise): string {
   return `${ex.sets} × ${reps}${unit}${side}`;
 }
 
-/** Valeur de départ pré-remplie pour les reps (milieu de la fourchette). */
 export function defaultReps(ex: TemplateExercise): number {
   return Math.round((ex.repsMin + ex.repsMax) / 2);
 }

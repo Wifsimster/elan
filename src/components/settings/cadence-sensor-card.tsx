@@ -12,7 +12,6 @@ import { matchWheelSize, WHEEL_SIZES } from '@/lib/wheel-sizes';
 import { useCadenceSpeed } from '@/hooks/use-cadence-speed';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Carte Réglages : capteurs vélo BLE (cadence / vitesse) + taille de pneu. */
 export function CadenceSensorCard() {
   const theme = useTheme();
   const csc = useCadenceSpeed();
@@ -24,7 +23,6 @@ export function CadenceSensorCard() {
         {'Cadence et vitesse via le profil BLE standard (iGPSPORT CAD70 / SPD70, ou équivalent). Tu peux en connecter deux à la fois.'}
       </Text>
 
-      {/* Capteurs connectés */}
       {csc.devices.map((d) => (
         <View
           key={d.id}
@@ -54,8 +52,6 @@ export function CadenceSensorCard() {
       ))}
 
       {csc.status === 'scanning' ? (
-        // Bouton « Stop » pendant le scan (plutôt que désactivé) : la radio ne
-        // reste pas à balayer si l'utilisateur change d'avis.
         <Button
           title="Arrêter la recherche"
           icon="bluetooth-off"
@@ -103,7 +99,6 @@ export function CadenceSensorCard() {
         </PressableScale>
       ))}
 
-      {/* Taille de pneu → circonférence (mm) pour le calcul de vitesse/distance */}
       {csc.status !== 'unsupported' ? (
         <View style={{ borderTopWidth: 1, borderTopColor: theme.hairline, paddingTop: 12, gap: 12 }}>
           <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600' }}>Taille de pneu</Text>
@@ -132,7 +127,6 @@ export function CadenceSensorCard() {
   );
 }
 
-/** Sélecteur de taille de pneu : une liste déroulante qui renseigne la circonférence (mm). */
 function WheelSizePicker({
   valueMm,
   onSelect,

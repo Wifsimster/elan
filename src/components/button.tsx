@@ -21,9 +21,7 @@ type Props = {
   icon?: keyof typeof MaterialCommunityIcons.glyphMap;
   variant?: Variant;
   size?: Size;
-  /** Teinte de l'action (défaut : accent). Choisit aussi le dégradé `primary`. */
   color?: string;
-  /** Dégradé explicite pour la variante `primary`. Sinon déduit de `color`. */
   gradient?: GradientName;
   loading?: boolean;
   disabled?: boolean;
@@ -31,7 +29,6 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-/** Déduit le dégradé correspondant à une couleur d'activité du thème. */
 function gradientFor(color: string | undefined, theme: ReturnType<typeof useTheme>): GradientName {
   if (color === theme.velo) return 'velo';
   if (color === theme.muscu) return 'muscu';
@@ -42,10 +39,6 @@ function gradientFor(color: string | undefined, theme: ReturnType<typeof useThem
   return 'accent';
 }
 
-/**
- * Bouton PULSE : remplissage en dégradé + ombre colorée pour l'action
- * principale, contour pour le secondaire. Appui « ressort » et haptique inclus.
- */
 export function Button({
   title,
   icon,
@@ -95,12 +88,6 @@ export function Button({
     opacity: disabled ? 0.4 : 1,
   };
 
-  // Action pleine : dégradé + ombre teintée à la couleur de l'action.
-  //
-  // L'ombre vit sur la vue extérieure (fond opaque + coins arrondis) : sur
-  // Android, une vue élevée à fond transparent projette une ombre rectangulaire
-  // noire et décalée. Le dégradé est isolé dans une vue intérieure
-  // `overflow:'hidden'` qui le découpe aux coins arrondis.
   if (variant === 'primary' || variant === 'danger') {
     const shadowColor = variant === 'danger' ? theme.danger : accent;
     return (
@@ -137,7 +124,6 @@ export function Button({
     );
   }
 
-  // Secondaire (contour) / ghost (plat).
   return (
     <PressableScale
       disabled={disabled || loading}

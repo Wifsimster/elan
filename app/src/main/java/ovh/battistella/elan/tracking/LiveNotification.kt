@@ -1,14 +1,3 @@
-// Notifications « séance en cours » (100 % locales, aucun réseau).
-//
-// Deux notifications partagent le canal silencieux `session` :
-//   - celle du service GPS de premier plan (`TrackingService`), obligatoire
-//     pour qu'Android maintienne le GPS écran éteint pendant une sortie ;
-//   - la notification persistante de séance (`showLive`), posée par les écrans
-//     de séance (muscu) pour revenir à l'écran en un appui.
-//
-// Best-effort comme dans l'app d'origine : try/catch silencieux, canal créé
-// paresseusement. Ne lève jamais, ne bloque jamais le démarrage / l'arrêt
-// d'une séance.
 package ovh.battistella.elan.tracking
 
 import android.Manifest
@@ -27,7 +16,6 @@ import androidx.core.content.ContextCompat
 import ovh.battistella.elan.MainActivity
 import ovh.battistella.elan.R
 
-/** Quelle séance la notification ramène : route ouverte par `MainActivity` au tap. */
 enum class LiveKind(val route: String, val title: String) {
     OUTING("outing", "Sortie en cours"),
     MUSCU("muscu", "Séance muscu en cours"),
@@ -36,29 +24,20 @@ enum class LiveKind(val route: String, val title: String) {
 object LiveNotification {
     const val SESSION_CHANNEL = "session"
 
-    /** Identifiant stable de la notification de séance : ré-appeler met à jour, ne duplique pas. */
     const val LIVE_ID = 3001
 
-    /** Identifiant de la notification du service GPS de premier plan. */
     const val FOREGROUND_ID = 3002
 
-    /** Extra posé sur l'intent de `MainActivity` : route à ouvrir (`LiveKind.route`). */
     const val EXTRA_OPEN_ROUTE = "ovh.battistella.elan.OPEN_ROUTE"
 
-    /** Couleur d'accent des notifications (fond Sillage). */
     private const val ACCENT = "#0D0E0B"
 
-    /**
-     * Android 13+ : `POST_NOTIFICATIONS` est requise pour que les notifications
-     * soient visibles. Sans elle, l'enregistrement continue mais sans indicateur.
-     */
     fun hasPermission(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
         return ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
     }
 
-    /** Canal « Séance en cours » : importance basse, sans son, vibration ni badge. Idempotent. */
     fun ensureChannel(context: Context) {
         val channel = NotificationChannel(SESSION_CHANNEL, "Séance en cours", NotificationManager.IMPORTANCE_LOW).apply {
             enableVibration(false)
@@ -68,10 +47,6 @@ object LiveNotification {
         NotificationManagerCompat.from(context).createNotificationChannel(channel)
     }
 
-    /**
-     * Notification du service GPS de premier plan : « Sortie en cours » /
-     * « Élan enregistre ton tracé GPS. ». Un appui ramène à l'écran de sortie.
-     */
     fun buildOutingNotification(context: Context): Notification {
         ensureChannel(context)
         return base(context, LiveKind.OUTING)
@@ -81,7 +56,6 @@ object LiveNotification {
             .build()
     }
 
-    /** Présente (ou remplace) l'unique notification persistante de séance. Best-effort. */
     fun showLive(context: Context, kind: LiveKind) {
         try {
             if (!hasPermission(context)) return
@@ -92,16 +66,13 @@ object LiveNotification {
                 .build()
             NotificationManagerCompat.from(context).notify(LIVE_ID, notification)
         } catch (_: Exception) {
-            // Permission refusée, gestionnaire indisponible… : on continue sans.
         }
     }
 
-    /** Efface la notification persistante de séance. Best-effort, idempotent. */
     fun clear(context: Context) {
         try {
             NotificationManagerCompat.from(context).cancel(LIVE_ID)
         } catch (_: Exception) {
-            // Déjà effacée / jamais présentée : rien à faire.
         }
     }
 

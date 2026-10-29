@@ -24,25 +24,18 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 import ovh.battistella.elan.ui.theme.Radius
 
-/** Action proposée pour sortir de l'état vide (ex. « Importer depuis Strava »). */
 data class EmptyAction(
     val label: String,
     @DrawableRes val icon: Int? = null,
     val onClick: () -> Unit,
 )
 
-/**
- * État vide Sillage : pastille d'icône ronde teintée 64 dp (comme les autres surfaces
- * de repos), titre/sous-titre sur l'échelle typographique, et une action
- * secondaire facultative pour ne jamais laisser l'utilisateur dans une impasse.
- */
 @Composable
 fun EmptyState(
     @DrawableRes icon: Int,
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    /** Teinte de la pastille d'icône (défaut : accent). */
     tint: Color? = null,
     action: EmptyAction? = null,
 ) {

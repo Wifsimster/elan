@@ -17,7 +17,6 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ServiceController
 import org.robolectric.shadows.ShadowPowerManager
 
-/** Le service suit l'état du contrôleur : premier plan dès le démarrage, arrêt dès que la sortie finit. */
 @RunWith(RobolectricTestRunner::class)
 class TrackingServiceTest {
 

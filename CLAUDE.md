@@ -35,4 +35,4 @@ Penser en vue d'ensemble, répondre en peu de mots. Pas de remplissage, pas de r
 - **Ne pas** toucher `data/legacy/` sans lire `docs/MIGRATION-1.x.md` : cette
   couche lit une base produite par une autre application et ses tests
   s'appuient sur `LegacyFixture`.
-- Commentaires et chaînes d'interface en **français**.
+- Chaînes d'interface en **français**. Aucun commentaire dans le code (voir `AGENTS.md`).

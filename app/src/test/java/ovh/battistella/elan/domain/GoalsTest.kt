@@ -1,8 +1,3 @@
-// Tests de la logique pure des objectifs d'entraînement (Goals.kt) : bornes de
-// période, calcul d'avancement, libellés, parsing robuste et opérations de
-// liste. Robolectric uniquement pour `org.json` (parseGoals / serializeGoals).
-// Dates construites en heure locale (fuseau par défaut du système, comme
-// `startOfWeekMs`) pour rester indépendant du fuseau de la CI.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -33,14 +28,12 @@ class GoalsTest {
 
     private fun local(ms: Long) = Instant.ofEpochMilli(ms).atZone(zone)
 
-    // --- periodRange ---------------------------------------------------------
-
     @Test
     fun `semaine - lundi 00h00 vers lundi suivant (7 jours)`() {
-        val now = localMs(2025, 6, 11, 14, 30) // mercredi 11 juin
+        val now = localMs(2025, 6, 11, 14, 30)
         val (fromMs, toMs) = periodRange(GoalPeriod.WEEK, now)
         val from = local(fromMs)
-        assertEquals(1, from.dayOfWeek.value) // lundi
+        assertEquals(1, from.dayOfWeek.value)
         assertEquals(9, from.dayOfMonth)
         assertEquals(0, from.hour)
         assertEquals(7 * 86_400_000L, toMs - fromMs)
@@ -48,9 +41,7 @@ class GoalsTest {
 
     @Test
     fun `semaine - la borne de fin est re-calée sur le lundi suivant à minuit local`() {
-        // Semaine du passage à l'heure d'été (30 mars 2025 en Europe) : avec un
-        // +168 h fixe la borne dériverait d'une heure ; on exige lundi 00:00 local.
-        val now = localMs(2025, 3, 26, 10, 0) // mercredi
+        val now = localMs(2025, 3, 26, 10, 0)
         val (fromMs, toMs) = periodRange(GoalPeriod.WEEK, now)
         val from = local(fromMs)
         val to = local(toMs)
@@ -63,27 +54,25 @@ class GoalsTest {
 
     @Test
     fun `mois - 1er du mois vers 1er du mois suivant`() {
-        val now = localMs(2025, 6, 11, 14, 30) // juin
+        val now = localMs(2025, 6, 11, 14, 30)
         val (fromMs, toMs) = periodRange(GoalPeriod.MONTH, now)
         val from = local(fromMs)
         val to = local(toMs)
         assertEquals(1, from.dayOfMonth)
-        assertEquals(6, from.monthValue) // juin
+        assertEquals(6, from.monthValue)
         assertEquals(0, from.hour)
         assertEquals(1, to.dayOfMonth)
-        assertEquals(7, to.monthValue) // juillet
+        assertEquals(7, to.monthValue)
     }
 
     @Test
     fun `mois - décembre déborde sur janvier de l'année suivante`() {
-        val now = localMs(2025, 12, 20) // décembre 2025
+        val now = localMs(2025, 12, 20)
         val (_, toMs) = periodRange(GoalPeriod.MONTH, now)
         val to = local(toMs)
         assertEquals(2026, to.year)
-        assertEquals(1, to.monthValue) // janvier
+        assertEquals(1, to.monthValue)
     }
-
-    // --- computeProgress -----------------------------------------------------
 
     @Test
     fun `avancement partiel - ratio borné, non atteint`() {
@@ -115,8 +104,6 @@ class GoalsTest {
         assertFalse(p.done)
     }
 
-    // --- describeGoal / formatGoalValue --------------------------------------
-
     @Test
     fun `libellés selon métrique et période`() {
         assertEquals(
@@ -141,8 +128,6 @@ class GoalsTest {
         assertEquals("42.5 km", formatGoalValue(goal(metric = GoalMetric.DISTANCE), 42.5))
         assertEquals("5123 kg", formatGoalValue(goal(metric = GoalMetric.TONNAGE), 5123.4))
     }
-
-    // --- parseGoals (robuste) / serializeGoals -------------------------------
 
     @Test
     fun `valeur absente ou JSON corrompu - liste vide`() {
@@ -191,8 +176,6 @@ class GoalsTest {
         assertEquals(goals, parseGoals(serializeGoals(goals)))
     }
 
-    // --- upsertGoal / removeGoal / makeGoal ----------------------------------
-
     @Test
     fun `ajoute un nouvel objectif`() {
         assertEquals(1, upsertGoal(emptyList(), goal(id = "g1")).size)
@@ -220,8 +203,6 @@ class GoalsTest {
         assertTrue(a.id.startsWith("g"))
     }
 
-    // --- libellés des nouvelles activités ------------------------------------
-
     @Test
     fun `nomme la course et la marche dans le libellé d'objectif`() {
         assertTrue(
@@ -246,8 +227,6 @@ class GoalsTest {
 
     @Test
     fun `ramène une activité inconnue sur toutes sans perdre l'objectif`() {
-        // Lecture défensive : un réglage restauré d'une autre version ne doit pas
-        // disparaître silencieusement — il retombe sur le comptage le plus large.
         val raw = """[{"id":"c","metric":"sessions","period":"week","target":2,"activity":"natation"}]"""
         assertEquals(1, parseGoals(raw).size)
         assertEquals(GoalActivity.ALL, parseGoals(raw)[0].activity)

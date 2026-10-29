@@ -59,19 +59,12 @@ export default function SessionDetailScreen() {
   const [sets, setSets] = useState<MuscuSet[]>([]);
   const [records, setRecords] = useState<SessionRecord[]>([]);
   const [maxHr, setMaxHr] = useState(0);
-  // Incrémenté après un changement de type : relit la séance et ses records,
-  // qui se comparent par type.
   const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
-  // Fond de carte pré-rendu pour la carte partageable (tuiles homelab). Généré
-  // en arrière-plan dès l'ouverture pour être prêt au moment du partage ; reste
-  // `null` si aucun style n'est configuré (le partage retombe sur le tracé SVG).
   const [mapSnapshot, setMapSnapshot] = useState<RouteSnapshot | null>(null);
   const share = useSessionShare();
   const gpx = useGpxExport();
-  // Ref de la carte partageable (capturée en PNG lors du partage).
   const shareCardRef = useRef<View>(null);
-  // Ref de la ScrollView : permet au pan de la carte de bloquer le défilement.
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
   useEffect(() => {
@@ -82,7 +75,6 @@ export default function SessionDetailScreen() {
     if (gpx.error) Alert.alert('Export GPX', gpx.error);
   }, [gpx.error]);
 
-  // Pré-rend le fond de carte de la carte partageable (activité GPS avec tracé).
   useEffect(() => {
     if (!session?.type || !isGpsActivity(session.type) || points.length < 2) return;
     let cancelled = false;
@@ -142,20 +134,14 @@ export default function SessionDetailScreen() {
   const color = theme[meta.colorKey];
   const effort = sessionEffort(session, maxHr);
 
-  // Vélo : on met en avant le temps en mouvement (hors arrêts) ; le temps total
-  // n'est montré que s'il en diffère nettement (chrono laissé tourner à l'arrêt).
   const isGps = isGpsActivity(session.type);
-  // À pied, l'effort se lit en allure (min/km) plutôt qu'en vitesse.
   const pace = usesPace(session.type);
   const movingSec = isGps ? session.movingTimeSec : null;
   const showTotalTime = movingSec != null && session.durationSec - movingSec >= 60;
 
-  // Profils de données (vélo) — calculés depuis les points GPS, 100 % local.
   const speed = isGps ? speedProfile(points) : [];
   const elevation = isGps ? elevationProfile(points) : [];
   const hr = isGps ? hrProfile(points) : [];
-  // Temps par zone : lu sur les points GPS horodatés, donc disponible
-  // rétroactivement sur toutes les sorties enregistrées avec la ceinture.
   const zones = zoneDistribution(points, maxHr);
   const fmtKm = (v: number) => (v >= 10 ? String(Math.round(v)) : v.toFixed(1).replace('.', ','));
 
@@ -194,7 +180,6 @@ export default function SessionDetailScreen() {
         style={{ backgroundColor: theme.background }}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ ...contentStyle, paddingTop: 16, gap: 16, paddingBottom: 40 }}>
-        {/* En-tête */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View
             style={{
@@ -216,10 +201,8 @@ export default function SessionDetailScreen() {
           </View>
         </View>
 
-        {/* Records personnels (façon « PR » Strava) */}
         <RecordsBanner records={records} year={new Date(session.startedAt).getFullYear()} />
 
-        {/* Tracé GPS (vélo) — vignette tactile : ouvre la carte en plein écran. */}
         {isGps && points.length >= 2 ? (
           <PressableScale
             onPress={() =>
@@ -247,13 +230,11 @@ export default function SessionDetailScreen() {
           </PressableScale>
         ) : null}
 
-        {/* Statistiques */}
         <Card>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18 }}>
             {movingSec != null ? (
               <StatTile label="En mouvement" value={formatDuration(movingSec)} icon="clock-outline" compact />
             ) : session.type === 'muscu' ? (
-              // Muscu : la durée n'est pas pertinente → on montre la complétion.
               <>
                 <StatTile
                   label="Séries"
@@ -359,7 +340,6 @@ export default function SessionDetailScreen() {
           </View>
         </Card>
 
-        {/* Profils de données (vélo) — vitesse / altitude / FC sur la distance */}
         {speed.length >= 2 ? (
           <ChartCard title="Vitesse" unit="km/h">
             <LineChart
@@ -392,7 +372,6 @@ export default function SessionDetailScreen() {
 
         {zones ? <HrZonesCard distribution={zones} /> : null}
 
-        {/* Exercices (muscu) */}
         {session.type === 'muscu' ? <MuscuBreakdown sets={sets} color={color} /> : null}
 
         {session.notes ? (
@@ -433,7 +412,6 @@ export default function SessionDetailScreen() {
         <Button title="Supprimer la séance" icon="trash-can-outline" variant="danger" onPress={confirmDelete} />
       </Animated.ScrollView>
 
-      {/* Carte partageable, rendue hors écran puis capturée en PNG au partage. */}
       <View style={{ position: 'absolute', left: -9999, top: 0 }} pointerEvents="none">
         <ShareCard
           ref={shareCardRef}
@@ -449,7 +427,6 @@ export default function SessionDetailScreen() {
   );
 }
 
-/** Carte de section pour un graphe : titre + unité + contenu. */
 function ChartCard({
   title,
   unit,
@@ -478,11 +455,6 @@ const RECORD_LABELS: Record<RecordKind, { icon: keyof typeof MaterialCommunityIc
   speed: { icon: 'speedometer', noun: 'vitesse moyenne' },
 };
 
-/**
- * Bannière de records, façon « PR » Strava. On priorise les records absolus
- * (« all ») puis ceux de l'année, et on en montre au plus trois pour éviter la
- * surcharge.
- */
 function RecordsBanner({ records, year }: { records: SessionRecord[]; year: number }) {
   const theme = useTheme();
   if (records.length === 0) return null;
@@ -534,7 +506,6 @@ function MuscuBreakdown({ sets, color }: { sets: MuscuSet[]; color: string }) {
   const theme = useTheme();
   if (sets.length === 0) return null;
 
-  // Regroupe par exercice en conservant l'ordre d'apparition.
   const groups: { name: string; rows: MuscuSet[] }[] = [];
   for (const s of sets) {
     let g = groups.find((x) => x.name === s.exercise);
@@ -549,7 +520,6 @@ function MuscuBreakdown({ sets, color }: { sets: MuscuSet[]; color: string }) {
     <View style={{ gap: 12 }}>
       {groups.map((g) => {
         const volume = g.rows.reduce((a, r) => a + r.reps * r.weightKg, 0);
-        // Ressenti uniforme sur les séries de l'exercice : on lit la 1re ligne.
         const difficulty = g.rows[0]?.difficulty ?? null;
         const diffColor =
           difficulty === 'facile'
@@ -561,12 +531,9 @@ function MuscuBreakdown({ sets, color }: { sets: MuscuSet[]; color: string }) {
           <Card key={g.name} style={{ gap: 8 }}>
             <Link href={{ pathname: '/exercise/[name]', params: { name: g.name } }} asChild>
               <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                {/* Titre : occupe l'espace libre et passe à la ligne au besoin. */}
                 <Text style={{ flex: 1, color: theme.text, fontSize: 16, fontWeight: '800', lineHeight: 21 }}>
                   {g.name}
                 </Text>
-                {/* Méta alignée à droite : ressenti + volume + chevron « voir la
-                    progression » — position constante d'une carte à l'autre. */}
                 {difficulty ? (
                   <View
                     style={{

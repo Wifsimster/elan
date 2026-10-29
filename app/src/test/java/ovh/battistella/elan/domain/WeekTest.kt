@@ -1,6 +1,3 @@
-// Tests des aides « semaine » : début de semaine (lundi), clé de jour locale et
-// agrégation des durées en barres. Dates construites en heure locale pour
-// rester indépendant du fuseau de la CI.
 package ovh.battistella.elan.domain
 
 import org.junit.Assert.assertEquals
@@ -20,11 +17,10 @@ class WeekTest {
 
     @Test
     fun `startOfWeekMs renvoie le lundi minuit (local) de la semaine`() {
-        // mercredi 11 juin 2025, 14:30 local
         val monday = zoned(startOfWeekMs(local(2025, 6, 11, 14, 30)))
         assertEquals(2025, monday.year)
         assertEquals(6, monday.monthValue)
-        assertEquals(9, monday.dayOfMonth) // lundi 9 juin
+        assertEquals(9, monday.dayOfMonth)
         assertEquals(DayOfWeek.MONDAY, monday.dayOfWeek)
         assertEquals(0, monday.hour)
         assertEquals(0, monday.minute)
@@ -39,7 +35,7 @@ class WeekTest {
 
     @Test
     fun `startOfWeekMs un dimanche renvoie le lundi précédent`() {
-        val start = zoned(startOfWeekMs(local(2025, 6, 15, 23, 0))) // dimanche
+        val start = zoned(startOfWeekMs(local(2025, 6, 15, 23, 0)))
         assertEquals(9, start.dayOfMonth)
         assertEquals(DayOfWeek.MONDAY, start.dayOfWeek)
     }
@@ -51,27 +47,26 @@ class WeekTest {
         assertEquals("2025-01-05", localDayKey(local(2025, 1, 5, 23, 59)))
     }
 
-    private val now = local(2025, 6, 11, 10, 0) // mercredi 11 juin
+    private val now = local(2025, 6, 11, 10, 0)
 
     @Test
     fun `dailyDurationBars produit days barres, aujourd'hui en dernier`() {
         val bars = dailyDurationBars(emptyList(), 7, now)
         assertEquals(7, bars.size)
         assertTrue(bars.all { it.value == 0 })
-        // aujourd'hui = mercredi -> dernière barre labellisée 'M'
         assertEquals("M", bars[6].label)
     }
 
     @Test
     fun `dailyDurationBars apparie les durées par clé de jour locale`() {
         val daily = listOf(
-            DailyDuration(localDayKey(LocalDate.of(2025, 6, 11)), 1800), // aujourd'hui
-            DailyDuration(localDayKey(LocalDate.of(2025, 6, 9)), 3600), // lundi
+            DailyDuration(localDayKey(LocalDate.of(2025, 6, 11)), 1800),
+            DailyDuration(localDayKey(LocalDate.of(2025, 6, 9)), 3600),
         )
         val bars = dailyDurationBars(daily, 7, now)
-        assertEquals(1800, bars[6].value) // mercredi (dernier)
-        assertEquals(3600, bars[4].value) // lundi (5 jours plus tôt -> index 4 sur 7)
-        assertEquals("J", bars[0].label) // 6 jours avant mercredi = jeudi précédent
+        assertEquals(1800, bars[6].value)
+        assertEquals(3600, bars[4].value)
+        assertEquals("J", bars[0].label)
     }
 
     @Test

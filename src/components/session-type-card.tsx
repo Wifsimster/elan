@@ -14,27 +14,13 @@ import type { ActivityType, Session, TrackPoint } from '@/lib/types';
 
 type Props = {
   session: Session;
-  /** Points du tracé — servent à réécrire la série FC du miroir Health Connect. */
   points: TrackPoint[];
-  /** Appelé après un changement réussi, pour recharger la séance affichée. */
   onChanged: () => void;
 };
 
-/**
- * Carte « Type d'activité » du détail de séance : corrige après coup une sortie
- * enregistrée sous le mauvais type. Limitée aux activités tracées au GPS — passer
- * de ou vers la musculation n'aurait pas de sens.
- *
- * Le changement n'est pas cosmétique (calories ré-estimées, cadence effacée), il
- * passe donc par une confirmation qui dit ce qui va bouger.
- */
 export function SessionTypeCard({ session, points, onChanged }: Props) {
   const theme = useTheme();
   const [busy, setBusy] = useState(false);
-  // Garde de réentrance armée dès la CONFIRMATION : `busy` ne se lève qu'à
-  // l'écriture, si bien qu'un double appui ouvrait deux boîtes de dialogue — la
-  // seconde échouait ensuite sur une séance déjà convertie, avec une fausse
-  // erreur à la clé.
   const pendingRef = useRef(false);
 
   const apply = async (previousType: ActivityType, to: ActivityType) => {
@@ -47,7 +33,6 @@ export function SessionTypeCard({ session, points, onChanged }: Props) {
         return;
       }
       haptics.success();
-      // Miroir santé et sauvegarde : best-effort, ne bloquent pas l'écran.
       retypeSavedSession(previousType, {
         type: updated.type,
         startedAt: updated.startedAt,

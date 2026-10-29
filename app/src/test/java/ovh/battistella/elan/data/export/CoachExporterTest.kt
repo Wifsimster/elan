@@ -107,19 +107,16 @@ class CoachExporterTest {
         )
         assertTrue(md.startsWith("# Élan — Export pour ton coach IA\n\nGénéré le ${formatDateTime(now)}. Données issues de l'app Élan (toutes locales).\n"))
 
-        // Profil : nombres FR, libellés.
         assertTrue(md.contains("- Poids : 72,5 kg"))
         assertTrue(md.contains("- Taille : 178 cm"))
         assertTrue(md.contains("- FC max : 188 bpm"))
         assertTrue(md.contains("- Objectif : Force"))
         assertTrue(md.contains("- Sexe : homme"))
 
-        // Poids : du plus ancien au plus récent.
         val i73 = md.indexOf("| ${formatDateShort(now - 5 * 86_400_000L)} | 73 |")
         val i725 = md.indexOf("| ${formatDateShort(now - 86_400_000L)} | 72,5 |")
         assertTrue(i73 in 0 until i725)
 
-        // Programme : planning + un ### par programme, exercices numérotés.
         assertTrue(md.contains("- Lundi : Vélo — Vélo 1h"))
         assertTrue(md.contains("- Mardi : Musculation — Full-body A"))
         assertTrue(md.contains("- Mercredi : Repos"))
@@ -127,15 +124,12 @@ class CoachExporterTest {
         assertTrue(md.contains("1. **"))
         assertTrue(md.contains("   _Muscles :_ "))
 
-        // Statistiques : 4 lignes de période.
         assertTrue(md.contains("| Période | Séances | Durée totale | Distance (vélo) | Calories |"))
         assertTrue(md.contains("| 7 derniers jours | 3 | "))
         assertTrue(md.contains("| Depuis le début | 3 | "))
 
-        // Objectifs : la muscu date de la semaine passée ; 2 sorties cette semaine sur une cible de 2 → atteint.
         assertTrue(md.contains("| 2 séances / semaine | 2 | 2 | oui |"))
 
-        // Progression + détail muscu : pipe échappé, ressenti.
         assertTrue(md.contains("### Goblet squat\n\n| Date | Charge max (kg) | Reps | Volume | Séries | Ressenti |"))
         assertTrue(md.contains("| 22,5 | 8 | 380 | 2 | Moyen |"))
         assertTrue(md.contains("### Pompes | lestées\n"))
@@ -143,7 +137,6 @@ class CoachExporterTest {
         assertTrue(md.contains("| Pompes \\| lestées | 1 | 12 | 0 |"))
         assertTrue(md.contains("— durée 40:00"))
 
-        // Sorties : temps en mouvement, allure pour la course, source.
         assertTrue(md.contains("| Vélo | 50:00 | 25,4 km | 30,5 km/h | — | — | 210 m | 612 kcal | app |"))
         assertTrue(md.contains("| Course à pied | 1:00:00 | 10,0 km | 6:00 /km | — | — | — | — | strava |"))
     }
@@ -189,7 +182,6 @@ class CoachExporterTest {
         val keys = (0 until data.getJSONArray("settings").length()).map { data.getJSONArray("settings").getJSONObject(it).getString("key") }
         assertTrue(Keys.PROFILE in keys)
         assertFalse(Keys.MAP_STYLE_URL in keys)
-        // Nombres entiers écrits sans « .0 », comme l'app d'origine.
         assertTrue(json.readText().contains("\"heightCm\": 178,"))
     }
 }

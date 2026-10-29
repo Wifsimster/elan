@@ -16,25 +16,6 @@ import java.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Effets exécutés une fois par processus, au lancement (voir
- * `docs/port-spec/02-interface.md` §1 « Effets au démarrage »), dans l'ordre :
- *
- * 0. purge des exports partagés (`cache/share/`) laissés par le processus
- *    précédent — ils contiennent le tracé GPS complet et n'ont plus de
- *    lecteur ; indépendant de la base, donc avant la barrière ;
- * 1. reprise de l'ancienne base (`MigrationGate`) — tout le reste attend
- *    qu'elle soit réglée, car les étapes suivantes lisent la base ;
- * 2. effacement de la notification « séance en cours » laissée par un
- *    processus tué ;
- * 3. récupération des séances orphelines (`recoverOrphans`) et arrêt d'un
- *    service GPS orphelin ;
- * 4. rappels hebdomadaires (`applyNotifications`) et progression du programme
- *    (`runWeeklyProgressionIfDue`).
- *
- * Chaque étape est best-effort : un échec n'empêche pas les suivantes ni le
- * démarrage de l'interface.
- */
 @Singleton
 class StartupTasks @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -61,7 +42,6 @@ class StartupTasks @Inject constructor(
         bestEffort { progression.runWeeklyProgressionIfDue(clock.millis()) }
     }
 
-    /** Une étape ratée est journalisée, jamais propagée ; l'annulation, elle, passe. */
     private inline fun bestEffort(step: () -> Unit) {
         try {
             step()

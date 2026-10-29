@@ -17,11 +17,6 @@ import ovh.battistella.elan.ui.screens.outing.OutingUi
 import ovh.battistella.elan.ui.screens.outing.TrackingOutingPort
 import javax.inject.Singleton
 
-/**
- * Liaisons des ports consommés par les écrans : le suivi GPS (`tracking/`) et
- * les capteurs BLE (`sensors/ble/`) derrière leurs adaptateurs. Une seule
- * liaison par port dans le graphe Hilt.
- */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class ScreensModule {
@@ -38,10 +33,6 @@ abstract class ScreensModule {
     abstract fun bindCadencePort(impl: BleCadencePort): CadencePort
 }
 
-/**
- * Implémentations inertes, hors graphe Hilt : aperçus et tests qui n'ont
- * besoin ni de GPS ni de capteurs.
- */
 class NoOpOutingPort : OutingPort {
     private val _state = MutableStateFlow(OutingUi())
     override val state: StateFlow<OutingUi> = _state.asStateFlow()
@@ -53,13 +44,11 @@ class NoOpOutingPort : OutingPort {
     override fun discard() = Unit
 }
 
-/** Ceinture jamais connectée. */
 class NoOpHeartRatePort : HeartRatePort {
     override val bpm: StateFlow<Int?> = MutableStateFlow(null)
     override val connected: StateFlow<Boolean> = MutableStateFlow(false)
 }
 
-/** Aucun capteur vélo. */
 class NoOpCadencePort : CadencePort {
     override val cadenceRpm: StateFlow<Int?> = MutableStateFlow(null)
     override val speedKmh: StateFlow<Double?> = MutableStateFlow(null)

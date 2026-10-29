@@ -1,19 +1,4 @@
 #!/usr/bin/env node
-// Génère les vector drawables Android des icônes Material Design Icons (MDI)
-// utilisées par Élan, plus l'objet Kotlin `MdiIcons` qui les expose.
-//
-// Pourquoi des drawables plutôt que la police MDI : ~150 Ko pour ~120 glyphes
-// au lieu de 1,2 Mo, et une icône devient une valeur typée (R.drawable.mdi_x)
-// vérifiée à la compilation.
-//
-// Usage : node scripts/gen-mdi-icons.mjs
-//   - installe @mdi/svg dans un dossier temporaire (npm, réseau requis),
-//   - lit la liste ICONS ci-dessous (noms MDI, séparés par des tirets),
-//   - écrit app/src/main/res/drawable/mdi_<nom>.xml (24×24, fillColor noir,
-//     teinté à l'usage via `tint`),
-//   - écrit app/src/main/java/ovh/battistella/elan/ui/icons/MdiIcons.kt.
-// Licence des glyphes : Pictogrammers Free License (Apache 2.0) — voir
-// docs/LICENSES-ASSETS.md.
 
 import { execSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -26,8 +11,6 @@ const DRAWABLE_DIR = join(ROOT, "app/src/main/res/drawable");
 const KOTLIN_FILE = join(ROOT, "app/src/main/java/ovh/battistella/elan/ui/icons/MdiIcons.kt");
 const MDI_VERSION = "7";
 
-// Inventaire relevé dans l'app Expo (docs/port-spec/02-interface.md §5) +
-// quelques icônes de navigation/état utiles au natif.
 const ICONS = [
   "account-outline", "alert-circle-outline", "arm-flex", "arm-flex-outline",
   "arrow-collapse-horizontal", "arrow-collapse-vertical", "arrow-down", "arrow-down-bold",
@@ -51,7 +34,6 @@ const ICONS = [
   "speedometer", "speedometer-medium", "stairs-up", "target", "timer-outline",
   "timer-sand", "trash-can-outline", "trending-up", "trophy", "view-dashboard-outline",
   "view-grid-outline", "walk", "weight", "weight-kilogram", "weight-lifter", "yoga",
-  // natif
   "compass-outline", "crosshairs-gps", "eye-outline", "eye-off-outline",
 ];
 
@@ -78,7 +60,6 @@ function toResName(name) {
 }
 
 function toKotlinName(name) {
-  // arm-flex-outline → ArmFlexOutline
   return name.split("-").map((p) => p[0].toUpperCase() + p.slice(1)).join("");
 }
 

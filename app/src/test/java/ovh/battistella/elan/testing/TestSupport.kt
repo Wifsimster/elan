@@ -22,14 +22,8 @@ import ovh.battistella.elan.sync.AutoProgressionRunner
 import ovh.battistella.elan.sync.ProgressionNotify
 import java.util.concurrent.Executor
 
-/**
- * Échafaudage partagé : une vraie base Room en mémoire branchée sur les vrais
- * dépôts (les requêtes des DAO sont exercées pour de bon), plus des fixtures
- * d'entités avec des défauts plausibles.
- */
 object TestSupport {
 
-    /** Exécuteur synchrone : Room tourne sur le thread appelant, tout reste déterministe. */
     private val directExecutor = Executor { it.run() }
 
     fun inMemoryDb(): ElanDatabase {
@@ -41,7 +35,6 @@ object TestSupport {
             .build()
     }
 
-    /** Les dépôts de la couche données, tous sur la même base. */
     class Repositories(
         val settings: SettingsRepository,
         val sessions: SessionRepository,
@@ -66,11 +59,8 @@ object TestSupport {
         )
     }
 
-    /** Progression auto sur les mêmes dépôts, notification remplacée par [notify] (muette par défaut). */
     fun progressionRunner(repos: Repositories, notify: ProgressionNotify = ProgressionNotify { _, _ -> }): AutoProgressionRunner =
         AutoProgressionRunner(repos.settings, repos.sessions, notify)
-
-    // --- fixtures ---
 
     fun session(
         id: Long = 0,

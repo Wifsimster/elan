@@ -16,11 +16,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import ovh.battistella.elan.ui.theme.MaxContentWidth
 
-/**
- * Mise en page standard d'un contenu d'écran (`use-screen-layout` dans l'app
- * d'origine) : insets système gauche/droite + marge horizontale, largeur
- * plafonnée à [MaxContentWidth] et centrée sur tablette / paysage.
- */
 @Composable
 fun Modifier.screenContent(horizontal: Dp = 16.dp): Modifier = this
     .fillMaxWidth()

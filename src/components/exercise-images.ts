@@ -1,18 +1,3 @@
-// Photos d'illustration des mouvements de musculation.
-//
-// Chaque exercice est illustré par une paire de photos : position de DÉPART
-// puis position FINALE du mouvement, ce qui montre précisément l'amplitude à
-// réaliser. Les images viennent de free-exercise-db (domaine public, Unlicense)
-// et sont **bundlées dans l'app** : aucune dépendance réseau, conforme à
-// l'approche local-first du projet.
-//
-// `require()` doit recevoir un chemin statique (contrainte du bundler Metro),
-// d'où ce registre clé → paire d'images plutôt qu'un chemin construit à la volée.
-
-// Les assets bundlés via `require()` se résolvent en identifiants numériques
-// de module : on type donc la paire en `number`, accepté par <Image> d'expo-image.
-
-/** Paire [départ, fin] de photos illustrant un mouvement. */
 export type ExerciseImagePair = readonly [number, number];
 
 const IMAGES: Record<string, ExerciseImagePair> = {
@@ -58,7 +43,6 @@ const IMAGES: Record<string, ExerciseImagePair> = {
   ],
 };
 
-/** Photos [départ, fin] pour une clé d'illustration, ou `null` si inconnue. */
 export function exerciseImages(key: string | undefined): ExerciseImagePair | null {
   if (!key) return null;
   return IMAGES[key] ?? null;

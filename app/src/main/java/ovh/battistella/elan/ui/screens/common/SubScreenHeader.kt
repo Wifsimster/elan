@@ -24,11 +24,6 @@ import ovh.battistella.elan.ui.theme.ElanTheme
 import ovh.battistella.elan.ui.theme.ElanType
 
 
-/**
- * En-tête d'un écran empilé (hors onglets) : flèche retour, titre, actions à
- * droite — l'équivalent de l'en-tête natif de pile de l'app d'origine, rendu
- * dans le contenu puisque le scaffold racine n'a pas de barre supérieure.
- */
 @Composable
 fun SubScreenHeader(
     title: String,
@@ -57,7 +52,6 @@ fun SubScreenHeader(
     }
 }
 
-/** Icône d'action d'en-tête, pressable (zone tactile élargie), avec libellé d'accessibilité. */
 @Composable
 fun HeaderAction(
     @DrawableRes icon: Int,

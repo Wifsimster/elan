@@ -59,19 +59,6 @@ import ovh.battistella.elan.ui.screens.settings.SettingsScreen
 import ovh.battistella.elan.ui.screens.strength.StrengthScreen
 import ovh.battistella.elan.ui.screens.weight.WeightScreen
 
-/**
- * Racine de l'interface : un seul [Scaffold] (hôte de snackbar partagé, barre
- * de navigation sur les trois onglets seulement) autour du [NavHost]. Les
- * écrans reçoivent `contentPadding` et des callbacks, jamais le `NavController`.
- *
- * [snackbar] est le singleton Hilt injecté par MainActivity ; le défaut local
- * ne sert qu'aux tests et aux aperçus, où aucun émetteur n'existe.
- * [viewModelFactory] permet aux tests de construire les ViewModels sans Hilt
- * (`null` en production : `hiltViewModel()`).
- * [pendingRoute] est une route demandée de l'extérieur (notification de séance,
- * lien profond) : ouverte dès qu'elle est fournie, puis signalée consommée
- * par [onPendingRouteConsumed] pour ne pas être rejouée.
- */
 @Composable
 fun ElanRoot(
     snackbar: SnackbarController = remember { SnackbarController() },
@@ -82,20 +69,14 @@ fun ElanRoot(
     val navController = rememberNavController()
     LaunchedEffect(pendingRoute) {
         if (pendingRoute != null) {
-            // `launchSingleTop` : revenir à la sortie déjà ouverte plutôt que l'empiler.
             navController.navigate(pendingRoute) { launchSingleTop = true }
             onPendingRouteConsumed()
         }
     }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
-    // La barre d'onglets n'existe que sur les onglets : les écrans empilés
-    // (sortie, muscu, détail, carte, poids…) sont plein écran, comme la pile
-    // hors `(tabs)` de l'app d'origine.
     val showBottomBar = currentDestination?.hierarchy?.any { d -> TopLevelDestination.entries.any { it.route == d.route } } != false
 
-    // Un seul hôte de snackbar rend les messages transitoires — y compris les
-    // actions « Annuler » des suppressions réversibles — depuis n'importe où.
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(snackbar) {
         snackbar.messages.collect { message ->
@@ -110,8 +91,6 @@ fun ElanRoot(
     }
 
     Scaffold(
-        // Dégage aussi l'encoche pour que le contenu ne passe pas sous un
-        // notch latéral en paysage (edge-to-edge actif).
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.union(WindowInsets.displayCutout),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = { if (showBottomBar) BottomBar(navController, currentDestination) },
@@ -120,8 +99,6 @@ fun ElanRoot(
             navController = navController,
             startDestination = Routes.HOME,
             modifier = Modifier.fillMaxSize(),
-            // Fondu discret entre les onglets ; les ressorts par défaut
-            // reprennent le motion scheme expressif du thème.
             enterTransition = { fadeIn() },
             exitTransition = { fadeOut() },
             popEnterTransition = { fadeIn() },
@@ -162,7 +139,6 @@ fun ElanRoot(
                 )
             }
 
-            // Écrans live : plein écran, fondu (modal `fade` d'origine).
             composable(
                 route = Routes.OUTING,
                 arguments = listOf(navArgument("type") { type = NavType.StringType }),
@@ -172,7 +148,6 @@ fun ElanRoot(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
                     onExit = { entry.ifResumed { navController.popBackStack() } },
-                    // `router.replace(détail)` : la sortie quitte la pile.
                     onSaved = { id ->
                         navController.navigate(Routes.session(id)) {
                             popUpTo(Routes.OUTING) { inclusive = true }
@@ -192,7 +167,6 @@ fun ElanRoot(
                     contentPadding = innerPadding,
                     viewModel = screenViewModel(viewModelFactory),
                     onExit = { entry.ifResumed { navController.popBackStack() } },
-                    // `router.replace(détail)` : la séance quitte la pile.
                     onSaved = { id ->
                         navController.navigate(Routes.session(id)) {
                             popUpTo(Routes.MUSCU) { inclusive = true }
@@ -265,16 +239,10 @@ fun ElanRoot(
     }
 }
 
-/**
- * ViewModel d'un écran : Hilt en production, fabrique fournie en test. La
- * fabrique reçoit les extras du `NavBackStackEntry` (dont le `SavedStateHandle`
- * avec les arguments de route).
- */
 @Composable
 private inline fun <reified VM : ViewModel> screenViewModel(factory: ViewModelProvider.Factory?): VM =
     if (factory == null) hiltViewModel() else viewModel(factory = factory)
 
-/** Bascule d'onglet : pile sauvegardée / restaurée, une seule instance. */
 private fun NavHostController.navigateToTab(route: String) {
     navigate(route) {
         popUpTo(graph.findStartDestination().id) { saveState = true }
@@ -289,8 +257,6 @@ private fun BottomBar(
     currentDestination: NavDestination?,
 ) {
     val colors = ElanTheme.colors
-    // Onglet actif : pastille Volt sous encre sombre, libellé à l'encre
-    // principale ; les autres restent en retrait. Barre tonale, sans ombre.
     val itemColors = NavigationBarItemDefaults.colors(
         indicatorColor = colors.brand,
         selectedIconColor = colors.onBrand,
@@ -304,8 +270,6 @@ private fun BottomBar(
             NavigationBarItem(
                 selected = selected,
                 onClick = { if (!selected) navController.navigateToTab(dest.route) },
-                // Le libellé est affiché en texte dessous ; null évite que
-                // TalkBack le lise deux fois.
                 colors = itemColors,
                 icon = { Icon(painterResource(dest.icon), contentDescription = null) },
                 label = { Text(stringResource(dest.labelRes), style = ElanType.micro.copy(fontWeight = FontWeight.Bold)) },
@@ -314,11 +278,6 @@ private fun BottomBar(
     }
 }
 
-/**
- * N'exécute une navigation que si l'écran est au premier plan : un double
- * appui (ou un événement émis pendant la transition de sortie) dépilerait
- * deux fois — NavHost vide — ou empilerait deux fois le même écran.
- */
 private inline fun NavBackStackEntry.ifResumed(action: () -> Unit) {
     if (lifecycle.currentState == Lifecycle.State.RESUMED) action()
 }

@@ -1,6 +1,3 @@
-// Traduction des échecs S3 en phrases actionnables pour l'écran Réglages —
-// port de `describeS3Failure` / `describeNetworkFailure` de `src/lib/s3.ts`.
-// Le XML brut du serveur ne dit pas à l'utilisateur quel champ corriger.
 package ovh.battistella.elan.data.remote
 
 import java.io.InterruptedIOException
@@ -10,20 +7,16 @@ import java.net.UnknownHostException
 import java.security.cert.CertificateException
 import javax.net.ssl.SSLException
 
-/** Échec S3 ou réseau déjà traduit en français (message affichable tel quel). */
 class S3Exception(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-/** `<Code>` et `<Message>` d'une réponse d'erreur S3 (XML). */
 data class S3Error(val code: String, val message: String)
 
-/** Extrait `<Code>` et `<Message>` d'une réponse d'erreur S3 (XML). */
 fun parseS3Error(xml: String): S3Error {
     fun pick(tag: String): String =
         Regex("<$tag>([^<]*)</$tag>").find(xml)?.groupValues?.get(1)?.trim() ?: ""
     return S3Error(code = pick("Code"), message = pick("Message"))
 }
 
-/** Traduit un échec HTTP S3 (statut non 2xx) en phrase actionnable. */
 fun describeS3Failure(method: S3Method, status: Int, body: String, config: S3Config): String {
     val (code, message) = parseS3Error(body)
     when (code) {
@@ -47,7 +40,6 @@ fun describeS3Failure(method: S3Method, status: Int, body: String, config: S3Con
     return "Le serveur a refusé la requête (HTTP $status)" + (if (detail.isNotEmpty()) " : $detail" else ".")
 }
 
-/** Traduit un échec réseau (requête jamais aboutie) : endpoint injoignable, TLS, délai. */
 fun describeNetworkFailure(e: Throwable): String {
     val msg = e.message ?: ""
     val timeout = e is SocketTimeoutException ||

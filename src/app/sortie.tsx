@@ -43,17 +43,10 @@ import { useTheme } from '@/hooks/use-theme';
 
 type Phase = 'idle' | 'active' | 'paused' | 'saving' | 'save-failed';
 
-/** Cadence du flush incrémental des points GPS vers la base (survie au crash). */
 const FLUSH_INTERVAL_MS = 20_000;
 
 type CadenceSample = { ts: number; cadence: number };
 
-/**
- * Écran de séance tracée au GPS — vélo, course à pied ou marche. Le type vient
- * du paramètre de route (`/sortie?type=course`) et pilote la teinte, le libellé,
- * la table MET des calories et l'unité d'effort (allure à pied, vitesse à vélo).
- * Les capteurs vélo (cadence, vitesse roue) ne s'affichent qu'à vélo.
- */
 export default function SortieScreen() {
   useKeepAwake();
   const theme = useTheme();
@@ -61,7 +54,6 @@ export default function SortieScreen() {
   const type = toActivityType(typeParam);
   const meta = ACTIVITY_META[type];
   const color = theme[meta.colorKey];
-  // À pied, l'effort se lit en min/km ; à vélo en km/h.
   const pace = usesPace(type);
   const insets = useSafeAreaInsets();
   const contentStyle = useScreenContentStyle();
@@ -82,17 +74,10 @@ export default function SortieScreen() {
   const [profileMaxHr, setProfileMaxHr] = useState(190);
   const phaseRef = useRef<Phase>('idle');
   const startedAtRef = useRef<number>(0);
-  // Id de la séance, créée dès le `begin()` (endedAt NULL = « en cours ») : les
-  // points sont flushés en base au fil de l'eau, donc un crash/kill ne perd plus
-  // toute la sortie (récupérée au prochain lancement, cf. session-recovery).
   const sessionIdRef = useRef<number | null>(null);
   const hrSamplesRef = useRef<HrSample[]>([]);
   const cadenceSamplesRef = useRef<CadenceSample[]>([]);
-  // Résultat figé de gps.stop() : un réessai après un échec d'enregistrement ne
-  // doit pas re-stopper le GPS ni risquer de repartir d'un tracé vidé.
   const savedResultRef = useRef<ReturnType<typeof gps.stop> | null>(null);
-  // Garde anti-recouvrement du flush incrémental (un flush lent ne doit pas se
-  // superposer au suivant, ni au flush final).
   const flushingRef = useRef(false);
 
   const hasCadenceSensor = cscDevices.length > 0 || cadenceRpm != null;
@@ -109,11 +94,6 @@ export default function SortieScreen() {
     phaseRef.current = phase;
   }, [phase]);
 
-  // Échantillonnage des capteurs BLE pendant l'effort. On s'abonne aux trames
-  // brutes plutôt qu'à `bpm`/`cadenceRpm` : React déduplique les setStates
-  // identiques, ce qui ferait perdre les trames d'un palier (FC stable,
-  // cadence stable) et appauvrirait la moyenne ainsi que l'attachement
-  // FC↔point GPS.
   useEffect(() => {
     return subscribeHr((sample) => {
       if (phaseRef.current !== 'active') return;
@@ -130,9 +110,6 @@ export default function SortieScreen() {
   }, [subscribeCsc]);
 
   const begin = async () => {
-    // Demande best-effort de la permission notifications (Android 13+) : sans
-    // elle, la notification du service GPS de premier plan est masquée du volet
-    // (l'enregistrement continue mais sans indicateur ni retour en un tap).
     ensureNotificationPermission();
     const res = await gps.start();
     if (res !== 'granted') {
@@ -145,9 +122,6 @@ export default function SortieScreen() {
       return;
     }
     const startedAt = nowMs();
-    // Crée la séance immédiatement (endedAt NULL = en cours, déjà exclue de
-    // l'historique et des stats). Si la base échoue, on ne démarre pas : mieux
-    // vaut un refus clair qu'une sortie qu'on croit enregistrer sans filet.
     let id: number;
     try {
       id = await createSession(type, startedAt);
@@ -169,7 +143,6 @@ export default function SortieScreen() {
     setPhase('active');
   };
 
-  // Attache la FC et la cadence les plus proches à un lot de points GPS.
   const attachSensors = (points: { ts: number; lat: number; lon: number; altitude: number | null; speedKmh: number | null }[]) =>
     points.map((p) => ({
       ts: p.ts,
@@ -181,9 +154,6 @@ export default function SortieScreen() {
       cadence: nearestSample(cadenceSamplesRef.current, p.ts, (s) => s.cadence),
     }));
 
-  // Flush incrémental : écrit les points GPS accumulés depuis le dernier flush.
-  // Best-effort — un échec n'est pas grave, l'enregistrement final réécrit
-  // l'intégralité du tracé (finalizeSession est idempotent).
   const flush = async () => {
     const id = sessionIdRef.current;
     if (id == null || flushingRef.current) return;
@@ -193,13 +163,11 @@ export default function SortieScreen() {
     try {
       await insertTrackPoints(id, attachSensors(pts));
     } catch {
-      // Points perdus pour la survie au crash uniquement ; réécrits à la fin.
     } finally {
       flushingRef.current = false;
     }
   };
 
-  // Flush périodique tant que la sortie est active.
   useEffect(() => {
     if (phase !== 'active') return;
     const timer = setInterval(() => {
@@ -213,7 +181,7 @@ export default function SortieScreen() {
     watch.pause();
     gps.setPaused(true);
     setPhase('paused');
-    flush(); // persiste sans attendre le prochain tick
+    flush();
   };
 
   const resume = () => {
@@ -223,8 +191,6 @@ export default function SortieScreen() {
   };
 
   const finish = () => {
-    // Garde de réentrance : ne pas empiler deux confirmations (double-tap) ni
-    // relancer un enregistrement déjà en cours.
     if (phase === 'saving') return;
     Alert.alert('Terminer la sortie ?', 'La séance sera enregistrée.', [
       { text: 'Continuer', style: 'cancel' },
@@ -233,24 +199,18 @@ export default function SortieScreen() {
   };
 
   const save = async () => {
-    if (phaseRef.current === 'saving') return; // réentrance
+    if (phaseRef.current === 'saving') return;
     const id = sessionIdRef.current;
     if (id == null) return;
     setPhase('saving');
-    // Figé au premier appel : un réessai réutilise le même tracé/agrégats.
     const result = savedResultRef.current ?? gps.stop();
     savedResultRef.current = result;
     watch.pause();
-    // Durée lue en direct (pas la valeur figée du state) au moment du « Terminer ».
     const durationSec = watch.getElapsedSec();
     const { avgHr, maxHr } = summarizeHr(hrSamplesRef.current);
     const { avgCadence, maxCadence } = summarizeCadence(
       cadenceSamplesRef.current.map((s) => s.cadence),
     );
-    // Temps en mouvement (hors arrêts) déduit du tracé : sert de base à la
-    // vitesse moyenne et aux calories pour qu'un arrêt prolongé (ou un chrono
-    // oublié) ne les fausse pas. Borné à la durée totale (le mouvement ne peut
-    // pas dépasser le temps écoulé). À défaut de tracé, on retombe sur la durée.
     const moving = Math.min(movingTimeSec(result.points), durationSec);
     const effectiveSec = moving > 0 ? moving : durationSec;
     const avgSpeedKmh =
@@ -268,9 +228,6 @@ export default function SortieScreen() {
     try {
       const endedAt = nowMs();
       const points = attachSensors(result.points);
-      // Écriture atomique : réécrit tout le tracé + agrégats + endedAt dans une
-      // seule transaction, en réutilisant l'id créé au démarrage (pas de
-      // doublon au réessai, pas de séance visible sans points).
       await finalizeSession(
         id,
         {
@@ -298,13 +255,9 @@ export default function SortieScreen() {
         calories,
         hrSamples: hrSamplesRef.current,
       });
-      sessionIdRef.current = null; // enregistrée : plus d'orpheline à récupérer
+      sessionIdRef.current = null;
       router.replace({ pathname: '/session/[id]', params: { id } });
     } catch {
-      // Échec d'écriture : phase dédiée (Réessayer / Abandonner). Surtout PAS de
-      // « Reprendre » — le GPS est déjà arrêté, reprendre roulerait sans tracer.
-      // La séance reste en base (endedAt NULL) : récupérable au pire au prochain
-      // lancement, et un réessai réécrit tout proprement.
       setPhase('save-failed');
       Alert.alert(
         "Échec de l'enregistrement",
@@ -318,7 +271,7 @@ export default function SortieScreen() {
       router.back();
       return;
     }
-    if (phase === 'saving') return; // pas d'abandon en plein enregistrement
+    if (phase === 'saving') return;
     Alert.alert('Abandonner la sortie ?', 'Les données ne seront pas enregistrées.', [
       { text: 'Continuer', style: 'cancel' },
       {
@@ -326,8 +279,6 @@ export default function SortieScreen() {
         style: 'destructive',
         onPress: () => {
           gps.stop();
-          // Supprime la séance en cours pour qu'elle ne soit pas « récupérée »
-          // au prochain lancement (best-effort, local).
           const id = sessionIdRef.current;
           sessionIdRef.current = null;
           if (id != null) deleteSession(id).catch(() => {});
@@ -337,9 +288,6 @@ export default function SortieScreen() {
     ]);
   };
 
-  // Abandon depuis la phase « échec d'enregistrement » : la sortie est finie,
-  // on supprime la séance en cours (sinon elle serait récupérée au prochain
-  // lancement) et on quitte, sans reconfirmation (l'utilisateur a choisi).
   const discardAfterFailure = () => {
     const id = sessionIdRef.current;
     sessionIdRef.current = null;
@@ -347,9 +295,6 @@ export default function SortieScreen() {
     router.back();
   };
 
-  // Le bouton retour matériel (Android) doit suivre le même chemin que la croix
-  // (confirmation d'abandon), sinon il quitterait la modale en perdant la sortie
-  // en cours et en laissant le suivi GPS actif (batterie). Cf. muscu.tsx.
   const discardRef = useRef(discard);
   useEffect(() => {
     discardRef.current = discard;
@@ -362,8 +307,6 @@ export default function SortieScreen() {
     return () => sub.remove();
   }, []);
 
-  // Filet de sécurité : si l'écran est démonté par un chemin imprévu, on coupe
-  // le suivi GPS pour ne pas laisser `watchPositionAsync` tourner en fond.
   useEffect(() => {
     const stop = gps.stop;
     return () => {
@@ -371,9 +314,6 @@ export default function SortieScreen() {
     };
   }, [gps.stop]);
 
-  // Calories live estimées avec la vitesse MOYENNE (distance / temps écoulé),
-  // pas la vitesse instantanée : sinon la tuile bondit (~280 → ~1100 kcal) sur
-  // un simple sprint, alors que l'estimation doit refléter l'effort cumulé.
   const liveAvgSpeedKmh =
     watch.elapsedSec > 0 ? gps.distanceM / 1000 / (watch.elapsedSec / 3600) : 0;
   const liveCalories = estimateCalories({
@@ -392,7 +332,6 @@ export default function SortieScreen() {
           paddingBottom: insets.bottom + 120,
           gap: 16,
         }}>
-        {/* En-tête */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <PressableScale
             onPress={discard}
@@ -409,7 +348,6 @@ export default function SortieScreen() {
           <View style={{ width: 26 }} />
         </View>
 
-        {/* Chrono */}
         <View style={{ alignItems: 'center', paddingVertical: 8 }}>
           <Text style={{ ...Type.overline, color }}>Durée</Text>
           <Text selectable maxFontSizeMultiplier={1.2} style={{ ...Type.metricLg, color: theme.text }}>
@@ -418,8 +356,6 @@ export default function SortieScreen() {
           <GpsStatusPill status={gps.status} accuracyM={gps.accuracyM} phase={phase} />
         </View>
 
-        {/* Statistiques live — Vitesse en hero (valeur clé à lire d'un coup d'œil
-            en mouvement), puis Distance et Cardio, le reste en compact. */}
         <Card>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20 }}>
             <StatTile
@@ -483,9 +419,6 @@ export default function SortieScreen() {
           </View>
         </Card>
 
-        {/* Tracé GPS en temps réel (lecture passive : aucun geste pendant l'effort).
-            Tant qu'il n'y a pas assez de points, on montre un cadre d'attente
-            plutôt que rien — sinon la carte semble absente à l'arrêt/en intérieur. */}
         {phase !== 'idle' ? (
           gps.livePath.length >= 2 ? (
             <RouteMap points={gps.livePath} live color={color} height={220} />
@@ -495,7 +428,6 @@ export default function SortieScreen() {
         ) : null}
       </ScrollView>
 
-      {/* Contrôles */}
       <View
         style={{
           position: 'absolute',
@@ -524,9 +456,6 @@ export default function SortieScreen() {
             />
           </View>
         ) : phase === 'save-failed' ? (
-          // Écriture échouée : uniquement Réessayer / Abandonner. Pas de reprise
-          // possible — le GPS est arrêté, la sortie est finie, seule l'écriture
-          // a raté.
           <>
             <View style={{ flex: 1 }}>
               <Button
@@ -553,8 +482,6 @@ export default function SortieScreen() {
                 onPress={phase === 'paused' ? resume : pause}
               />
             </View>
-            {/* Terminer (action engageante) reçoit plus de poids que Pause pour
-                réduire le risque d'appui par erreur en plein effort. */}
             <View style={{ flex: 1.4 }}>
               <Button
                 title="Terminer"
@@ -571,7 +498,6 @@ export default function SortieScreen() {
   );
 }
 
-/** Cadre d'attente affiché tant que le tracé live n'a pas assez de points. */
 function MapPlaceholder({ status }: { status: ReturnType<typeof useGpsTracker>['status'] }) {
   const theme = useTheme();
   const label =

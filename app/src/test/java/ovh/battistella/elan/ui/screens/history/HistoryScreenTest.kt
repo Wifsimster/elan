@@ -84,7 +84,6 @@ class HistoryScreenTest {
         compose.onNodeWithText("Course à pied").performClick()
         assertTrue(opened != null)
 
-        // Filtre « Muscu » : aucune séance ne correspond → état vide filtré, sans import.
         compose.onNodeWithText("Muscu").performClick()
         compose.waitForIdle()
         compose.onNodeWithText(text(R.string.history_empty_filtered_title)).assertIsDisplayed()
@@ -103,7 +102,6 @@ class HistoryScreenTest {
         compose.onNodeWithText("Course à pied").assertIsDisplayed()
 
         compose.onNodeWithContentDescription(text(R.string.history_search_placeholder)).performTextInput("gali")
-        // Sous le délai de 200 ms, la liste ne bouge pas.
         ShadowLooper.idleMainLooper(100, TimeUnit.MILLISECONDS)
         compose.waitForIdle()
         compose.onNodeWithText("Course à pied").assertIsDisplayed()

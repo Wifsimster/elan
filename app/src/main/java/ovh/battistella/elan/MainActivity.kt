@@ -35,11 +35,6 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var migrationGate: MigrationGate
     @Inject lateinit var trackingController: TrackingController
 
-    /**
-     * Route demandée par l'intent (notification de séance, lien profond) et pas
-     * encore ouverte. Consommée par [ElanRoot] une fois la migration passée ;
-     * sauvegardée avec l'instance pour survivre à une recréation entre-temps.
-     */
     private val pendingRoute = MutableStateFlow<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,16 +43,12 @@ class MainActivity : ComponentActivity() {
         pendingRoute.value = if (savedInstanceState == null) {
             routeFrom(intent)
         } else {
-            // L'intent de lancement a déjà été consommé par l'instance précédente.
             savedInstanceState.getString(STATE_PENDING_ROUTE)
         }
         setContent {
-            // Le thème suit le mode sombre du système ; un réglage explicite
-            // (clair / sombre / système) viendra avec SettingsRepository.
             val darkTheme = isSystemInDarkTheme()
             val migration by migrationGate.state.collectAsStateWithLifecycle()
             val route by pendingRoute.collectAsStateWithLifecycle()
-            // L'écran de migration est sombre quel que soit le thème.
             val darkBars = darkTheme || migration != MigrationState.Ready
             LaunchedEffect(darkBars) { window.setSystemBarsAppearance(darkBars) }
             ElanTheme(darkTheme = darkTheme) {
@@ -73,8 +64,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 } else {
-                    // Tant que l'ancienne base n'est pas reprise, aucun écran
-                    // ne doit lire une base à moitié remplie.
                     MigrationScreen(
                         state = migration,
                         onRetry = { migrationGate.retry() },
@@ -85,7 +74,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Activité `singleTop` : un appui sur la notification arrive ici, sans recréation. */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -98,7 +86,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun routeFrom(intent: Intent?): String? {
-        // Health Connect demande d'afficher la justification des permissions.
         if (intent?.action in HealthConnectManager.RATIONALE_ACTIONS) return Routes.HEALTH_RATIONALE
         val outing = trackingController.state.value
         return intent?.let { openRouteFor(it, outing.type, outing.isLive) }
