@@ -40,7 +40,9 @@ Aucun commentaire dans le code (décision du 2026-10-29) : ils vieillissent et
 Seules exceptions : les directives d'outils qui changent un comportement
 (`eslint-disable*`, `@ts-expect-error`, `/// <reference`, shebang,
 `//noinspection`, `# shellcheck`, `noqa`, commentaires magiques de bundler) et
-les en-têtes de licence. Fichiers générés et Markdown intacts.
+les en-têtes de licence. Fichiers générés (par exemple `MdiIcons.kt`, produit par
+`scripts/gen-mdi-icons.mjs`) et Markdown intacts : les modifier à la main
+les désynchronise de leur générateur.
 
 ## Langue
 
